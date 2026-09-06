@@ -1,0 +1,24 @@
+{
+  "name": "toranj-clinic",
+  "private": true,
+  "version": "0.1.0",
+  "description": "سامانه مدیریت کلینیک کاردرمانی - اپلیکیشن، سایت و پنل‌های مدیریت، درمانگر، منشی و بیمار",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "pnpm install && pnpm db:push && pnpm db:seed",
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"pnpm --filter @toranj/api dev\" \"pnpm --filter @toranj/web dev\"",
+    "build": "pnpm --filter @toranj/api build && pnpm --filter @toranj/web build",
+    "start": "concurrently -k -n api,web -c cyan,magenta \"pnpm --filter @toranj/api start\" \"pnpm --filter @toranj/web start\"",
+    "db:push": "pnpm --filter @toranj/api db:push",
+    "db:seed": "pnpm --filter @toranj/api db:seed",
+    "db:studio": "pnpm --filter @toranj/api db:studio",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

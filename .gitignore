@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.next/
+out/
+*.log
+.DS_Store
+.env
+.env.local
+apps/api/data/*.db
+apps/api/data/*.db-journal
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+.turbo/
+coverage/

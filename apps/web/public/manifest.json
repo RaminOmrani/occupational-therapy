@@ -1,0 +1,12 @@
+{
+  "name": "کلینیک کاردرمانی ترنج",
+  "short_name": "کلینیک ترنج",
+  "description": "پنل بیماران و همکاران کلینیک کاردرمانی",
+  "start_url": "/panel",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "fa",
+  "background_color": "#f7f5f0",
+  "theme_color": "#0f8b8d",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

@@ -1,0 +1,515 @@
+// دیتابیس پیش‌فرض SQLite است تا بدون هیچ تنظیم اضافه اجرا شود.
+// برای PostgreSQL کافی است provider و url را تغییر دهید و `pnpm db:push` بزنید.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/clinic.db"
+}
+
+// ---------- کاربران و نقش‌ها ----------
+model User {
+  id           String   @id @default(cuid())
+  phone        String   @unique
+  passwordHash String?
+  role         String // ADMIN | THERAPIST | SECRETARY | PATIENT
+  firstName    String
+  lastName     String
+  avatar       String?
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  therapist     Therapist?
+  patient       Patient?
+  otpCodes      OtpCode[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  articles      Article[]
+  appointmentsCreated Appointment[] @relation("AppointmentCreatedBy")
+  paymentsReceived    Payment[]     @relation("PaymentReceivedBy")
+  walletTxCreated     WalletTransaction[] @relation("WalletTxCreatedBy")
+  smsCampaigns        SmsCampaign[]
+  leadsAssigned       Lead[]        @relation("LeadAssignedTo")
+  dailyLogs           DailyPerformance[]
+  feedbackReplies     Feedback[]    @relation("FeedbackRepliedBy")
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model Therapist {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty   String?
+  bio         String?
+  licenseNo   String?
+  color       String  @default("#0F8B8D")
+  isPublic    Boolean @default(true)
+  sessionPrice Int?
+  workDays    String  @default("[0,1,2,3,4,6]") // JSON: روزهای کاری (0=یکشنبه ... 6=شنبه)
+  sortOrder   Int     @default(0)
+
+  patients      Patient[]
+  appointments  Appointment[]
+  intakeForms   IntakeForm[]
+  assessments   Assessment[]
+  progressNotes ProgressNote[]
+  goals         TreatmentGoal[]
+  homePrograms  HomeProgram[]
+}
+
+// ---------- بیماران ----------
+model Patient {
+  id                 String    @id @default(cuid())
+  fileNumber         String    @unique
+  userId             String?   @unique
+  user               User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  firstName          String
+  lastName           String
+  phone              String
+  birthDate          DateTime?
+  gender             String?
+  nationalId         String?
+  guardianName       String?
+  guardianPhone      String?
+  address            String?
+  referralSource     String?
+  diagnosis          String?
+  notes              String?
+  status             String    @default("ACTIVE") // ACTIVE | DISCHARGED | ARCHIVED
+  primaryTherapistId String?
+  primaryTherapist   Therapist? @relation(fields: [primaryTherapistId], references: [id], onDelete: SetNull)
+  leadId             String?    @unique
+  lead               Lead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  tags               String     @default("[]") // JSON string[]
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  appointments   Appointment[]
+  intakeForms    IntakeForm[]
+  assessments    Assessment[]
+  progressNotes  ProgressNote[]
+  dailyLogs      DailyPerformance[]
+  invoices       Invoice[]
+  payments       Payment[]
+  walletTxs      WalletTransaction[]
+  discounts      Discount[]
+  feedbacks      Feedback[]
+  goals          TreatmentGoal[]
+  homePrograms   HomeProgram[]
+  documents      Document[]
+
+  @@index([lastName, firstName])
+  @@index([phone])
+  @@index([status])
+}
+
+// ---------- CRM / لیدها ----------
+model Lead {
+  id           String    @id @default(cuid())
+  leadNumber   String    @unique
+  firstName    String
+  lastName     String
+  phone        String
+  source       String    @default("PHONE")
+  status       String    @default("NEW") // NEW | CONTACTED | INTERESTED | CONVERTED | LOST
+  interest     String?
+  notes        String?
+  followUpAt   DateTime?
+  assignedToId String?
+  assignedTo   User?     @relation("LeadAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  patient      Patient?
+  activities   LeadActivity[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([phone])
+  @@index([status])
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String   @default("NOTE") // NOTE | CALL | SMS | STATUS
+  content   String
+  byName    String?
+  createdAt DateTime @default(now())
+}
+
+// ---------- نوبت‌دهی ----------
+model Appointment {
+  id                String    @id @default(cuid())
+  patientId         String
+  patient           Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId       String
+  therapist         Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  startAt           DateTime
+  endAt             DateTime
+  status            String    @default("SCHEDULED") // SCHEDULED | CONFIRMED | DONE | CANCELLED | NO_SHOW
+  room              String?
+  notes             String?
+  price             Int?
+  createdById       String?
+  createdBy         User?     @relation("AppointmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  fixedAt           DateTime?
+  smsFixedSentAt    DateTime?
+  smsReminderSentAt DateTime?
+  invoiceId         String?
+  invoice           Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  progressNotes     ProgressNote[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([startAt])
+  @@index([therapistId, startAt])
+  @@index([patientId, startAt])
+}
+
+// ---------- فرم‌های بالینی ----------
+model IntakeForm {
+  id              String    @id @default(cuid())
+  patientId       String
+  patient         Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId     String
+  therapist       Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  date            DateTime  @default(now())
+  chiefComplaint  String
+  historyPresent  String?
+  medicalHistory  String?
+  medications     String?
+  familyHistory   String?
+  developmental   String?
+  socialHistory   String?
+  precautions     String?
+  previousTherapy String?
+  expectations    String?
+  diagnosis       String?
+  plan            String?
+  visibleToPatient Boolean  @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([patientId, date])
+}
+
+model Assessment {
+  id              String    @id @default(cuid())
+  patientId       String
+  patient         Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId     String
+  therapist       Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  type            String // PHYSICAL | PERCEPTUAL_MOTOR | COGNITIVE
+  date            DateTime  @default(now())
+  items           String    @default("[]") // JSON AssessmentItemValue[]
+  score           Int       @default(0)
+  maxScore        Int       @default(0)
+  summary         String?
+  recommendations String?
+  visibleToPatient Boolean  @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([patientId, type, date])
+}
+
+model ProgressNote {
+  id            String       @id @default(cuid())
+  patientId     String
+  patient       Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId   String
+  therapist     Therapist    @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  date          DateTime     @default(now())
+  sessionNumber Int?
+  subjective    String?
+  objective     String?
+  assessment    String?
+  plan          String?
+  activities    String?
+  progressScore Int? // ۱ تا ۱۰
+  cooperation   Int? // ۱ تا ۵
+  homework      String?
+  visibleToPatient Boolean   @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([patientId, date])
+}
+
+model DailyPerformance {
+  id           String   @id @default(cuid())
+  therapistUserId String
+  therapist    User     @relation(fields: [therapistUserId], references: [id], onDelete: Cascade)
+  patientId    String?
+  patient      Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  date         DateTime
+  sessionsDone Int      @default(0)
+  activities   String
+  achievements String?
+  challenges   String?
+  mood         Int? // ۱ تا ۵
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([therapistUserId, date])
+}
+
+model TreatmentGoal {
+  id          String    @id @default(cuid())
+  patientId   String
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId String
+  therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  category    String? // PHYSICAL | PERCEPTUAL_MOTOR | COGNITIVE | ADL | OTHER
+  targetDate  DateTime?
+  progress    Int       @default(0) // ۰ تا ۱۰۰
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model HomeProgram {
+  id          String    @id @default(cuid())
+  patientId   String
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId String
+  therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  frequency   String?
+  videoUrl    String?
+  isActive    Boolean   @default(true)
+  completions String    @default("[]") // JSON: تاریخ‌های انجام (YYYY-MM-DD)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title      String
+  fileUrl    String
+  mimeType   String?
+  size       Int?
+  createdAt  DateTime @default(now())
+}
+
+// ---------- مالی ----------
+model Invoice {
+  id        String    @id @default(cuid())
+  number    String    @unique
+  patientId String
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date      DateTime  @default(now())
+  dueDate   DateTime?
+  items     String    @default("[]") // JSON {title, qty, unitPrice}[]
+  subtotal  Int       @default(0)
+  discount  Int       @default(0)
+  discountNote String?
+  total     Int       @default(0)
+  paid      Int       @default(0)
+  status    String    @default("ISSUED") // DRAFT | ISSUED | PARTIAL | PAID | CANCELLED
+  notes     String?
+  appointments Appointment[]
+  payments  Payment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([patientId, date])
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  invoiceId    String?
+  invoice      Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  amount       Int
+  method       String   @default("CASH")
+  reference    String?
+  note         String?
+  date         DateTime @default(now())
+  receivedById String?
+  receivedBy   User?    @relation("PaymentReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([patientId, date])
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  amount      Int // مثبت = افزایش اعتبار، منفی = کاهش
+  type        String // DEPOSIT | WITHDRAW | CHARGE | REFUND | GIFT | ADJUST
+  description String?
+  createdById String?
+  createdBy   User?    @relation("WalletTxCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([patientId, createdAt])
+}
+
+model Discount {
+  id         String    @id @default(cuid())
+  patientId  String?
+  patient    Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title      String
+  percent    Int? // درصد
+  amount     Int? // مبلغ ثابت
+  reason     String?
+  validFrom  DateTime?
+  validTo    DateTime?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+}
+
+// ---------- انتقادات و پیشنهادات ----------
+model Feedback {
+  id          String    @id @default(cuid())
+  patientId   String?
+  patient     Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  guestName   String?
+  guestPhone  String?
+  type        String    @default("SUGGESTION") // COMPLAINT | SUGGESTION | PRAISE
+  subject     String
+  message     String
+  rating      Int?
+  status      String    @default("OPEN") // OPEN | REVIEWED | RESOLVED
+  reply       String?
+  repliedById String?
+  repliedBy   User?     @relation("FeedbackRepliedBy", fields: [repliedById], references: [id], onDelete: SetNull)
+  repliedAt   DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// ---------- سایت عمومی ----------
+model Article {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  excerpt     String?
+  content     String
+  coverImage  String?
+  category    String?
+  tags        String    @default("[]")
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  views       Int       @default(0)
+  authorId    String?
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([published, publishedAt])
+}
+
+// ---------- پیامک ----------
+model SmsTemplate {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  body        String
+  variables   String   @default("[]") // JSON string[]
+  patternCode String? // bodyId ملی‌پیامک
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model SmsCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  body        String
+  filters     String   @default("{}")
+  total       Int      @default(0)
+  sent        Int      @default(0)
+  failed      Int      @default(0)
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  logs        SmsLog[]
+  createdAt   DateTime @default(now())
+}
+
+model SmsLog {
+  id          String   @id @default(cuid())
+  to          String
+  body        String
+  templateKey String?
+  status      String   @default("PENDING") // PENDING | SENT | FAILED | MOCK
+  provider    String?
+  providerId  String?
+  error       String?
+  relatedType String? // patient | lead | appointment | user
+  relatedId   String?
+  campaignId  String?
+  campaign    SmsCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([to, createdAt])
+  @@index([relatedType, relatedId])
+}
+
+// ---------- تنظیمات و سیستم ----------
+model Setting {
+  key         String  @id
+  value       String
+  group       String  @default("general")
+  label       String?
+  description String?
+  type        String  @default("text")
+  secret      Boolean @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+model Counter {
+  name  String @id
+  value Int    @default(0)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  meta      String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
