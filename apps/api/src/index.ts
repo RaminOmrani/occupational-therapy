@@ -1,3 +1,6 @@
+// منطقه زمانی پیش‌فرض کلینیک (برای تاریخ شمسی، ساعت نوبت‌ها و زمان‌بندی پیامک‌ها)
+process.env.TZ = process.env.TZ || "Asia/Tehran";
+
 import { createApp } from "./app.js";
 import { ensureDefaultSettings } from "./lib/settings.js";
 import { ensureDefaultTemplates } from "./lib/sms/service.js";

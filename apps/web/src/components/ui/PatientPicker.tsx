@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   value: string | null;
-  onChange: (id: string | null, patient?: { id: string; fullName: string; fileNumber: string; primaryTherapistId: string | null }) => void;
+  onChange: (id: string | null, patient?: { id: string; fullName: string; fileNumber: string; phone: string; primaryTherapistId: string | null }) => void;
   initialLabel?: string;
   className?: string;
   disabled?: boolean;

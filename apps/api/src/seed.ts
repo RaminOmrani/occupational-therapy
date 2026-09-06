@@ -6,6 +6,7 @@
  *   درمانگر:  09120000003 / admin1234   و   09120000004 / admin1234
  *   بیمار:    09120000010 / OT-00001 (یا ورود با کد پیامکی)
  */
+process.env.TZ = process.env.TZ || "Asia/Tehran";
 import { assessmentScore, ASSESSMENT_TEMPLATES, jalaliToDate, type AssessmentType } from "@toranj/shared";
 import { prisma } from "./lib/prisma.js";
 import { hashPassword } from "./lib/auth.js";

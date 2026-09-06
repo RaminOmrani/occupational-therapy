@@ -6,6 +6,8 @@ import type { Config } from "tailwindcss";
  */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}", "../../packages/shared/src/**/*.ts"],
+  // کلاس‌های رنگی که به‌صورت پویا ساخته می‌شوند (نوع ارزیابی، وضعیت‌ها)
+  safelist: [{ pattern: /(text|bg|border)-(brand|amber|violet|coral|sage)-(100|400|500|600|700)/ }],
   theme: {
     extend: {
       fontFamily: { sans: ["Vazirmatn", "system-ui", "sans-serif"] },

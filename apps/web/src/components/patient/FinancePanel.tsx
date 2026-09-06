@@ -1,0 +1,217 @@
+"use client";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import Link from "next/link";
+import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2 } from "lucide-react";
+import { formatJalali, formatMoney, toPersianDigits, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, WALLET_TX_TYPES, WALLET_TX_LABELS } from "@toranj/shared";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { Button, Card, EmptyState, Field, Input, Modal, Select, Spinner, Stat, Tabs, Textarea, Toggle, useConfirm } from "@/components/ui";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker";
+
+export function FinancePanel({ patientId }: { patientId: string }) {
+  const { user } = useAuth();
+  const canEdit = user?.role === "ADMIN" || user?.role === "SECRETARY";
+  const isAdmin = user?.role === "ADMIN";
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ["finance", patientId], queryFn: () => api.get<any>(`/finance/patients/${patientId}`) });
+  const [tab, setTab] = useState<"invoices" | "payments" | "wallet" | "discounts">("invoices");
+  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | null>(null);
+  const { confirm, dialog } = useConfirm();
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["finance", patientId] }); qc.invalidateQueries({ queryKey: ["patient", patientId] }); };
+  if (isLoading || !data) return <Spinner />;
+  const s = data.summary;
+  const cur = data.currency;
+
+  const debtReminder = async () => {
+    try { await api.post(`/finance/patients/${patientId}/debt-reminder`); toast.success("پیامک یادآوری بدهی ارسال شد"); } catch (e: any) { toast.error(e.message); }
+  };
+  const deletePayment = async (id: string) => {
+    if (!(await confirm("این پرداخت حذف شود؟ مانده حساب بیمار تغییر می‌کند."))) return;
+    try { await api.delete(`/finance/payments/${id}`); toast.success("حذف شد"); refresh(); } catch (e: any) { toast.error(e.message); }
+  };
+
+  return (
+    <div className="space-y-5">
+      {dialog}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label={s.balance > 0 ? "بدهکاری" : s.balance < 0 ? "بستانکاری" : "مانده حساب"} value={s.balance === 0 ? "تسویه ✅" : formatMoney(Math.abs(s.balance), cur)} tone={s.balance > 0 ? "coral" : "sage"} icon={<Receipt className="h-6 w-6" />} hint={s.overdueAmount > 0 ? `سررسید گذشته: ${formatMoney(s.overdueAmount, cur)}` : s.nextDueDate ? `مهلت بعدی: ${formatJalali(s.nextDueDate)}` : undefined} />
+        <Stat label="کیف پول" value={formatMoney(s.walletBalance, cur)} tone="brand" icon={<Wallet className="h-6 w-6" />} />
+        <Stat label="مجموع پرداختی" value={formatMoney(s.totalPaid, cur)} tone="violet" icon={<Receipt className="h-6 w-6" />} hint={`${toPersianDigits(data.payments.length)} تراکنش`} />
+        <Stat label="مجموع تخفیف" value={formatMoney(s.totalDiscount, cur)} tone="amber" icon={<Percent className="h-6 w-6" />} hint={`${toPersianDigits(s.openInvoices)} صورت‌حساب باز`} />
+      </div>
+      {canEdit && (
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setModal("payment")} icon={<Plus className="h-4 w-4" />}>ثبت پرداخت</Button>
+          <Button variant="secondary" onClick={() => setModal("invoice")} icon={<Receipt className="h-4 w-4" />}>صورت‌حساب جدید</Button>
+          <Button variant="secondary" onClick={() => setModal("wallet")} icon={<Wallet className="h-4 w-4" />}>تراکنش کیف پول</Button>
+          <Button variant="secondary" onClick={() => setModal("discount")} icon={<Percent className="h-4 w-4" />}>تخفیف</Button>
+          {s.balance > 0 && <Button variant="ghost" onClick={debtReminder} icon={<BellRing className="h-4 w-4" />}>پیامک یادآوری بدهی</Button>}
+          <Link href={`/panel/finance/statement/${patientId}`} className="btn-ghost"><Printer className="h-4 w-4" />صورت‌حساب کلی</Link>
+        </div>
+      )}
+      <Tabs value={tab} onChange={setTab} tabs={[{ key: "invoices", label: "صورت‌حساب‌ها", count: data.invoices.length }, { key: "payments", label: "پرداخت‌ها", count: data.payments.length }, { key: "wallet", label: "کیف پول", count: data.walletTxs.length }, { key: "discounts", label: "تخفیف‌ها", count: data.discounts.length }]} />
+      <Card padded={false} className="overflow-x-auto">
+        {tab === "invoices" && (data.invoices.length ? (
+          <table className="table">
+            <thead><tr><th>شماره</th><th>تاریخ</th><th>سررسید</th><th>مبلغ</th><th>تخفیف</th><th>پرداختی</th><th>مانده</th><th>وضعیت</th><th></th></tr></thead>
+            <tbody>{data.invoices.map((i: any) => (
+              <tr key={i.id}>
+                <td className="num font-medium">{i.number}</td><td className="num">{formatJalali(i.date)}</td><td className="num">{formatJalali(i.dueDate)}</td>
+                <td className="num">{formatMoney(i.total, "")}</td><td className="num text-amber-500">{i.discount ? formatMoney(i.discount, "") : "-"}</td><td className="num text-sage-700">{formatMoney(i.paid, "")}</td>
+                <td className="num font-bold text-coral-600">{i.status === "CANCELLED" ? "-" : formatMoney(i.total - i.paid, "")}</td><td><StatusBadge status={i.status} /></td>
+                <td><Link href={`/panel/finance/invoices/${i.id}`} className="text-xs text-brand-600 hover:underline">مشاهده</Link></td>
+              </tr>))}</tbody>
+          </table>
+        ) : <EmptyState title="صورت‌حسابی وجود ندارد" />)}
+        {tab === "payments" && (data.payments.length ? (
+          <table className="table">
+            <thead><tr><th>تاریخ</th><th>مبلغ</th><th>روش</th><th>صورت‌حساب</th><th>مرجع</th><th>دریافت‌کننده</th><th>توضیح</th>{isAdmin && <th></th>}</tr></thead>
+            <tbody>{data.payments.map((p: any) => (
+              <tr key={p.id}>
+                <td className="num">{formatJalali(p.date)}</td><td className="num font-bold text-sage-700">{formatMoney(p.amount, "")}</td><td>{PAYMENT_METHOD_LABELS[p.method as keyof typeof PAYMENT_METHOD_LABELS] ?? p.method}</td>
+                <td className="num">{p.invoice?.number ?? "-"}</td><td className="num text-xs">{p.reference ?? "-"}</td><td className="text-xs">{p.receivedBy ? `${p.receivedBy.firstName} ${p.receivedBy.lastName}` : "-"}</td><td className="text-xs text-slate-500">{p.note ?? ""}</td>
+                {isAdmin && <td><button onClick={() => deletePayment(p.id)} className="text-coral-500 hover:text-coral-700"><Trash2 className="h-4 w-4" /></button></td>}
+              </tr>))}</tbody>
+          </table>
+        ) : <EmptyState title="پرداختی ثبت نشده" />)}
+        {tab === "wallet" && (data.walletTxs.length ? (
+          <table className="table">
+            <thead><tr><th>تاریخ</th><th>نوع</th><th>مبلغ</th><th>توضیح</th></tr></thead>
+            <tbody>{data.walletTxs.map((t: any) => (
+              <tr key={t.id}><td className="num">{formatJalali(t.createdAt)}</td><td>{WALLET_TX_LABELS[t.type as keyof typeof WALLET_TX_LABELS] ?? t.type}</td><td className={`num font-bold ${t.amount > 0 ? "text-sage-700" : "text-coral-600"}`}>{t.amount > 0 ? "+" : "−"}{formatMoney(Math.abs(t.amount), "")}</td><td className="text-xs text-slate-500">{t.description ?? ""}</td></tr>
+            ))}</tbody>
+          </table>
+        ) : <EmptyState title="تراکنشی در کیف پول نیست" />)}
+        {tab === "discounts" && (data.discounts.length ? (
+          <table className="table">
+            <thead><tr><th>عنوان</th><th>مقدار</th><th>دلیل</th><th>اعتبار</th><th>نوع</th></tr></thead>
+            <tbody>{data.discounts.map((d: any) => (
+              <tr key={d.id}><td className="font-medium">{d.title}</td><td className="num">{d.percent ? `${toPersianDigits(d.percent)}٪` : formatMoney(d.amount ?? 0, cur)}</td><td className="text-xs">{d.reason ?? "-"}</td><td className="num text-xs">{d.validTo ? `تا ${formatJalali(d.validTo)}` : "نامحدود"}</td><td className="text-xs">{d.patientId ? "اختصاصی" : "عمومی"}</td></tr>
+            ))}</tbody>
+          </table>
+        ) : <EmptyState title="تخفیفی ثبت نشده" />)}
+      </Card>
+
+      {modal === "payment" && <PaymentModal patientId={patientId} invoices={data.invoices.filter((i: any) => ["ISSUED", "PARTIAL"].includes(i.status))} walletBalance={s.walletBalance} onClose={() => setModal(null)} onDone={refresh} />}
+      {modal === "invoice" && <InvoiceModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
+      {modal === "wallet" && <WalletModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
+      {modal === "discount" && <DiscountModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
+    </div>
+  );
+}
+
+function PaymentModal({ patientId, invoices, walletBalance, onClose, onDone }: { patientId: string; invoices: any[]; walletBalance: number; onClose: () => void; onDone: () => void }) {
+  const [v, setV] = useState({ amount: "", method: "CASH", invoiceId: "", reference: "", note: "", date: new Date() as Date | null, sendSms: true });
+  const [loading, setLoading] = useState(false);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.post("/finance/payments", { ...v, patientId, amount: Number(v.amount.replace(/[^\d]/g, "")), invoiceId: v.invoiceId || null, date: v.date?.toISOString() });
+      toast.success("پرداخت ثبت شد");
+      onDone();
+      onClose();
+    } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title="ثبت پرداخت" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit as any}>ثبت</Button></>}>
+      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <Field label="مبلغ (تومان)" required><Input value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} className="num" dir="ltr" required autoFocus inputMode="numeric" /></Field>
+        <Field label="روش پرداخت" hint={v.method === "WALLET" ? `موجودی کیف پول: ${formatMoney(walletBalance)}` : undefined}>
+          <Select value={v.method} onChange={(e) => setV({ ...v, method: e.target.value })}>{PAYMENT_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>)}</Select>
+        </Field>
+        <Field label="بابت صورت‌حساب" hint="خالی = قدیمی‌ترین صورت‌حساب باز">
+          <Select value={v.invoiceId} onChange={(e) => setV({ ...v, invoiceId: e.target.value })}><option value="">خودکار</option>{invoices.map((i) => <option key={i.id} value={i.id}>{i.number} — مانده {formatMoney(i.total - i.paid)}</option>)}</Select>
+        </Field>
+        <Field label="تاریخ"><JalaliDatePicker value={v.date} onChange={(d) => setV({ ...v, date: d })} /></Field>
+        <Field label="شماره پیگیری / رسید"><Input value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} dir="ltr" className="num" /></Field>
+        <Field label="توضیح"><Input value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} /></Field>
+        <div className="sm:col-span-2"><Toggle checked={v.sendSms} onChange={(c) => setV({ ...v, sendSms: c })} label="ارسال پیامک رسید پرداخت به بیمار" /></div>
+      </form>
+    </Modal>
+  );
+}
+
+function InvoiceModal({ patientId, onClose, onDone }: { patientId: string; onClose: () => void; onDone: () => void }) {
+  const [items, setItems] = useState([{ title: "جلسه کاردرمانی", qty: 1, unitPrice: 0 }]);
+  const [discount, setDiscount] = useState("");
+  const [discountNote, setDiscountNote] = useState("");
+  const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+  const subtotal = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+  const total = Math.max(0, subtotal - Number(discount || 0));
+  const fromSessions = async () => {
+    setLoading(true);
+    try { await api.post("/finance/invoices/from-sessions", { patientId, discount: Number(discount || 0), discountNote }); toast.success("صورت‌حساب از جلسات انجام‌شده ساخته شد"); onDone(); onClose(); } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
+  };
+  const submit = async () => {
+    setLoading(true);
+    try { await api.post("/finance/invoices", { patientId, items, discount: Number(discount || 0), discountNote, dueDate: dueDate?.toISOString(), notes }); toast.success("صورت‌حساب صادر شد"); onDone(); onClose(); } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title="صورت‌حساب جدید" size="lg" footer={<><Button variant="ghost" loading={loading} onClick={fromSessions}>ساخت خودکار از جلسات فاکتورنشده</Button><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>صدور</Button></>}>
+      <div className="space-y-3">
+        {items.map((it, i) => (
+          <div key={i} className="grid grid-cols-12 gap-2">
+            <Input className="col-span-6" value={it.title} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} placeholder="شرح" />
+            <Input className="num col-span-2" type="number" min={1} value={it.qty} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, qty: Number(e.target.value) } : x)))} />
+            <Input className="num col-span-3" type="number" value={it.unitPrice} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, unitPrice: Number(e.target.value) } : x)))} placeholder="قیمت واحد" />
+            <button type="button" className="col-span-1 text-coral-500" onClick={() => setItems(items.filter((_, j) => j !== i))}><Trash2 className="mx-auto h-4 w-4" /></button>
+          </div>
+        ))}
+        <Button type="button" variant="ghost" size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setItems([...items, { title: "", qty: 1, unitPrice: 0 }])}>افزودن ردیف</Button>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="تخفیف (تومان)"><Input value={discount} onChange={(e) => setDiscount(e.target.value)} className="num" dir="ltr" /></Field>
+          <Field label="دلیل تخفیف"><Input value={discountNote} onChange={(e) => setDiscountNote(e.target.value)} /></Field>
+          <Field label="مهلت پرداخت"><JalaliDatePicker value={dueDate} onChange={setDueDate} /></Field>
+        </div>
+        <Field label="توضیحات"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[50px]" /></Field>
+        <div className="flex justify-between rounded-2xl bg-sand-100 px-4 py-3 text-sm"><span>جمع: <b className="num">{formatMoney(subtotal)}</b></span><span>قابل پرداخت: <b className="num text-brand-700">{formatMoney(total)}</b></span></div>
+      </div>
+    </Modal>
+  );
+}
+
+function WalletModal({ patientId, onClose, onDone }: { patientId: string; onClose: () => void; onDone: () => void }) {
+  const [v, setV] = useState({ amount: "", type: "DEPOSIT", description: "" });
+  const [loading, setLoading] = useState(false);
+  const submit = async () => {
+    setLoading(true);
+    try { await api.post("/finance/wallet", { ...v, patientId, amount: Number(v.amount) }); toast.success("تراکنش کیف پول ثبت شد"); onDone(); onClose(); } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title="تراکنش کیف پول" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>ثبت</Button></>}>
+      <div className="space-y-3">
+        <Field label="نوع"><Select value={v.type} onChange={(e) => setV({ ...v, type: e.target.value })}>{WALLET_TX_TYPES.filter((t) => t !== "CHARGE").map((t) => <option key={t} value={t}>{WALLET_TX_LABELS[t]}</option>)}</Select></Field>
+        <Field label="مبلغ (تومان)"><Input value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} className="num" dir="ltr" autoFocus /></Field>
+        <Field label="توضیح"><Input value={v.description} onChange={(e) => setV({ ...v, description: e.target.value })} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
+function DiscountModal({ patientId, onClose, onDone }: { patientId: string; onClose: () => void; onDone: () => void }) {
+  const [v, setV] = useState({ title: "", percent: "", amount: "", reason: "", validTo: null as Date | null });
+  const [loading, setLoading] = useState(false);
+  const submit = async () => {
+    setLoading(true);
+    try { await api.post("/finance/discounts", { patientId, title: v.title, percent: v.percent ? Number(v.percent) : null, amount: v.amount ? Number(v.amount) : null, reason: v.reason, validTo: v.validTo?.toISOString() ?? null }); toast.success("تخفیف ثبت شد"); onDone(); onClose(); } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title="تخفیف اختصاصی بیمار" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>ثبت</Button></>}>
+      <div className="space-y-3">
+        <Field label="عنوان" required><Input value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} autoFocus /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="درصد"><Input value={v.percent} onChange={(e) => setV({ ...v, percent: e.target.value })} className="num" dir="ltr" /></Field>
+          <Field label="یا مبلغ ثابت"><Input value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} className="num" dir="ltr" /></Field>
+        </div>
+        <Field label="دلیل"><Input value={v.reason} onChange={(e) => setV({ ...v, reason: e.target.value })} /></Field>
+        <Field label="اعتبار تا"><JalaliDatePicker value={v.validTo} onChange={(d) => setV({ ...v, validTo: d })} /></Field>
+      </div>
+    </Modal>
+  );
+}
