@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "setup": "pnpm install && pnpm db:push && pnpm db:seed",
+    "first-run": "pnpm install && pnpm db:push && pnpm db:seed",
     "dev": "concurrently -k -n api,web -c cyan,magenta \"pnpm --filter @toranj/api dev\" \"pnpm --filter @toranj/web dev\"",
     "build": "pnpm --filter @toranj/api build && pnpm --filter @toranj/web build",
     "start": "concurrently -k -n api,web -c cyan,magenta \"pnpm --filter @toranj/api start\" \"pnpm --filter @toranj/web start\"",
