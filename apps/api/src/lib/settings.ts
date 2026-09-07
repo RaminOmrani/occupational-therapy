@@ -71,7 +71,7 @@ export async function getAllSettings(includeSecrets = false) {
 
 /** تنظیمات عمومی که سایت بدون ورود می‌بیند */
 export async function getPublicSettings() {
-  const keys = Object.keys(DEFAULT_SETTINGS).filter((k) => k.startsWith("clinic.") || k.startsWith("public.") || k.startsWith("schedule.") || k === "finance.currency" || k === "crm.birthdayDaysAhead");
+  const keys = Object.keys(DEFAULT_SETTINGS).filter((k) => k.startsWith("clinic.") || k.startsWith("public.") || k.startsWith("schedule.") || k.startsWith("booking.") || k === "payment.provider" || k === "finance.currency" || k === "crm.birthdayDaysAhead" || k === "site.baseUrl");
   const out: Record<string, string> = {};
   for (const k of keys) out[k] = await getSetting(k);
   return out;

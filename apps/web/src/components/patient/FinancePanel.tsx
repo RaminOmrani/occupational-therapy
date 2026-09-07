@@ -1,9 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2 } from "lucide-react";
+import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2, CreditCard } from "lucide-react";
 import { formatJalali, formatMoney, toPersianDigits, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, WALLET_TX_TYPES, WALLET_TX_LABELS } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -18,8 +19,20 @@ export function FinancePanel({ patientId }: { patientId: string }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["finance", patientId], queryFn: () => api.get<any>(`/finance/patients/${patientId}`) });
   const [tab, setTab] = useState<"invoices" | "payments" | "wallet" | "discounts">("invoices");
-  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | null>(null);
+  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | "online" | null>(null);
   const { confirm, dialog } = useConfirm();
+  const sp = useSearchParams();
+  const router = useRouter();
+  const payCfg = useQuery({ queryKey: ["payment-config"], queryFn: () => api.get<any>("/payments/config"), staleTime: 60_000 });
+  useEffect(() => {
+    const st = sp.get("payment");
+    if (!st) return;
+    if (st === "ok") toast.success(`پرداخت آنلاین با موفقیت انجام شد${sp.get("ref") ? ` (کد پیگیری ${sp.get("ref")})` : ""}`);
+    else if (st === "cancelled") toast.info("پرداخت لغو شد");
+    else toast.error("پرداخت ناموفق بود");
+    router.replace(location.pathname);
+    qc.invalidateQueries({ queryKey: ["finance", patientId] });
+  }, [sp, router, qc, patientId]);
   const refresh = () => { qc.invalidateQueries({ queryKey: ["finance", patientId] }); qc.invalidateQueries({ queryKey: ["patient", patientId] }); };
   if (isLoading || !data) return <Spinner />;
   const s = data.summary;
@@ -42,6 +55,14 @@ export function FinancePanel({ patientId }: { patientId: string }) {
         <Stat label="مجموع پرداختی" value={formatMoney(s.totalPaid, cur)} tone="violet" icon={<Receipt className="h-6 w-6" />} hint={`${toPersianDigits(data.payments.length)} تراکنش`} />
         <Stat label="مجموع تخفیف" value={formatMoney(s.totalDiscount, cur)} tone="amber" icon={<Percent className="h-6 w-6" />} hint={`${toPersianDigits(s.openInvoices)} صورت‌حساب باز`} />
       </div>
+      {payCfg.data?.enabled && (user?.role === "PATIENT" || canEdit) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 p-3">
+          <CreditCard className="h-5 w-5 text-brand-700" />
+          <span className="text-sm">پرداخت آنلاین{payCfg.data.sandbox ? " (آزمایشی)" : ""}:</span>
+          {s.balance > 0 && <Button size="sm" onClick={() => setModal("online")}>پرداخت بدهی {formatMoney(s.balance, cur)}</Button>}
+          <Button size="sm" variant="secondary" onClick={() => setModal("online")}>شارژ کیف پول</Button>
+        </div>
+      )}
       {canEdit && (
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setModal("payment")} icon={<Plus className="h-4 w-4" />}>ثبت پرداخت</Button>
@@ -99,6 +120,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
       {modal === "invoice" && <InvoiceModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
       {modal === "wallet" && <WalletModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
       {modal === "discount" && <DiscountModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
+      {modal === "online" && <OnlinePayModal patientId={patientId} balance={s.balance} minAmount={payCfg.data?.minAmount ?? 10000} onClose={() => setModal(null)} />}
     </div>
   );
 }
@@ -211,6 +233,25 @@ function DiscountModal({ patientId, onClose, onDone }: { patientId: string; onCl
         </div>
         <Field label="دلیل"><Input value={v.reason} onChange={(e) => setV({ ...v, reason: e.target.value })} /></Field>
         <Field label="اعتبار تا"><JalaliDatePicker value={v.validTo} onChange={(d) => setV({ ...v, validTo: d })} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
+function OnlinePayModal({ patientId, balance, minAmount, onClose }: { patientId: string; balance: number; minAmount: number; onClose: () => void }) {
+  const [purpose, setPurpose] = useState<"INVOICE" | "WALLET">(balance > 0 ? "INVOICE" : "WALLET");
+  const [amount, setAmount] = useState(String(balance > 0 ? balance : 100000));
+  const [loading, setLoading] = useState(false);
+  const go = async () => {
+    setLoading(true);
+    try { const r = await api.post<{ url: string }>("/payments/start", { patientId, amount: Number(amount.replace(/[^\d]/g, "")), purpose }); window.location.href = r.url; } catch (e: any) { toast.error(e.message); setLoading(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title="پرداخت آنلاین" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={go} icon={<CreditCard className="h-4 w-4" />}>انتقال به درگاه</Button></>}>
+      <div className="space-y-3">
+        <Field label="بابت"><Select value={purpose} onChange={(e) => setPurpose(e.target.value as any)}><option value="INVOICE">پرداخت بدهی / صورت‌حساب</option><option value="WALLET">شارژ کیف پول</option></Select></Field>
+        <Field label="مبلغ (تومان)" hint={`حداقل ${formatMoney(minAmount)}`}><Input value={amount} onChange={(e) => setAmount(e.target.value)} className="num" dir="ltr" autoFocus /></Field>
+        <p className="text-xs text-slate-400">پس از پرداخت موفق در درگاه زرین‌پال، به همین صفحه بازمی‌گردید و مبلغ به‌صورت خودکار ثبت می‌شود.</p>
       </div>
     </Modal>
   );

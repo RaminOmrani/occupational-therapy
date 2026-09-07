@@ -32,7 +32,7 @@ export default async function HomePage() {
             <h1 className="mt-5 text-3xl font-black leading-[1.35] text-brand-900 md:text-5xl md:leading-[1.3]">{s["public.heroTitle"]}</h1>
             <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">{s["public.heroSubtitle"]}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/contact" className="btn-primary px-6 py-3 text-base">رزرو ارزیابی اولیه<ArrowLeft className="h-4 w-4" /></Link>
+              <Link href="/book" className="btn-primary px-6 py-3 text-base">رزرو نوبت آنلاین<ArrowLeft className="h-4 w-4" /></Link>
               <Link href="/login" className="btn-secondary px-6 py-3 text-base">ورود بیماران</Link>
             </div>
             <div className="mt-10 grid max-w-md grid-cols-3 gap-4">
@@ -159,7 +159,7 @@ function HeroIllustration() {
   return (
     <svg viewBox="0 0 400 360" className="w-full drop-shadow-xl" aria-hidden>
       <defs>
-        <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#0f8b8d" /><stop offset="1" stopColor="#13494b" /></linearGradient>
+        <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#178a6e" /><stop offset="1" stopColor="#13494b" /></linearGradient>
         <linearGradient id="g2" x1="0" x2="1"><stop offset="0" stopColor="#f4a261" /><stop offset="1" stopColor="#e76f51" /></linearGradient>
       </defs>
       <rect x="20" y="20" width="360" height="320" rx="40" fill="#fff" />
@@ -187,7 +187,7 @@ function PhoneMock() {
       <p className="font-bold">جلسه بعدی شما</p>
       <div className="mt-2 rounded-2xl bg-brand-600 p-3 text-white">
         <p className="text-xs opacity-80">شنبه ۱۶ شهریور</p>
-        <p className="num text-lg font-bold">۱۰:۰۰ - مریم محمدی</p>
+        <p className="num text-lg font-bold">۱۰:۰۰ - عقیل شجاعی</p>
       </div>
       <p className="mt-4 text-xs font-bold">پیشرفت ارزیابی‌ها</p>
       {[["جسمی", 72, "bg-brand-500"], ["ادراکی-حرکتی", 58, "bg-amber-400"], ["شناختی", 64, "bg-violet-500"]].map(([l, v, c]: any) => (

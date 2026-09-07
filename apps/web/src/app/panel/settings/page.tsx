@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { Settings, Save, Send, Building2, Globe, CalendarDays, Wallet, Users, MessageSquareText, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Tabs, Textarea, Toggle } from "@/components/ui";
+import { BackupsCard } from "@/components/settings/BackupsCard";
 
-const ICONS: Record<string, any> = { clinic: Building2, public: Globe, schedule: CalendarDays, finance: Wallet, crm: Users, sms: MessageSquareText, security: ShieldCheck, general: Settings };
+const ICONS: Record<string, any> = { clinic: Building2, public: Globe, schedule: CalendarDays, finance: Wallet, crm: Users, sms: MessageSquareText, security: ShieldCheck, general: Settings, booking: CalendarDays, payment: Wallet, consent: ShieldCheck };
 
 export default function SettingsPage() {
   const qc = useQueryClient();
@@ -63,6 +64,8 @@ export default function SettingsPage() {
           })}
         </div>
       </Card>
+      {group === "security" && <BackupsCard />}
+      {group === "payment" && <p className="mt-3 text-xs leading-6 text-slate-500">برای دریافت مرچنت زرین‌پال در zarinpal.com ثبت‌نام و درگاه بسازید. تا زمانی که «حالت آزمایشی» فعال است، تراکنش‌ها در محیط sandbox انجام می‌شود و پول واقعی جابه‌جا نمی‌شود. «آدرس سایت» در بخش سایت عمومی باید آدرس واقعی (https) باشد تا بازگشت از درگاه کار کند.</p>}
       <Modal open={testOpen} onClose={() => setTestOpen(false)} title="پیامک آزمایشی" size="sm" footer={<><Button variant="secondary" onClick={() => setTestOpen(false)}>بستن</Button><Button onClick={sendTest} icon={<Send className="h-4 w-4" />}>ارسال</Button></>}>
         <p className="mb-3 text-xs text-slate-500">ابتدا تنظیمات را ذخیره کنید، سپس با تنظیمات ذخیره‌شده پیامک آزمایشی ارسال می‌شود.</p>
         <Field label="شماره گیرنده"><Input value={testTo} onChange={(e) => setTestTo(e.target.value)} dir="ltr" className="num text-left" placeholder="09123456789" /></Field>

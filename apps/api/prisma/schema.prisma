@@ -36,6 +36,7 @@ model User {
   leadsAssigned       Lead[]        @relation("LeadAssignedTo")
   dailyLogs           DailyPerformance[]
   feedbackReplies     Feedback[]    @relation("FeedbackRepliedBy")
+  messagesSent        Message[]
 }
 
 model OtpCode {
@@ -57,7 +58,7 @@ model Therapist {
   specialty   String?
   bio         String?
   licenseNo   String?
-  color       String  @default("#0F8B8D")
+  color       String  @default("#178a6e")
   isPublic    Boolean @default(true)
   sessionPrice Int?
   workDays    String  @default("[0,1,2,3,4,6]") // JSON: روزهای کاری (0=یکشنبه ... 6=شنبه)
@@ -70,6 +71,7 @@ model Therapist {
   progressNotes ProgressNote[]
   goals         TreatmentGoal[]
   homePrograms  HomeProgram[]
+  bookingRequests BookingRequest[]
 }
 
 // ---------- بیماران ----------
@@ -112,6 +114,10 @@ model Patient {
   goals          TreatmentGoal[]
   homePrograms   HomeProgram[]
   documents      Document[]
+  messages       Message[]
+  surveyTokens   SurveyToken[]
+  consents       Consent[]
+  paymentIntents PaymentIntent[]
 
   @@index([lastName, firstName])
   @@index([phone])
@@ -164,6 +170,7 @@ model Appointment {
   room              String?
   notes             String?
   price             Int?
+  source            String    @default("STAFF") // STAFF | WEB
   createdById       String?
   createdBy         User?     @relation("AppointmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   fixedAt           DateTime?
@@ -512,4 +519,88 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([entity, entityId])
+}
+
+// ---------- نوبت‌دهی آنلاین از سایت ----------
+model BookingRequest {
+  id            String    @id @default(cuid())
+  therapistId   String
+  therapist     Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  startAt       DateTime
+  endAt         DateTime
+  firstName     String
+  lastName      String
+  phone         String
+  note          String?
+  status        String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  patientId     String?
+  appointmentId String?
+  handledById   String?
+  handledAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([status, startAt])
+}
+
+// ---------- پیام‌رسانی درمانگر/کلینیک ↔ بیمار ----------
+model Message {
+  id           String   @id @default(cuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  senderUserId String
+  sender       User     @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+  senderRole   String
+  body         String
+  readAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([patientId, createdAt])
+}
+
+// ---------- رضایت‌سنجی خودکار ----------
+model SurveyToken {
+  id           String    @id @default(cuid())
+  token        String    @unique
+  patientId    String
+  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  sessionCount Int
+  sentAt       DateTime  @default(now())
+  usedAt       DateTime?
+  rating       Int?
+  comment      String?
+}
+
+// ---------- رضایت‌نامه با امضای دیجیتال ----------
+model Consent {
+  id            String   @id @default(cuid())
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title         String
+  content       String
+  contentHash   String
+  signerName    String
+  signatureData String // data URL تصویر امضا
+  signedAt      DateTime @default(now())
+  ip            String?
+
+  @@index([patientId, contentHash])
+}
+
+// ---------- پرداخت آنلاین ----------
+model PaymentIntent {
+  id        String    @id @default(cuid())
+  patientId String
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  invoiceId String?
+  amount    Int
+  purpose   String    @default("INVOICE") // INVOICE | WALLET
+  provider  String    @default("zarinpal")
+  authority String?   @unique
+  refId     String?
+  status    String    @default("PENDING") // PENDING | PAID | FAILED | CANCELLED
+  error     String?
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+
+  @@index([patientId, status])
 }

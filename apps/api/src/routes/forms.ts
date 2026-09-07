@@ -7,6 +7,7 @@ import { forbidden, notFound, badRequest } from "../lib/errors.js";
 import { requireAuth, requireStaff, requireRole, canAccessPatient } from "../middleware/auth.js";
 import { notifyUser } from "../lib/notify.js";
 import { audit } from "../lib/audit.js";
+import { maybeSendSurvey } from "../lib/survey.js";
 
 export const formsRouter = Router();
 formsRouter.use(requireAuth);
@@ -208,7 +209,11 @@ formsRouter.post("/progress", requireStaff, async (req, res) => {
     data: { ...body, therapistId, date: body.date ?? new Date(), sessionNumber: body.sessionNumber ?? count + 1, appointmentId: body.appointmentId ?? null },
     include: therapistInclude,
   });
-  if (body.appointmentId) await prisma.appointment.update({ where: { id: body.appointmentId }, data: { status: "DONE" } }).catch(() => null);
+  if (body.appointmentId) {
+    const prev = await prisma.appointment.findUnique({ where: { id: body.appointmentId }, select: { status: true } });
+    await prisma.appointment.update({ where: { id: body.appointmentId }, data: { status: "DONE" } }).catch(() => null);
+    if (prev && prev.status !== "DONE") maybeSendSurvey(body.patientId);
+  }
   if (f.patient.userId && f.visibleToPatient) await notifyUser(f.patient.userId, "گزارش جلسه ثبت شد", "گزارش پیشرفت جلسه اخیر شما در پرونده ثبت شد", "/panel/my/records");
   await audit(req.user!.id, "create", "progress", f.id);
   res.status(201).json({ form: shapeForm(f) });

@@ -10,7 +10,7 @@ import { Card, EmptyState, PageHeader, SearchInput, Select, Spinner, Stat, Tabs 
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker";
 
-const COLORS = ["#0f8b8d", "#e76f51", "#f4a261", "#8b5cf6", "#7ba874"];
+const COLORS = ["#178a6e", "#e76f51", "#f4a261", "#8b5cf6", "#7ba874"];
 
 export default function FinancePage() {
   const [tab, setTab] = useState<"report" | "invoices" | "payments" | "debtors">("report");
@@ -47,7 +47,7 @@ export default function FinancePage() {
                 <AreaChart data={r.series.map((s: any) => ({ ...s, label: formatJalali(s.date).slice(5) }))}>
                   <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: "Vazirmatn" }} /><YAxis tick={{ fontSize: 10 }} width={44} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
                   <Tooltip contentStyle={{ fontFamily: "Vazirmatn", borderRadius: 12, direction: "rtl" }} formatter={(v: any, n: any) => [formatMoney(v), n === "income" ? "درآمد" : "صورت‌حساب"]} />
-                  <Area dataKey="invoiced" stroke="#f4a261" fill="#f4a26133" strokeWidth={2} /><Area dataKey="income" stroke="#0f8b8d" fill="#0f8b8d33" strokeWidth={2} />
+                  <Area dataKey="invoiced" stroke="#f4a261" fill="#f4a26133" strokeWidth={2} /><Area dataKey="income" stroke="#178a6e" fill="#178a6e33" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

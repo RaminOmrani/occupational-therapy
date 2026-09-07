@@ -87,7 +87,7 @@ usersRouter.post("/", async (req, res) => {
       role: body.role,
       isActive: body.isActive ?? true,
       passwordHash: body.password ? await hashPassword(body.password) : null,
-      therapist: body.role === "THERAPIST" ? { create: { ...(body.therapist ?? {}), workDays: JSON.stringify(body.therapist?.workDays ?? [0, 1, 2, 3, 4, 6]), color: body.therapist?.color ?? "#0F8B8D", sortOrder: body.therapist?.sortOrder ?? 0 } } : undefined,
+      therapist: body.role === "THERAPIST" ? { create: { ...(body.therapist ?? {}), workDays: JSON.stringify(body.therapist?.workDays ?? [0, 1, 2, 3, 4, 6]), color: body.therapist?.color ?? "#178a6e", sortOrder: body.therapist?.sortOrder ?? 0 } } : undefined,
     },
     include: { therapist: true },
   });

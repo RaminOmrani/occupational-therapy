@@ -1,13 +1,13 @@
 import { cn } from "@/lib/utils";
 
-/** نشان کلینیک: دست باز درون برگ ترنج؛ نماد مراقبت، رشد و حرکت */
+/** نشان کلینیک: دست باز درون برگ سبز؛ نماد مراقبت، رشد و حرکت */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={cn("h-10 w-10", className)} aria-hidden>
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#21a3a3" />
-          <stop offset="1" stopColor="#0f6d70" />
+          <stop offset="0" stopColor="#1fa47a" />
+          <stop offset="1" stopColor="#146d5a" />
         </linearGradient>
       </defs>
       <path d="M32 4C16 4 6 16 6 32c0 16 12 28 26 28 16 0 26-12 26-28C58 16 48 4 32 4z" fill="url(#lg)" />
@@ -17,7 +17,7 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ name = "کلینیک کاردرمانی ترنج", className, light }: { name?: string; className?: string; light?: boolean }) {
+export function Logo({ name = "کلینیک کاردرمانی ذهن سبز", className, light }: { name?: string; className?: string; light?: boolean }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
       <LogoMark />

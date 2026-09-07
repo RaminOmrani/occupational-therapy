@@ -82,7 +82,7 @@ export function RecordsPanel({ patientId, initialTab = "assessments" }: { patien
                     <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} width={28} />
                     <Tooltip contentStyle={{ fontFamily: "Vazirmatn", borderRadius: 12, direction: "rtl" }} formatter={(v: any, n: any) => [`${toPersianDigits(v)}٪`, ASSESSMENT_TYPE_LABELS[n as AssessmentType]]} />
                     <Legend formatter={(v) => ASSESSMENT_TYPE_LABELS[v as AssessmentType]} wrapperStyle={{ fontFamily: "Vazirmatn", fontSize: 12 }} />
-                    <Line type="monotone" dataKey="PHYSICAL" stroke="#0f8b8d" strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
+                    <Line type="monotone" dataKey="PHYSICAL" stroke="#178a6e" strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
                     <Line type="monotone" dataKey="PERCEPTUAL_MOTOR" stroke="#f4a261" strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
                     <Line type="monotone" dataKey="COGNITIVE" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
                   </LineChart>

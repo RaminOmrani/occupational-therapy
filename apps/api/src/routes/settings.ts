@@ -18,7 +18,7 @@ settingsRouter.use(requireAuth, requireAdmin);
 
 settingsRouter.get("/", async (_req, res) => {
   const items = await getAllSettings(false);
-  const groups: Record<string, string> = { clinic: "اطلاعات کلینیک", public: "سایت عمومی", schedule: "نوبت‌دهی", finance: "مالی", crm: "CRM", sms: "پیامک", security: "امنیت", general: "عمومی" };
+  const groups: Record<string, string> = { clinic: "اطلاعات کلینیک", public: "سایت عمومی", schedule: "نوبت‌دهی", finance: "مالی", crm: "CRM", sms: "پیامک", booking: "نوبت‌دهی آنلاین", payment: "درگاه پرداخت", consent: "رضایت‌نامه", security: "امنیت و بکاپ", general: "عمومی" };
   res.json({ items: items.filter((i) => i.key !== "security.jwtSecret"), groups });
 });
 

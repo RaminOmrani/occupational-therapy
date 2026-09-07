@@ -6,13 +6,14 @@ import { Menu, X, Phone, MapPin, AtSign, LogIn, LayoutDashboard } from "lucide-r
 import { Logo, LogoMark } from "./Logo";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { toPersianDigits } from "@toranj/shared";
+import { toPersianDigits, toJalali } from "@toranj/shared";
 
 const NAV = [
   { href: "/", label: "خانه" },
   { href: "/about", label: "درباره ما" },
   { href: "/articles", label: "مقالات" },
-  { href: "/contact", label: "تماس و رزرو" },
+  { href: "/book", label: "رزرو آنلاین" },
+  { href: "/contact", label: "تماس با ما" },
 ];
 
 export function PublicNav({ clinicName }: { clinicName: string }) {
@@ -69,10 +70,11 @@ export function PublicFooter({ settings }: { settings: Record<string, string> })
             {settings["clinic.address"] && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" /><span>{settings["clinic.address"]}</span></li>}
             {settings["clinic.instagram"] && <li className="flex items-center gap-2"><AtSign className="h-4 w-4" /><span dir="ltr">{settings["clinic.instagram"]}</span></li>}
             {settings["clinic.workingHours"] && <li className="text-brand-300">{settings["clinic.workingHours"]}</li>}
+            {settings["clinic.licenseNo"] && <li className="text-brand-300">شماره نظام: <span className="num">{settings["clinic.licenseNo"]}</span></li>}
           </ul>
         </div>
       </div>
-      <div className="border-t border-brand-800 py-4 text-center text-xs text-brand-300">© {toPersianDigits(new Date().getFullYear())} {settings["clinic.name"]} — تمامی حقوق محفوظ است</div>
+      <div className="border-t border-brand-800 py-4 text-center text-xs text-brand-300">© {toPersianDigits(toJalali(new Date()).jy)} {settings["clinic.name"]} — تمامی حقوق محفوظ است</div>
     </footer>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Users, UserPlus, CalendarDays, Wallet, AlertCircle, Cake, MessageSquareHeart, MessageSquareText, TrendingUp, CalendarCheck, Clock, Dumbbell, Target, ArrowLeft, ClipboardList } from "lucide-react";
+import { Users, UserPlus, CalendarDays, Wallet, AlertCircle, Cake, MessageSquareHeart, MessageSquareText, TrendingUp, CalendarCheck, Clock, Dumbbell, Target, ArrowLeft, ClipboardList, Globe, MessageCircle, FileSignature } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { formatJalali, formatJalaliLong, formatMoney, formatTime, toPersianDigits } from "@toranj/shared";
 import { api } from "@/lib/api";
@@ -78,6 +78,8 @@ function AdminDashboard({ d, isAdmin }: { d: any; isAdmin: boolean }) {
             <ul className="space-y-2 text-sm">
               <li><Link href="/panel/feedback?status=OPEN" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><MessageSquareHeart className="h-4 w-4 text-coral-500" />بازخورد بی‌پاسخ</span><b className="num">{toPersianDigits(d.openFeedback)}</b></Link></li>
               <li><Link href="/panel/leads?followUpDue=1" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><UserPlus className="h-4 w-4 text-amber-500" />لید نیازمند پیگیری</span><b className="num">{toPersianDigits(d.leadsFollowUp)}</b></Link></li>
+              <li><Link href="/panel/bookings" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><Globe className="h-4 w-4 text-sky-500" />درخواست نوبت آنلاین</span><b className={`num ${d.pendingBookings ? "text-coral-600" : ""}`}>{toPersianDigits(d.pendingBookings ?? 0)}</b></Link></li>
+              <li><Link href="/panel/messages" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-violet-500" />پیام بی‌پاسخ بیماران</span><b className={`num ${d.unreadMessages ? "text-coral-600" : ""}`}>{toPersianDigits(d.unreadMessages ?? 0)}</b></Link></li>
               <li><Link href="/panel/sms?tab=logs" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><MessageSquareText className="h-4 w-4 text-brand-500" />پیامک‌های امروز</span><b className="num">{toPersianDigits(d.smsToday)}</b></Link></li>
             </ul>
           </Card>
@@ -92,7 +94,7 @@ function AdminDashboard({ d, isAdmin }: { d: any; isAdmin: boolean }) {
                 <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: "Vazirmatn" }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 10 }} width={24} />
                 <Tooltip contentStyle={{ fontFamily: "Vazirmatn", borderRadius: 12, direction: "rtl" }} formatter={(v: any) => [toPersianDigits(v), "جلسه"]} />
-                <Bar dataKey="sessions" fill="#0f8b8d" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="sessions" fill="#178a6e" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -161,9 +163,15 @@ function TherapistDashboard({ d }: { d: any }) {
 function PatientDashboard({ d }: { d: any }) {
   const next = d.upcoming[0];
   const fin = d.finance;
+  const consent = useQuery({ queryKey: ["consent-status", "me"], queryFn: () => api.get<any>("/consents/status/me") });
   return (
     <>
       <PageHeader title={<Greeting />} subtitle={`شماره پرونده: ${d.patient.fileNumber}${d.patient.primaryTherapist ? ` · درمانگر: ${d.patient.primaryTherapist.user.firstName} ${d.patient.primaryTherapist.user.lastName}` : ""}`} />
+      {consent.data?.pending && (
+        <Link href="/panel/my/consent" className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-700 hover:bg-amber-400/20">
+          <FileSignature className="h-5 w-5 shrink-0" /><span>لطفاً <b>رضایت‌نامه درمان</b> را مطالعه و امضا کنید.</span>
+        </Link>
+      )}
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="rounded-3xl bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white shadow-card lg:col-span-2">
           <p className="text-sm text-brand-100">جلسه بعدی شما</p>

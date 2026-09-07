@@ -9,6 +9,7 @@ import { sendTemplateSms } from "../lib/sms/service.js";
 import { getSettingBool, getSettingNumber } from "../lib/settings.js";
 import { notifyUser } from "../lib/notify.js";
 import { audit } from "../lib/audit.js";
+import { maybeSendSurvey } from "../lib/survey.js";
 
 export const appointmentsRouter = Router();
 appointmentsRouter.use(requireAuth);
@@ -110,6 +111,7 @@ appointmentsRouter.patch("/:id", requireStaff, async (req, res) => {
     data: { patientId, therapistId, startAt, endAt, status, room: body.room === undefined ? cur.room : body.room, notes: body.notes === undefined ? cur.notes : body.notes, price: body.price === undefined ? cur.price : body.price },
     include,
   });
+  if (status === "DONE" && cur.status !== "DONE") maybeSendSurvey(a.patientId);
   if (status === "CANCELLED" && cur.status !== "CANCELLED") {
     sendTemplateSms("appointment_cancelled", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), time: formatTime(a.startAt) }, { related: { type: "appointment", id: a.id } }).catch(console.error);
   }

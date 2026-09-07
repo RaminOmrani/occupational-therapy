@@ -19,6 +19,13 @@ import { dashboardRouter } from "./routes/dashboard.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { publicRouter } from "./routes/public.js";
 import { uploadsRouter, documentsRouter, UPLOAD_DIR } from "./routes/uploads.js";
+import { bookingsRouter, publicBookingRouter } from "./routes/bookings.js";
+import { messagesRouter } from "./routes/messages.js";
+import { surveysRouter, publicSurveyRouter } from "./routes/surveys.js";
+import { consentsRouter } from "./routes/consents.js";
+import { paymentsRouter } from "./routes/payments.js";
+import { reportsRouter } from "./routes/reports.js";
+import { backupsRouter } from "./routes/backups.js";
 
 export function createApp() {
   const app = express();
@@ -48,6 +55,15 @@ export function createApp() {
   app.use("/api/dashboard", dashboardRouter);
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/uploads", uploadsRouter);
+  app.use("/api/public/booking", publicBookingRouter);
+  app.use("/api/public/survey", publicSurveyRouter);
+  app.use("/api/bookings", bookingsRouter);
+  app.use("/api/messages", messagesRouter);
+  app.use("/api/surveys", surveysRouter);
+  app.use("/api/consents", consentsRouter);
+  app.use("/api/payments", paymentsRouter);
+  app.use("/api/reports", reportsRouter);
+  app.use("/api/backups", backupsRouter);
   app.use("/api", documentsRouter);
 
   app.use((_req, res) => res.status(404).json({ message: "مسیر یافت نشد" }));

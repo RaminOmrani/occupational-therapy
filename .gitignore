@@ -14,3 +14,5 @@ apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 .turbo/
 coverage/
+apps/api/backups/*
+!apps/api/backups/.gitkeep

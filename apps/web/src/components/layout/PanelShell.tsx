@@ -23,6 +23,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
     if (!loading && !user) router.replace(`/login?next=${encodeURIComponent(path)}`);
   }, [loading, user, path, router]);
 
+  const unreadMsgs = useQuery({ queryKey: ["msg-unread"], queryFn: () => api.get<{ unread: number }>("/messages/unread"), refetchInterval: 30_000, enabled: !!user });
   if (loading || !user) return <Spinner className="min-h-screen" />;
   const items = navForRole(user.role);
   const groups = [...new Set(items.map((i) => i.group ?? ""))];
@@ -41,6 +42,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
                   <Link href={i.href} className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", active ? "bg-white/15 text-white shadow-inner" : "text-brand-100/90 hover:bg-white/10 hover:text-white")}>
                     <i.icon className="h-[18px] w-[18px] shrink-0" />
                     {i.label}
+                    {(i.href === "/panel/messages" || i.href === "/panel/my/messages") && !!unreadMsgs.data?.unread && <span className="num mr-auto rounded-full bg-coral-500 px-1.5 text-[10px] font-bold text-white">{toPersianDigits(unreadMsgs.data.unread)}</span>}
                   </Link>
                 </li>
               );

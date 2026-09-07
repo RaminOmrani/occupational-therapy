@@ -83,6 +83,27 @@ export const SMS_TEMPLATE_DEFAULTS: SmsTemplateDef[] = [
     description: "برای پیگیری سرنخ‌های فروش استفاده می‌شود.",
   },
   {
+    key: "survey",
+    name: "رضایت‌سنجی",
+    body: "{{name}} عزیز، نظر شما برای ما مهم است. لطفاً با لینک زیر رضایت خود از جلسات را ثبت کنید:\n{{link}}\n{{clinic}}",
+    variables: ["name", "link", "clinic"],
+    description: "پس از هر N جلسه انجام‌شده (قابل تنظیم) ارسال می‌شود.",
+  },
+  {
+    key: "booking_approved",
+    name: "تأیید نوبت آنلاین",
+    body: "{{name}} عزیز، درخواست نوبت شما تأیید شد: {{date}} ساعت {{time}} با {{therapist}}.\n{{clinic}}",
+    variables: ["name", "date", "time", "therapist", "clinic"],
+    description: "پس از تأیید درخواست نوبت سایت توسط منشی ارسال می‌شود.",
+  },
+  {
+    key: "booking_rejected",
+    name: "رد نوبت آنلاین",
+    body: "{{name}} عزیز، متأسفانه زمان درخواستی شما ({{date}} ساعت {{time}}) در دسترس نیست. لطفاً برای هماهنگی با {{phone}} تماس بگیرید.\n{{clinic}}",
+    variables: ["name", "date", "time", "phone", "clinic"],
+    description: "در صورت رد درخواست نوبت ارسال می‌شود.",
+  },
+  {
     key: "general",
     name: "الگوی عمومی",
     body: "{{message}}\n{{clinic}}",

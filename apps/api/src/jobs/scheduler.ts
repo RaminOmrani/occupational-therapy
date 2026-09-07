@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { getSettingBool, getSettingNumber } from "../lib/settings.js";
 import { sendTemplateSms } from "../lib/sms/service.js";
 import { notifyRole, notifyUser } from "../lib/notify.js";
+import { scheduledBackup } from "../lib/backup.js";
 
 /**
  * یادآوری جلسات: هر دقیقه بررسی می‌کند کدام نوبت‌های قطعی‌شده در بازه‌ی
@@ -68,5 +69,6 @@ export function startScheduler() {
   cron.schedule("0 8 * * *", () => birthdayJob().catch(console.error));
   cron.schedule("30 8 * * *", () => morningJob().catch(console.error));
   cron.schedule("0 18 * * *", () => morningJob().catch(console.error));
-  console.log("⏰ scheduler started (reminders every minute, birthdays 08:00, follow-ups 08:30/18:00)");
+  cron.schedule("0 3 * * *", () => scheduledBackup().catch(console.error));
+  console.log("⏰ scheduler started (reminders every minute, birthdays 08:00, follow-ups 08:30/18:00, backup 03:00)");
 }

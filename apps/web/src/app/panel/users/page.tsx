@@ -10,7 +10,7 @@ import { Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeade
 import { cn } from "@/lib/utils";
 
 const WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];
-const COLORS = ["#0f8b8d", "#e76f51", "#f4a261", "#8b5cf6", "#7ba874", "#0ea5e9", "#ec4899", "#64748b"];
+const COLORS = ["#178a6e", "#e76f51", "#f4a261", "#8b5cf6", "#7ba874", "#0ea5e9", "#ec4899", "#64748b"];
 
 export default function UsersPage() {
   const { user: me } = useAuth();

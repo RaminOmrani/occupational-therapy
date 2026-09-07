@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Pencil, Phone, Cake, CalendarPlus, MessageSquareText, KeyRound, UserCheck, FileText, Upload, Trash2, Wallet, FolderHeart, CalendarDays, MessageSquareHeart } from "lucide-react";
+import { Pencil, Phone, Cake, CalendarPlus, MessageSquareText, KeyRound, UserCheck, FileText, Upload, Trash2, Wallet, FolderHeart, CalendarDays, MessageSquareHeart, MessageCircle, FileSignature } from "lucide-react";
 import { formatJalali, formatJalaliLong, formatTime, formatMoney, toPersianDigits, ageFromBirthDate, GENDER_LABELS, FEEDBACK_TYPE_LABELS } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -27,6 +27,7 @@ function Inner() {
   const [sms, setSms] = useState(false);
   const [appt, setAppt] = useState(false);
   const { data, isLoading } = useQuery({ queryKey: ["patient", id], queryFn: () => api.get<any>(`/patients/${id}`) });
+  const consent = useQuery({ queryKey: ["consent-status", id], queryFn: () => api.get<any>(`/consents/status/${id}`) });
   const refresh = () => qc.invalidateQueries({ queryKey: ["patient", id] });
   if (isLoading || !data) return <Spinner />;
   const p = data.patient;
@@ -45,6 +46,7 @@ function Inner() {
         actions={<>
           {canEdit && <Button variant="secondary" onClick={() => setEdit(true)} icon={<Pencil className="h-4 w-4" />}>ویرایش</Button>}
           {canFinance && <Button variant="secondary" onClick={() => setSms(true)} icon={<MessageSquareText className="h-4 w-4" />}>پیامک</Button>}
+          <Link href={`/panel/messages/${id}`} className="btn-secondary"><MessageCircle className="h-4 w-4" />پیام</Link>
           <Button onClick={() => setAppt(true)} icon={<CalendarPlus className="h-4 w-4" />}>نوبت جدید</Button>
         </>}
       />
@@ -91,6 +93,11 @@ function Inner() {
               <p className="text-xs text-slate-400">{data.finance.balance > 0 ? "بدهکار" : data.finance.balance < 0 ? "بستانکار" : ""}</p>
               <div className="mt-3 flex justify-between text-sm"><span className="text-slate-500">کیف پول</span><b className="num">{formatMoney(data.finance.walletBalance)}</b></div>
             </Card>
+            {consent.data && (
+              <Card title="رضایت‌نامه" actions={<FileSignature className="h-4 w-4 text-slate-400" />}>
+                {consent.data.signed ? <p className="text-sm text-sage-700">امضا شده توسط {consent.data.signed.signerName} · <Link href={`/panel/consents/${consent.data.signed.id}`} className="text-brand-600 hover:underline">مشاهده</Link></p> : consent.data.pending ? <p className="text-sm text-amber-600">هنوز امضا نشده؛ بیمار از پنل خود می‌تواند امضا کند.</p> : <p className="text-sm text-slate-400">الزامی نیست</p>}
+              </Card>
+            )}
             <Card title="آمار درمان">
               <div className="grid grid-cols-2 gap-2 text-center text-sm">
                 {[["جلسات انجام‌شده", data.stats.sessionsDone], ["ارزیابی", data.stats.assessments], ["گزارش پیشرفت", data.stats.progressNotes], ["شرح حال", data.stats.intakeForms]].map(([l, v]) => <div key={l as string} className="rounded-xl bg-sand-100 p-2"><p className="num text-lg font-black text-brand-700">{toPersianDigits(v as number)}</p><p className="text-[11px] text-slate-500">{l}</p></div>)}

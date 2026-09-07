@@ -30,17 +30,17 @@ async function main() {
 
   const admin = await upsertUser("09120000001", "ADMIN", "رامین", "عمرانی");
   const secretary = await upsertUser("09120000002", "SECRETARY", "سارا", "احمدی");
-  const t1User = await upsertUser("09120000003", "THERAPIST", "مریم", "محمدی");
-  const t2User = await upsertUser("09120000004", "THERAPIST", "علی", "کریمی");
+  const t1User = await upsertUser("09120000003", "THERAPIST", "عقیل", "شجاعی");
+  const t2User = await upsertUser("09120000004", "THERAPIST", "مریم", "حسینی");
 
   const t1 = await prisma.therapist.upsert({
     where: { userId: t1User.id },
-    create: { userId: t1User.id, specialty: "کاردرمانی کودکان و یکپارچگی حسی", bio: "کارشناس ارشد کاردرمانی با ۱۰ سال سابقه در حوزه کودکان با اختلالات رشدی و یکپارچگی حسی", licenseNo: "ک-۱۲۳۴", color: "#0F8B8D", sessionPrice: 550000, sortOrder: 1 },
+    create: { userId: t1User.id, specialty: "کاردرمانی جسمی و ذهنی", bio: "کاردرمانگر با تجربه در توانبخشی کودکان و بزرگسالان", licenseNo: "ک.د ۲۴۳۰", color: "#178a6e", sessionPrice: 550000, sortOrder: 1 },
     update: {},
   });
   const t2 = await prisma.therapist.upsert({
     where: { userId: t2User.id },
-    create: { userId: t2User.id, specialty: "توانبخشی عصبی بزرگسالان", bio: "متخصص توانبخشی بیماران سکته مغزی، آسیب نخاعی و پارکینسون", licenseNo: "ک-۵۶۷۸", color: "#E76F51", sessionPrice: 600000, sortOrder: 2 },
+    create: { userId: t2User.id, specialty: "کاردرمانی ذهنی و یکپارچگی حسی", bio: "کاردرمانگر با تمرکز بر مهارت‌های شناختی و ادراکی-حرکتی کودکان", licenseNo: "", color: "#E76F51", sessionPrice: 600000, sortOrder: 2 },
     update: {},
   });
 
@@ -126,7 +126,7 @@ async function main() {
     }
   }
 
-  await setSetting("clinic.name", "کلینیک کاردرمانی ترنج");
+  await setSetting("clinic.name", "کلینیک کاردرمانی ذهن سبز");
   console.log("✅ Seed done.");
   console.log("   مدیر:    09120000001 / admin1234");
   console.log("   منشی:    09120000002 / admin1234");
