@@ -22,10 +22,19 @@
 
 ## ۲) روی سرور اوبونتو (نصب یک‌دستوره)
 
-با SSH به سرور وصل شوید (روی ویندوز: PowerShell را باز کنید و بنویسید `ssh root@82.115.8.170`، سپس رمز سرور را وارد کنید). بعد فقط این یک خط را اجرا کنید:
+با SSH به سرور وصل شوید (روی ویندوز: PowerShell را باز کنید و بنویسید `ssh root@82.115.8.170`، سپس رمز سرور را وارد کنید).
 
+چون مخزن گیت‌هاب **خصوصی** است، یکی از دو راه:
+
+**راه ساده:** در گیت‌هاب ← Settings مخزن ← پایین صفحه Change visibility ← Public. سپس روی سرور:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/RaminOmrani/occupational-therapy/claude/occupational-clinic-software-t2stj6/deploy/install.sh -o install.sh && bash install.sh
+```
+
+**راه با توکن (مخزن خصوصی بماند):** در گیت‌هاب ← Settings حساب ← Developer settings ← Personal access tokens ← Fine-grained ← Generate: فقط این مخزن، دسترسی Contents: Read-only. توکن را کپی کنید و روی سرور (به‌جای TOKEN):
+```bash
+export GITHUB_TOKEN=TOKEN
+curl -fsSL -H "Authorization: token $GITHUB_TOKEN" https://raw.githubusercontent.com/RaminOmrani/occupational-therapy/claude/occupational-clinic-software-t2stj6/deploy/install.sh -o install.sh && bash install.sh
 ```
 
 این اسکریپت خودش Node، pnpm، pm2 و nginx را نصب می‌کند، کد را می‌گیرد، می‌سازد، سرویس‌ها را دائمی می‌کند (بعد از ریستارت سرور هم بالا می‌آیند)، فایروال را تنظیم می‌کند و در پایان آدرس را نشان می‌دهد: `http://82.115.8.170`

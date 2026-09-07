@@ -4,7 +4,8 @@
 #   bash install.sh clinic.example.ir    → با دامنه + https خودکار
 set -euo pipefail
 DOMAIN="${1:-}"
-REPO="https://github.com/RaminOmrani/occupational-therapy.git"
+# اگر مخزن خصوصی است: GITHUB_TOKEN=xxxx bash install.sh
+REPO="https://${GITHUB_TOKEN:+${GITHUB_TOKEN}@}github.com/RaminOmrani/occupational-therapy.git"
 BRANCH="claude/occupational-clinic-software-t2stj6"
 DIR="/opt/clinic"
 
@@ -25,6 +26,7 @@ command -v pm2 >/dev/null 2>&1 || npm install -g pm2
 
 if [ -d "$DIR/.git" ]; then
   log "به‌روزرسانی کد"
+  git -C "$DIR" remote set-url origin "$REPO"
   git -C "$DIR" fetch origin "$BRANCH" && git -C "$DIR" checkout "$BRANCH" && git -C "$DIR" pull --ff-only origin "$BRANCH"
 else
   log "دریافت کد"
