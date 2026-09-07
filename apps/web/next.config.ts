@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // آدرس سرور API؛ در حالت توسعه نیازی به تنظیم نیست
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const API_URL = process.env.API_URL ?? "http://127.0.0.1:4000";
 // منطقه زمانی سرور رندر (تاریخ‌های شمسی در صفحات عمومی)
 process.env.TZ = process.env.TZ || "Asia/Tehran";
 

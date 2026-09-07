@@ -25,3 +25,4 @@ export function Logo({ name = "کلینیک کاردرمانی ذهن سبز", c
     </span>
   );
 }
+

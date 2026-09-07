@@ -8,7 +8,8 @@ import { ROLE_LABELS, formatJalaliLong, toPersianDigits } from "@toranj/shared";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { navForRole } from "@/lib/nav";
-import { Logo, LogoMark } from "./Logo";
+import { LogoMark } from "./Logo";
+import { ClinicLogo } from "./ClinicLogo";
 import { Avatar, Spinner } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +58,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen">
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-brand-800 to-brand-950 text-white lg:flex">
-        <div className="px-5 py-5"><Logo light /></div>
+        <div className="px-5 py-5"><ClinicLogo light /></div>
         {nav}
         <div className="border-t border-white/10 p-3">
           <Link href="/" className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-brand-200 hover:bg-white/10"><Globe className="h-4 w-4" />مشاهده سایت</Link>
@@ -69,7 +70,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-brand-950/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <aside className="relative flex h-full w-72 flex-col bg-gradient-to-b from-brand-800 to-brand-950 text-white animate-fade-up">
-            <div className="flex items-center justify-between px-5 py-4"><Logo light /><button onClick={() => setOpen(false)}><X className="h-5 w-5" /></button></div>
+            <div className="flex items-center justify-between px-5 py-4"><ClinicLogo light /><button onClick={() => setOpen(false)}><X className="h-5 w-5" /></button></div>
             {nav}
           </aside>
         </div>

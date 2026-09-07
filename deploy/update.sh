@@ -7,5 +7,6 @@ git pull --ff-only
 pnpm install --frozen-lockfile
 pnpm db:push
 pnpm build
-pm2 restart clinic-api clinic-web
+pm2 delete clinic-api clinic-web >/dev/null 2>&1 || true
+pm2 start deploy/ecosystem.config.cjs && pm2 save
 echo "✔ به‌روزرسانی انجام شد"

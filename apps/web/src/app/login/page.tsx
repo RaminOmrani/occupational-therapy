@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth, type SessionUser } from "@/lib/auth";
 import { Button, Field, Input, Tabs } from "@/components/ui";
 import { LogoMark } from "@/components/layout/Logo";
+import { usePublicSettings } from "@/lib/settings";
 
 function LoginInner() {
   const router = useRouter();
@@ -19,6 +20,7 @@ function LoginInner() {
   const [code, setCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const settings = usePublicSettings();
 
   const finish = (user: SessionUser) => {
     setUser(user);
@@ -54,7 +56,8 @@ function LoginInner() {
       <div className="w-full max-w-md animate-fade-up">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <LogoMark className="h-16 w-16" />
-          <h1 className="text-2xl font-black text-brand-900">ورود به سامانه</h1>
+          <p className="text-lg font-extrabold text-brand-800">{settings.str("clinic.name", "کلینیک کاردرمانی ذهن سبز")}</p>
+          <h1 className="text-xl font-black text-brand-900">ورود به سامانه</h1>
           <p className="text-sm text-slate-500">بیماران با کد پیامکی، همکاران با رمز عبور</p>
         </div>
         <div className="card p-6">

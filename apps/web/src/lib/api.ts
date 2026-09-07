@@ -32,7 +32,7 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    data = { message: text };
+    data = { message: `خطا در ارتباط با سرور (کد ${res.status})` };
   }
   if (!res.ok) {
     if (res.status === 401 && typeof window !== "undefined" && !location.pathname.startsWith("/login")) {
@@ -52,7 +52,7 @@ export const api = {
 };
 
 /** آدرس API برای فراخوانی سمت سرور (SSR) */
-export const SERVER_API_URL = process.env.API_URL ?? "http://localhost:4000";
+export const SERVER_API_URL = process.env.API_URL ?? "http://127.0.0.1:4000";
 
 export async function serverGet<T>(path: string, revalidate = 0): Promise<T | null> {
   try {
