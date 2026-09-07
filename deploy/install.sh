@@ -34,6 +34,15 @@ else
 fi
 cd "$DIR"
 
+# سرورهای کم‌حافظه: فضای swap برای ساخت Next.js
+if [ "$(free -m | awk '/Swap:/{print $2}')" -lt 1024 ] && [ ! -f /swapfile ]; then
+  log "ایجاد ۲ گیگابایت swap"
+  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
+  grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
+fi
+export NODE_OPTIONS="--max-old-space-size=1536"
+
 log "نصب وابستگی‌ها و ساخت"
 pnpm install --frozen-lockfile
 pnpm db:push

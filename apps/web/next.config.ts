@@ -7,6 +7,9 @@ process.env.TZ = process.env.TZ || "Asia/Tehran";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // تایپ‌چک و لینت جداگانه (pnpm typecheck) انجام می‌شود؛ حذف از build برای سرورهای کم‌حافظه
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
   transpilePackages: ["@toranj/shared"],
   webpack: (config) => {
     // پکیج مشترک با پسوند .js ایمپورت می‌کند (سازگار با Node ESM)؛ اینجا به فایل‌های .ts نگاشت می‌شود
