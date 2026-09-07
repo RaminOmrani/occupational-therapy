@@ -2,10 +2,10 @@ import { Router } from "express";
 import { z } from "zod";
 import { formatMoney } from "@toranj/shared";
 import { prisma } from "../lib/prisma.js";
-import { validate, zInt, zOptionalString } from "../lib/validate.js";
+import { validate, zInt, zOptionalInt, zOptionalString } from "../lib/validate.js";
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { getSetting, getSettingBool, getSettingNumber } from "../lib/settings.js";
-import { requireAuth, canAccessPatient } from "../middleware/auth.js";
+import { requireAuth, canAccessPatient, requireAdminOrSecretary } from "../middleware/auth.js";
 import { recomputeInvoice, patientFinancialSummary } from "../lib/finance.js";
 import { zpRequest, zpVerify, startPayUrl } from "../lib/payment/zarinpal.js";
 import { notifyRole, notifyUser } from "../lib/notify.js";
@@ -83,4 +83,54 @@ paymentsRouter.get("/intents", requireAuth, async (req, res) => {
   else if (req.query.patientId) where.patientId = String(req.query.patientId);
   const items = await prisma.paymentIntent.findMany({ where, orderBy: { createdAt: "desc" }, take: 100, include: { patient: { select: { firstName: true, lastName: true, fileNumber: true } } } });
   res.json({ items });
+});
+
+/** ---------- اعلام پرداخت کارت‌به‌کارت (بیمار ثبت می‌کند، منشی تأیید) ---------- */
+paymentsRouter.post("/claim", requireAuth, async (req, res) => {
+  const body = validate(z.object({ patientId: zOptionalString, amount: zInt.refine((v) => v > 0, "مبلغ نامعتبر است"), reference: zOptionalString, note: zOptionalString, purpose: z.enum(["INVOICE", "WALLET"]).default("INVOICE") }), req.body);
+  const patientId = req.user!.role === "PATIENT" ? req.user!.patientId! : body.patientId;
+  if (!patientId || !canAccessPatient(req, patientId)) throw forbidden();
+  const patient = await prisma.patient.findUnique({ where: { id: patientId } });
+  if (!patient) throw notFound();
+  const claim = await prisma.paymentIntent.create({ data: { patientId, amount: body.amount, purpose: body.purpose, provider: "manual", refId: body.reference ?? null, note: body.note ?? null, status: "PENDING" } });
+  const msg = `${patient.firstName} ${patient.lastName}: ${formatMoney(body.amount)}${body.reference ? ` (پیگیری ${body.reference})` : ""}`;
+  await notifyRole("SECRETARY", "اعلام پرداخت کارت‌به‌کارت", msg, `/panel/patients/${patientId}?tab=finance`);
+  await notifyRole("ADMIN", "اعلام پرداخت کارت‌به‌کارت", msg, `/panel/patients/${patientId}?tab=finance`);
+  res.status(201).json({ claim });
+});
+
+paymentsRouter.get("/claims", requireAuth, requireAdminOrSecretary, async (req, res) => {
+  const where: any = { provider: "manual" };
+  if (req.query.status) where.status = String(req.query.status);
+  if (req.query.patientId) where.patientId = String(req.query.patientId);
+  const items = await prisma.paymentIntent.findMany({ where, orderBy: { createdAt: "desc" }, take: 200, include: { patient: { select: { id: true, firstName: true, lastName: true, fileNumber: true, phone: true } } } });
+  const pending = await prisma.paymentIntent.count({ where: { provider: "manual", status: "PENDING" } });
+  res.json({ items, pending });
+});
+
+paymentsRouter.post("/claims/:id/approve", requireAuth, requireAdminOrSecretary, async (req, res) => {
+  const c = await prisma.paymentIntent.findUnique({ where: { id: String(req.params.id) }, include: { patient: true } });
+  if (!c || c.provider !== "manual" || c.status !== "PENDING") throw notFound("اعلام پرداخت یافت نشد یا قبلاً بررسی شده");
+  const body = validate(z.object({ amount: zOptionalInt }), req.body ?? {});
+  const amount = body.amount ?? c.amount;
+  if (c.purpose === "WALLET") {
+    await prisma.walletTransaction.create({ data: { patientId: c.patientId, amount, type: "DEPOSIT", description: `کارت‌به‌کارت${c.refId ? ` - پیگیری ${c.refId}` : ""}`, createdById: req.user!.id } });
+  } else {
+    const inv = await prisma.invoice.findFirst({ where: { patientId: c.patientId, status: { in: ["ISSUED", "PARTIAL"] } }, orderBy: { date: "asc" } });
+    await prisma.payment.create({ data: { patientId: c.patientId, invoiceId: inv?.id ?? null, amount, method: "TRANSFER", reference: c.refId ?? null, note: c.note ?? "اعلام پرداخت بیمار", receivedById: req.user!.id } });
+    if (inv) await recomputeInvoice(inv.id);
+  }
+  await prisma.paymentIntent.update({ where: { id: c.id }, data: { status: "PAID", amount, paidAt: new Date(), handledById: req.user!.id } });
+  await notifyUser(c.patient.userId, "پرداخت شما تأیید شد", `مبلغ ${formatMoney(amount)} در حساب شما ثبت شد`, "/panel/my/finance");
+  await audit(req.user!.id, "approve-claim", "payment", c.id, { amount });
+  res.json({ ok: true, summary: await patientFinancialSummary(c.patientId) });
+});
+
+paymentsRouter.post("/claims/:id/reject", requireAuth, requireAdminOrSecretary, async (req, res) => {
+  const c = await prisma.paymentIntent.findUnique({ where: { id: String(req.params.id) }, include: { patient: true } });
+  if (!c || c.provider !== "manual" || c.status !== "PENDING") throw notFound();
+  const body = validate(z.object({ reason: zOptionalString }), req.body ?? {});
+  await prisma.paymentIntent.update({ where: { id: c.id }, data: { status: "FAILED", error: body.reason ?? "تأیید نشد", handledById: req.user!.id } });
+  await notifyUser(c.patient.userId, "اعلام پرداخت تأیید نشد", body.reason ?? "لطفاً با پذیرش تماس بگیرید", "/panel/my/finance");
+  res.json({ ok: true });
 });

@@ -78,10 +78,28 @@ body {
 }
 
 @media print {
-  .no-print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  .no-print,
+  .panel-sidebar,
+  .panel-topbar,
+  [data-sonner-toaster] {
     display: none !important;
+  }
+  .panel-main {
+    padding: 0 !important;
   }
   body {
     background: white;
+  }
+  .print-sheet {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    box-shadow: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
   }
 }

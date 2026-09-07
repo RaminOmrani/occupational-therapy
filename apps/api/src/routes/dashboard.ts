@@ -66,7 +66,7 @@ dashboardRouter.get("/", async (req, res) => {
     prisma.therapist.count({ where: { user: { isActive: true } } }),
   ]);
   const birthdays = withBirth.map((p) => ({ ...p, daysToBirthday: daysUntilBirthday(p.birthDate) })).filter((p) => p.daysToBirthday !== null && p.daysToBirthday <= birthdayDays).sort((a, b) => a.daysToBirthday! - b.daysToBirthday!);
-  const [pendingBookings, unreadMessages] = await Promise.all([prisma.bookingRequest.count({ where: { status: "PENDING" } }), prisma.message.count({ where: { senderRole: "PATIENT", readAt: null } })]);
+  const [pendingBookings, unreadMessages, pendingClaims] = await Promise.all([prisma.bookingRequest.count({ where: { status: "PENDING" } }), prisma.message.count({ where: { senderRole: "PATIENT", readAt: null } }), prisma.paymentIntent.count({ where: { provider: "manual", status: "PENDING" } })]);
   const debtors = await prisma.invoice.groupBy({ by: ["patientId"], where: { status: { in: ["ISSUED", "PARTIAL"] } }, _sum: { total: true, paid: true } });
   const totalDebt = debtors.reduce((s, d) => s + ((d._sum.total ?? 0) - (d._sum.paid ?? 0)), 0);
   // نمودار ۱۴ روز اخیر: جلسات انجام‌شده و درآمد
@@ -96,6 +96,7 @@ dashboardRouter.get("/", async (req, res) => {
     smsToday: recentSms,
     pendingBookings,
     unreadMessages,
+    pendingClaims,
     therapists,
     series,
     statusCounts: Object.fromEntries(statusCounts.map((s) => [s.status, s._count._all])),

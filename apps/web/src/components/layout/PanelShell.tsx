@@ -57,7 +57,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar (desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-brand-800 to-brand-950 text-white lg:flex">
+      <aside className="panel-sidebar sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-brand-800 to-brand-950 text-white lg:flex">
         <div className="px-5 py-5"><ClinicLogo light /></div>
         {nav}
         <div className="border-t border-white/10 p-3">
@@ -77,7 +77,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-sand-200 bg-sand-50/80 px-4 py-3 backdrop-blur lg:px-8">
+        <header className="panel-topbar sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-sand-200 bg-sand-50/80 px-4 py-3 backdrop-blur lg:px-8">
           <div className="flex items-center gap-3">
             <button className="rounded-xl p-2 hover:bg-sand-200 lg:hidden" onClick={() => setOpen(true)} aria-label="منو"><Menu className="h-5 w-5" /></button>
             <span className="lg:hidden"><LogoMark className="h-8 w-8" /></span>
@@ -88,7 +88,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
             <UserMenu name={fullName} role={user.role} onLogout={logout} avatar={user.avatar} />
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
+        <main className="panel-main flex-1 px-4 py-6 lg:px-8">{children}</main>
       </div>
     </div>
   );

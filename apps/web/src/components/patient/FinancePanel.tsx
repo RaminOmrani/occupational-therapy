@@ -4,7 +4,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2, CreditCard } from "lucide-react";
+import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2, CreditCard, Copy, Check, X, Clock } from "lucide-react";
+import { usePublicSettings } from "@/lib/settings";
 import { formatJalali, formatMoney, toPersianDigits, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, WALLET_TX_TYPES, WALLET_TX_LABELS } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -19,7 +20,9 @@ export function FinancePanel({ patientId }: { patientId: string }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["finance", patientId], queryFn: () => api.get<any>(`/finance/patients/${patientId}`) });
   const [tab, setTab] = useState<"invoices" | "payments" | "wallet" | "discounts">("invoices");
-  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | "online" | null>(null);
+  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | "online" | "claim" | null>(null);
+  const settings = usePublicSettings();
+  const claims = useQuery({ queryKey: ["claims", patientId], queryFn: () => api.get<{ items: any[] }>(user?.role === "PATIENT" ? "/payments/intents" : "/payments/claims", user?.role === "PATIENT" ? undefined : { patientId }) });
   const { confirm, dialog } = useConfirm();
   const sp = useSearchParams();
   const router = useRouter();
@@ -33,6 +36,11 @@ export function FinancePanel({ patientId }: { patientId: string }) {
     router.replace(location.pathname);
     qc.invalidateQueries({ queryKey: ["finance", patientId] });
   }, [sp, router, qc, patientId]);
+  const refreshClaims = () => { qc.invalidateQueries({ queryKey: ["claims", patientId] }); qc.invalidateQueries({ queryKey: ["dashboard"] }); };
+  const approveClaim = async (id: string) => { try { await api.post(`/payments/claims/${id}/approve`); toast.success("پرداخت تأیید و ثبت شد"); refresh(); refreshClaims(); } catch (e: any) { toast.error(e.message); } };
+  const rejectClaim = async (id: string) => { if (!(await confirm("این اعلام پرداخت رد شود؟"))) return; try { await api.post(`/payments/claims/${id}/reject`, { reason: "پرداخت در حساب کلینیک یافت نشد" }); toast.success("رد شد"); refreshClaims(); } catch (e: any) { toast.error(e.message); } };
+  const pendingClaims = (claims.data?.items ?? []).filter((c: any) => c.provider === "manual" && c.status === "PENDING");
+  const cardNumber = settings.str("finance.cardNumber");
   const refresh = () => { qc.invalidateQueries({ queryKey: ["finance", patientId] }); qc.invalidateQueries({ queryKey: ["patient", patientId] }); };
   if (isLoading || !data) return <Spinner />;
   const s = data.summary;
@@ -55,13 +63,50 @@ export function FinancePanel({ patientId }: { patientId: string }) {
         <Stat label="مجموع پرداختی" value={formatMoney(s.totalPaid, cur)} tone="violet" icon={<Receipt className="h-6 w-6" />} hint={`${toPersianDigits(data.payments.length)} تراکنش`} />
         <Stat label="مجموع تخفیف" value={formatMoney(s.totalDiscount, cur)} tone="amber" icon={<Percent className="h-6 w-6" />} hint={`${toPersianDigits(s.openInvoices)} صورت‌حساب باز`} />
       </div>
-      {payCfg.data?.enabled && (user?.role === "PATIENT" || canEdit) && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 p-3">
-          <CreditCard className="h-5 w-5 text-brand-700" />
-          <span className="text-sm">پرداخت آنلاین{payCfg.data.sandbox ? " (آزمایشی)" : ""}:</span>
-          {s.balance > 0 && <Button size="sm" onClick={() => setModal("online")}>پرداخت بدهی {formatMoney(s.balance, cur)}</Button>}
-          <Button size="sm" variant="secondary" onClick={() => setModal("online")}>شارژ کیف پول</Button>
-        </div>
+      {user?.role === "PATIENT" && (
+        <Card title={<span className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-brand-600" />پرداخت</span>} subtitle={s.balance > 0 ? `مانده بدهی شما ${formatMoney(s.balance, cur)} است` : "بدهی ندارید؛ می‌توانید کیف پول خود را شارژ کنید"}>
+          <div className="grid gap-4 md:grid-cols-2">
+            {payCfg.data?.enabled ? (
+              <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
+                <p className="font-bold text-brand-800">پرداخت آنلاین{payCfg.data.sandbox ? " (آزمایشی)" : ""}</p>
+                <p className="mt-1 text-xs text-slate-500">با کارت بانکی از طریق درگاه امن زرین‌پال</p>
+                <div className="mt-3 flex flex-wrap gap-2">{s.balance > 0 && <Button size="sm" onClick={() => setModal("online")}>پرداخت بدهی</Button>}<Button size="sm" variant="secondary" onClick={() => setModal("online")}>شارژ کیف پول</Button></div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-sand-200 bg-sand-50 p-4 text-sm text-slate-500"><p className="font-bold text-slate-700">پرداخت آنلاین</p><p className="mt-1 text-xs">به‌زودی فعال می‌شود</p></div>
+            )}
+            <div className="rounded-2xl border border-sand-200 p-4">
+              <p className="font-bold">کارت‌به‌کارت</p>
+              {cardNumber ? (
+                <>
+                  <div className="mt-2 flex items-center justify-between rounded-xl bg-sand-100 px-3 py-2"><span className="num text-lg font-black tracking-wider" dir="ltr">{toPersianDigits(cardNumber)}</span><button onClick={() => { navigator.clipboard?.writeText(cardNumber); toast.success("شماره کارت کپی شد"); }} className="text-slate-400 hover:text-brand-600"><Copy className="h-4 w-4" /></button></div>
+                  {settings.str("finance.cardOwner") && <p className="mt-1 text-xs text-slate-500">به نام {settings.str("finance.cardOwner")}</p>}
+                </>
+              ) : <p className="mt-1 text-xs text-slate-500">شماره کارت را از پذیرش بگیرید</p>}
+              <p className="mt-2 text-xs leading-6 text-slate-500">{settings.str("finance.paymentNote")}</p>
+              <Button size="sm" className="mt-3 w-full" variant="secondary" onClick={() => setModal("claim")} icon={<Check className="h-4 w-4" />}>اعلام پرداخت انجام‌شده</Button>
+            </div>
+          </div>
+          {claims.data?.items?.length ? (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-bold text-slate-500">اعلام‌های پرداخت شما</p>
+              <ul className="space-y-1 text-sm">{claims.data.items.filter((c: any) => c.provider === "manual").slice(0, 5).map((c: any) => <li key={c.id} className="flex items-center justify-between rounded-xl bg-sand-50 px-3 py-2"><span className="num">{formatJalali(c.createdAt)} · {formatMoney(c.amount, cur)}{c.refId ? ` · پیگیری ${toPersianDigits(c.refId)}` : ""}</span><StatusBadge status={c.status === "PAID" ? "PAID" : c.status === "PENDING" ? "PENDING" : "FAILED"} /></li>)}</ul>
+            </div>
+          ) : null}
+        </Card>
+      )}
+      {canEdit && pendingClaims.length > 0 && (
+        <Card title={<span className="flex items-center gap-2"><Clock className="h-5 w-5 text-amber-500" />اعلام پرداخت در انتظار تأیید</span>} subtitle="بیمار اعلام کرده کارت‌به‌کارت انجام داده؛ پس از بررسی حساب، تأیید کنید" className="border-amber-400/40">
+          <ul className="space-y-2">{pendingClaims.map((c: any) => (
+            <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-400/10 px-3 py-2 text-sm">
+              <span className="num">{formatJalali(c.createdAt)} · <b>{formatMoney(c.amount, cur)}</b>{c.refId ? ` · پیگیری ${toPersianDigits(c.refId)}` : ""}{c.note ? ` · ${c.note}` : ""} · {c.purpose === "WALLET" ? "شارژ کیف پول" : "بابت بدهی"}</span>
+              <span className="flex gap-1"><Button size="sm" onClick={() => approveClaim(c.id)} icon={<Check className="h-4 w-4" />}>تأیید و ثبت</Button><Button size="sm" variant="secondary" onClick={() => rejectClaim(c.id)} icon={<X className="h-4 w-4" />}>رد</Button></span>
+            </li>
+          ))}</ul>
+        </Card>
+      )}
+      {canEdit && payCfg.data?.enabled && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 p-3"><CreditCard className="h-5 w-5 text-brand-700" /><span className="text-sm">لینک پرداخت آنلاین برای بیمار{payCfg.data.sandbox ? " (آزمایشی)" : ""}:</span><Button size="sm" variant="secondary" onClick={() => setModal("online")}>ایجاد پرداخت</Button></div>
       )}
       {canEdit && (
         <div className="flex flex-wrap gap-2">
@@ -120,6 +165,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
       {modal === "invoice" && <InvoiceModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
       {modal === "wallet" && <WalletModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
       {modal === "discount" && <DiscountModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
+      {modal === "claim" && <ClaimModal patientId={patientId} balance={s.balance} onClose={() => setModal(null)} onDone={refreshClaims} />}
       {modal === "online" && <OnlinePayModal patientId={patientId} balance={s.balance} minAmount={payCfg.data?.minAmount ?? 10000} onClose={() => setModal(null)} />}
     </div>
   );
@@ -252,6 +298,27 @@ function OnlinePayModal({ patientId, balance, minAmount, onClose }: { patientId:
         <Field label="بابت"><Select value={purpose} onChange={(e) => setPurpose(e.target.value as any)}><option value="INVOICE">پرداخت بدهی / صورت‌حساب</option><option value="WALLET">شارژ کیف پول</option></Select></Field>
         <Field label="مبلغ (تومان)" hint={`حداقل ${formatMoney(minAmount)}`}><Input value={amount} onChange={(e) => setAmount(e.target.value)} className="num" dir="ltr" autoFocus /></Field>
         <p className="text-xs text-slate-400">پس از پرداخت موفق در درگاه زرین‌پال، به همین صفحه بازمی‌گردید و مبلغ به‌صورت خودکار ثبت می‌شود.</p>
+      </div>
+    </Modal>
+  );
+}
+
+function ClaimModal({ patientId, balance, onClose, onDone }: { patientId: string; balance: number; onClose: () => void; onDone: () => void }) {
+  const [v, setV] = useState({ amount: String(balance > 0 ? balance : ""), reference: "", note: "", purpose: balance > 0 ? "INVOICE" : "WALLET" });
+  const [loading, setLoading] = useState(false);
+  const submit = async () => {
+    const amount = Number(v.amount.replace(/[^\d]/g, ""));
+    if (!amount) return toast.error("مبلغ را وارد کنید");
+    setLoading(true);
+    try { await api.post("/payments/claim", { patientId, amount, reference: v.reference, note: v.note, purpose: v.purpose }); toast.success("اعلام پرداخت ثبت شد؛ پس از تأیید پذیرش در حساب شما منظور می‌شود"); onDone(); onClose(); } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title="اعلام پرداخت کارت‌به‌کارت" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>ثبت</Button></>}>
+      <div className="space-y-3">
+        <Field label="بابت"><Select value={v.purpose} onChange={(e) => setV({ ...v, purpose: e.target.value })}><option value="INVOICE">بدهی / صورت‌حساب</option><option value="WALLET">شارژ کیف پول</option></Select></Field>
+        <Field label="مبلغ واریزی (تومان)" required><Input value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} className="num" dir="ltr" autoFocus inputMode="numeric" /></Field>
+        <Field label="شماره پیگیری / ۴ رقم آخر کارت" hint="از رسید بانک"><Input value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} className="num" dir="ltr" /></Field>
+        <Field label="توضیح"><Input value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} /></Field>
       </div>
     </Modal>
   );

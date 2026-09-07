@@ -1,19 +1,28 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Wallet, Receipt, TrendingDown, Percent, Users, Eye } from "lucide-react";
+import { Wallet, Receipt, TrendingDown, Percent, Users, Eye, Check, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis } from "recharts";
 import { INVOICE_STATUSES, INVOICE_STATUS_LABELS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, formatJalali, formatMoney, toPersianDigits, addDays } from "@toranj/shared";
 import { api } from "@/lib/api";
-import { Card, EmptyState, PageHeader, SearchInput, Select, Spinner, Stat, Tabs } from "@/components/ui";
+import { Button, Card, EmptyState, PageHeader, SearchInput, Select, Spinner, Stat, Tabs, useConfirm } from "@/components/ui";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker";
 
 const COLORS = ["#178a6e", "#e76f51", "#f4a261", "#8b5cf6", "#7ba874"];
 
-export default function FinancePage() {
-  const [tab, setTab] = useState<"report" | "invoices" | "payments" | "debtors">("report");
+function FinanceInner() {
+  const sp = useSearchParams();
+  const qc = useQueryClient();
+  const { confirm, dialog } = useConfirm();
+  const [tab, setTab] = useState<"report" | "invoices" | "payments" | "debtors" | "claims">((sp.get("tab") as any) ?? "report");
+  const claims = useQuery({ queryKey: ["claims-all"], queryFn: () => api.get<{ items: any[]; pending: number }>("/payments/claims"), enabled: tab === "claims" });
+  const approveClaim = async (id: string) => { try { await api.post(`/payments/claims/${id}/approve`); toast.success("تأیید و ثبت شد"); qc.invalidateQueries({ queryKey: ["claims-all"] }); } catch (e: any) { toast.error(e.message); } };
+  const rejectClaim = async (id: string) => { if (!(await confirm("این اعلام پرداخت رد شود؟"))) return; try { await api.post(`/payments/claims/${id}/reject`, { reason: "پرداخت در حساب کلینیک یافت نشد" }); qc.invalidateQueries({ queryKey: ["claims-all"] }); } catch (e: any) { toast.error(e.message); } };
   const [from, setFrom] = useState<Date | null>(addDays(new Date(), -30));
   const [to, setTo] = useState<Date | null>(new Date());
   const [q, setQ] = useState("");
@@ -37,7 +46,17 @@ export default function FinancePage() {
           <Stat label="مجموع بدهی بیماران" value={formatMoney(r.totalDebt)} icon={<TrendingDown className="h-6 w-6" />} tone="coral" hint={`${toPersianDigits(r.debtorsCount)} بیمار بدهکار`} />
         </div>
       )}
-      <Tabs value={tab} onChange={setTab} className="mb-5" tabs={[{ key: "report", label: "گزارش" }, { key: "invoices", label: "صورت‌حساب‌ها" }, { key: "payments", label: "پرداخت‌ها" }, { key: "debtors", label: "بدهکاران" }]} />
+      {dialog}
+      <Tabs value={tab} onChange={setTab} className="mb-5" tabs={[{ key: "report", label: "گزارش" }, { key: "invoices", label: "صورت‌حساب‌ها" }, { key: "payments", label: "پرداخت‌ها" }, { key: "claims", label: "اعلام‌های پرداخت" }, { key: "debtors", label: "بدهکاران" }]} />
+
+      {tab === "claims" && (
+        <Card padded={false} className="overflow-x-auto">
+          {claims.isLoading ? <Spinner /> : claims.data?.items.length ? (
+            <table className="table"><thead><tr><th>تاریخ</th><th>بیمار</th><th>مبلغ</th><th>بابت</th><th>پیگیری</th><th>توضیح</th><th>وضعیت</th><th></th></tr></thead>
+              <tbody>{claims.data.items.map((c) => <tr key={c.id}><td className="num">{formatJalali(c.createdAt)}</td><td><Link href={`/panel/patients/${c.patientId}?tab=finance`} className="font-medium hover:text-brand-700">{c.patient.firstName} {c.patient.lastName}</Link><span className="mr-1 num text-xs text-slate-400">{c.patient.fileNumber}</span></td><td className="num font-bold">{formatMoney(c.amount)}</td><td className="text-xs">{c.purpose === "WALLET" ? "کیف پول" : "بدهی"}</td><td className="num text-xs">{c.refId ? toPersianDigits(c.refId) : "-"}</td><td className="text-xs text-slate-500">{c.note ?? c.error ?? ""}</td><td><StatusBadge status={c.status === "PAID" ? "PAID" : c.status === "PENDING" ? "PENDING" : "FAILED"} /></td><td>{c.status === "PENDING" && <span className="flex gap-1"><Button size="sm" onClick={() => approveClaim(c.id)} icon={<Check className="h-4 w-4" />}>تأیید</Button><Button size="sm" variant="secondary" onClick={() => rejectClaim(c.id)} icon={<X className="h-4 w-4" />}>رد</Button></span>}</td></tr>)}</tbody></table>
+          ) : <EmptyState title="اعلام پرداختی ثبت نشده" />}
+        </Card>
+      )}
 
       {tab === "report" && (report.isLoading ? <Spinner /> : r && (
         <div className="grid gap-5 lg:grid-cols-3">
@@ -98,3 +117,5 @@ export default function FinancePage() {
     </>
   );
 }
+
+export default function FinancePage() { return <Suspense><FinanceInner /></Suspense>; }

@@ -597,8 +597,10 @@ model PaymentIntent {
   provider  String    @default("zarinpal")
   authority String?   @unique
   refId     String?
+  note      String?
   status    String    @default("PENDING") // PENDING | PAID | FAILED | CANCELLED
   error     String?
+  handledById String?
   createdAt DateTime  @default(now())
   paidAt    DateTime?
 
