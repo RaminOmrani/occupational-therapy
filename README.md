@@ -34,7 +34,7 @@ packages/shared  ثابت‌ها، قالب ارزیابی‌ها، الگوها
 
 ```bash
 pnpm first-run  # نصب وابستگی‌ها + ساخت دیتابیس + داده‌های نمونه
-pnpm dev        # API روی :4000 و وب روی :3000
+pnpm dev        # API روی :4310 و وب روی :3000
 ```
 
 سپس به http://localhost:3000 بروید.
@@ -63,7 +63,7 @@ pnpm build && pnpm start   # اجرای production
 روش دستی:
 
 1. `pnpm install && pnpm build`
-2. متغیرهای اختیاری: `PORT` (API)، `API_URL` (آدرس API برای وب، پیش‌فرض `http://localhost:4000`)، `WEB_ORIGIN` (برای CORS)، `TZ` (پیش‌فرض `Asia/Tehran`).
+2. متغیرهای اختیاری: `PORT` (API)، `API_URL` (آدرس API برای وب، پیش‌فرض `http://127.0.0.1:4310`)، `WEB_ORIGIN` (برای CORS)، `TZ` (پیش‌فرض `Asia/Tehran`).
 3. `pnpm start` (یا هر دو اپ را با pm2 اجرا کنید). فایل دیتابیس در `apps/api/data/clinic.db` و آپلودها در `apps/api/uploads` هستند؛ از این دو پوشه بکاپ بگیرید.
 4. برای PostgreSQL کافی است `provider` و `url` در `apps/api/prisma/schema.prisma` را تغییر داده و `pnpm db:push` بزنید.
 

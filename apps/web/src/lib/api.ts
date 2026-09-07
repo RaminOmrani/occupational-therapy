@@ -52,7 +52,7 @@ export const api = {
 };
 
 /** آدرس API برای فراخوانی سمت سرور (SSR) */
-export const SERVER_API_URL = process.env.API_URL ?? "http://127.0.0.1:4000";
+export const SERVER_API_URL = process.env.API_URL ?? "http://127.0.0.1:4310";
 
 export async function serverGet<T>(path: string, revalidate = 0): Promise<T | null> {
   try {
