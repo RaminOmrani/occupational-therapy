@@ -3,6 +3,8 @@
 set -euo pipefail
 cd /opt/clinic
 export NODE_OPTIONS="--max-old-space-size=1536"
+# پورت داخلی API (در زمان build داخل وب ثبت می‌شود)
+export API_URL="http://127.0.0.1:4310"
 git pull --ff-only
 pnpm install --frozen-lockfile
 pnpm db:push

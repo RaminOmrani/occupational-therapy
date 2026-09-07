@@ -42,6 +42,8 @@ if [ "$(free -m | awk '/Swap:/{print $2}')" -lt 1024 ] && [ ! -f /swapfile ]; th
   grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
 fi
 export NODE_OPTIONS="--max-old-space-size=1536"
+# پورت داخلی API (در زمان build داخل وب ثبت می‌شود)
+export API_URL="http://127.0.0.1:4310"
 
 log "نصب وابستگی‌ها و ساخت"
 pnpm install --frozen-lockfile

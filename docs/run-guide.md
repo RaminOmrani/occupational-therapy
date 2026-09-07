@@ -50,7 +50,7 @@ bash install.sh clinic.YOURDOMAIN.ir
 bash /opt/clinic/deploy/update.sh
 ```
 
-دستورهای مفید: `pm2 status` (وضعیت)، `pm2 logs` (لاگ)، `pm2 restart all` (ری‌استارت). فایل دیتابیس در `/opt/clinic/apps/api/data/clinic.db` و بکاپ‌ها در `/opt/clinic/apps/api/backups/` هستند.
+دستورهای مفید: `pm2 status` (وضعیت)، `pm2 logs` (لاگ)، `pm2 restart all` (ری‌استارت). API روی پورت داخلی ۴۳۱۰ و وب روی ۳۰۰۰ اجرا می‌شود. فایل دیتابیس در `/opt/clinic/apps/api/data/clinic.db` و بکاپ‌ها در `/opt/clinic/apps/api/backups/` هستند.
 
 > **cPanel (هاست اشتراکی):** این نرم‌افزار دو سرویس Node دائمی، کرون داخلی و دیتابیس فایل نیاز دارد که هاست‌های اشتراکی cPanel معمولاً اجازه نمی‌دهند یا ناپایدارند. cPanel فقط برای DNS دامنه استفاده شود و خود برنامه روی VPS لینوکسی اجرا شود. سرور ویندوزی هم قابل استفاده است (Node + pm2 + IIS/Caddy) ولی لینوکس ساده‌تر و پایدارتر است.
 

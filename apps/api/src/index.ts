@@ -16,8 +16,9 @@ async function main() {
   if (admins === 0) console.warn("⚠️  هیچ مدیری تعریف نشده است. دستور `pnpm db:seed` را اجرا کنید.");
   const app = createApp();
   const port = Number(process.env.PORT ?? 4000);
-  app.listen(port, () => {
-    console.log(`🩺 API ready on http://localhost:${port}`);
+  const host = process.env.HOST ?? "0.0.0.0";
+  app.listen(port, host, () => {
+    console.log(`🩺 API ready on http://${host}:${port}`);
     startScheduler();
   });
 }
