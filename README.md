@@ -58,7 +58,9 @@ pnpm typecheck   # بررسی تایپ همه پکیج‌ها
 pnpm build && pnpm start   # اجرای production
 ```
 
-### استقرار (Production)
+### استقرار (Production) — نصب خودکار: `bash deploy/install.sh [domain]` (جزئیات در docs/run-guide.md)
+
+روش دستی:
 
 1. `pnpm install && pnpm build`
 2. متغیرهای اختیاری: `PORT` (API)، `API_URL` (آدرس API برای وب، پیش‌فرض `http://localhost:4000`)، `WEB_ORIGIN` (برای CORS)، `TZ` (پیش‌فرض `Asia/Tehran`).

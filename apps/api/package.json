@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc -p tsconfig.json",
-    "start": "node dist/apps/api/src/index.js",
+    "build": "prisma generate",
+    "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "db:push": "prisma db push",
     "db:seed": "tsx src/seed.ts",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "set-setting": "tsx src/cli/set-setting.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

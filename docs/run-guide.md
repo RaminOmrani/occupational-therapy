@@ -20,24 +20,30 @@
 
 برای بستن، در ترمینال `Ctrl+C` بزنید. دفعات بعد فقط `pnpm dev` کافی است.
 
-## ۲) روی سرور (برای استفاده واقعی کلینیک از هر جا)
+## ۲) روی سرور اوبونتو (نصب یک‌دستوره)
 
-به یک **سرور مجازی (VPS) ایران** با اوبونتو (مثلاً از ابرآروان، لیارا، پارس‌پک، ایران‌سرور) و یک **دامنه** (مثل zehnesabz.ir) نیاز دارید. سپس:
+با SSH به سرور وصل شوید (روی ویندوز: PowerShell را باز کنید و بنویسید `ssh root@82.115.8.170`، سپس رمز سرور را وارد کنید). بعد فقط این یک خط را اجرا کنید:
 
 ```bash
-# روی سرور
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs git
-npm install -g pnpm pm2
-git clone -b claude/occupational-clinic-software-t2stj6 https://github.com/RaminOmrani/occupational-therapy.git && cd occupational-therapy
-pnpm install && pnpm db:push && pnpm db:seed
-pnpm build
-pm2 start "pnpm --filter @toranj/api start" --name clinic-api
-pm2 start "pnpm --filter @toranj/web start" --name clinic-web
-pm2 save && pm2 startup
+curl -fsSL https://raw.githubusercontent.com/RaminOmrani/occupational-therapy/claude/occupational-clinic-software-t2stj6/deploy/install.sh -o install.sh && bash install.sh
 ```
-سپس Nginx را طوری تنظیم کنید که دامنه به پورت 3000 وصل شود و با `certbot` گواهی https بگیرید. در پنل مدیریت ← تنظیمات ← سایت عمومی، «آدرس سایت» را روی `https://دامنه‌شما` بگذارید (برای لینک پیامک‌ها و بازگشت از درگاه).
 
-اگر مشخصات سرور را بدهید، این مرحله را هم می‌توانم برایتان انجام دهم.
+این اسکریپت خودش Node، pnpm، pm2 و nginx را نصب می‌کند، کد را می‌گیرد، می‌سازد، سرویس‌ها را دائمی می‌کند (بعد از ریستارت سرور هم بالا می‌آیند)، فایروال را تنظیم می‌کند و در پایان آدرس را نشان می‌دهد: `http://82.115.8.170`
+
+**اتصال دامنه و https (پیشنهادی):** در cPanel ← Zone Editor یک رکورد **A** با نام مثلاً `clinic` به آی‌پی `82.115.8.170` بسازید. چند دقیقه بعد همان اسکریپت را با دامنه اجرا کنید تا گواهی https خودکار گرفته شود:
+
+```bash
+bash install.sh clinic.YOURDOMAIN.ir
+```
+
+**به‌روزرسانی به نسخه‌های بعدی:**
+```bash
+bash /opt/clinic/deploy/update.sh
+```
+
+دستورهای مفید: `pm2 status` (وضعیت)، `pm2 logs` (لاگ)، `pm2 restart all` (ری‌استارت). فایل دیتابیس در `/opt/clinic/apps/api/data/clinic.db` و بکاپ‌ها در `/opt/clinic/apps/api/backups/` هستند.
+
+> **cPanel (هاست اشتراکی):** این نرم‌افزار دو سرویس Node دائمی، کرون داخلی و دیتابیس فایل نیاز دارد که هاست‌های اشتراکی cPanel معمولاً اجازه نمی‌دهند یا ناپایدارند. cPanel فقط برای DNS دامنه استفاده شود و خود برنامه روی VPS لینوکسی اجرا شود. سرور ویندوزی هم قابل استفاده است (Node + pm2 + IIS/Caddy) ولی لینوکس ساده‌تر و پایدارتر است.
 
 ## ۳) بعد از اولین ورود
 

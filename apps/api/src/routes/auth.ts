@@ -15,11 +15,12 @@ export const authRouter = Router();
 
 const limiter = rateLimit({ windowMs: 10 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false, message: { message: "تعداد تلاش‌ها زیاد است؛ کمی بعد دوباره امتحان کنید" } });
 
-async function issueSession(res: any, user: { id: string; role: string; firstName: string; lastName: string }) {
+async function issueSession(req: any, res: any, user: { id: string; role: string; firstName: string; lastName: string }) {
   const token = await signToken({ sub: user.id, role: user.role, name: `${user.firstName} ${user.lastName}` });
   const days = await getSettingNumber("security.sessionDays", 14);
   const maxAge = days * 24 * 60 * 60 * 1000;
-  const secure = process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false";
+  // کوکی امن فقط وقتی درخواست از طریق https رسیده باشد (پشت nginx با X-Forwarded-Proto)
+  const secure = !!req.secure || String(req.headers["x-forwarded-proto"] ?? "").includes("https");
   res.cookie(TOKEN_COOKIE, token, { httpOnly: true, sameSite: "lax", secure, maxAge, path: "/" });
   res.cookie(ROLE_COOKIE, user.role, { httpOnly: false, sameSite: "lax", secure, maxAge, path: "/" });
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
@@ -46,7 +47,7 @@ authRouter.post("/login", limiter, async (req, res) => {
   const phone = normalizePhone(body.phone);
   const user = await prisma.user.findUnique({ where: { phone }, include: { therapist: true, patient: true } });
   if (!user || !user.isActive || !(await verifyPassword(body.password, user.passwordHash))) throw unauthorized("شماره موبایل یا رمز عبور اشتباه است");
-  const token = await issueSession(res, user);
+  const token = await issueSession(req, res, user);
   await audit(user.id, "login", "user", user.id);
   res.json({ token, user: publicUser(user) });
 });
@@ -75,7 +76,7 @@ authRouter.post("/otp/verify", limiter, async (req, res) => {
   const otp = await prisma.otpCode.findFirst({ where: { userId: user.id, code: body.code, usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } });
   if (!otp) throw unauthorized("کد وارد‌شده نامعتبر یا منقضی است");
   await prisma.otpCode.update({ where: { id: otp.id }, data: { usedAt: new Date() } });
-  const token = await issueSession(res, user);
+  const token = await issueSession(req, res, user);
   await audit(user.id, "login_otp", "user", user.id);
   res.json({ token, user: publicUser(user) });
 });
