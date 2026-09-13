@@ -11,10 +11,10 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ name = "کلینیک کاردرمانی ذهن سبز", className, light }: { name?: string; className?: string; light?: boolean }) {
+export function Logo({ name = "کلینیک کاردرمانی ذهن سبز", className, light, src }: { name?: string; className?: string; light?: boolean; src?: string | null }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      <LogoMark />
+      {src ? <img src={src} alt={name} className="h-10 w-10 rounded-xl object-cover" /> : <LogoMark />}
       <span className={cn("text-base font-extrabold leading-tight", light ? "text-white" : "text-brand-800")}>{name}</span>
     </span>
   );

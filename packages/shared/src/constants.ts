@@ -97,8 +97,9 @@ export const GOAL_STATUS_LABELS: Record<(typeof GOAL_STATUSES)[number], string> 
 };
 
 /** پیش‌فرض‌های تنظیمات؛ همه از پنل مدیریت قابل تغییرند و در دیتابیس ذخیره می‌شوند */
-export const DEFAULT_SETTINGS: Record<string, { value: string; group: string; label: string; description?: string; type: "text" | "number" | "boolean" | "json" | "password" | "textarea" | "select"; options?: string[]; secret?: boolean }> = {
+export const DEFAULT_SETTINGS: Record<string, { value: string; group: string; label: string; description?: string; type: "text" | "number" | "boolean" | "json" | "password" | "textarea" | "select" | "image"; options?: string[]; secret?: boolean }> = {
   "clinic.name": { value: "کلینیک کاردرمانی ذهن سبز", group: "clinic", label: "نام کلینیک", type: "text" },
+  "clinic.logo": { value: "", group: "clinic", label: "لوگوی کلینیک", type: "image", description: "در سایت، پنل و فاکتور نمایش داده می‌شود (ترجیحاً مربع، PNG)" },
   "clinic.licenseNo": { value: "ک.د ۲۴۳۰", group: "clinic", label: "شماره نظام پزشکی / مجوز", type: "text" },
   "clinic.tagline": { value: "همراه شما در مسیر استقلال و توانمندی", group: "clinic", label: "شعار کلینیک", type: "text" },
   "clinic.phone": { value: "05138667661", group: "clinic", label: "تلفن کلینیک", type: "text" },
@@ -163,6 +164,9 @@ export const DEFAULT_SETTINGS: Record<string, { value: string; group: string; la
   "consent.required": { value: "true", group: "consent", label: "دریافت رضایت‌نامه از بیماران جدید الزامی باشد", type: "boolean" },
   "consent.title": { value: "رضایت‌نامه آگاهانه درمان", group: "consent", label: "عنوان رضایت‌نامه", type: "text" },
   "consent.text": { value: "اینجانب با آگاهی کامل از روند درمان کاردرمانی، اهداف، مدت و هزینه‌های آن، رضایت خود را برای شروع و ادامه درمان در کلینیک اعلام می‌دارم.\nمتعهد می‌شوم در جلسات به‌موقع حاضر شوم و در صورت لغو، حداقل ۲۴ ساعت قبل اطلاع دهم.\nاطلاعات پرونده محرمانه است و فقط در اختیار تیم درمان قرار می‌گیرد.", group: "consent", label: "متن رضایت‌نامه", type: "textarea", description: "با تغییر متن، بیماران باید نسخه جدید را دوباره امضا کنند." },
+  "app.apkUrl": { value: "", group: "app", label: "لینک دانلود فایل APK اندروید", type: "text", description: "اگر با PWABuilder فایل اندروید ساختید، لینکش را اینجا بگذارید تا در صفحه «نصب اپلیکیشن» نمایش داده شود." },
+  "app.storeUrl": { value: "", group: "app", label: "لینک اپ در بازار / مایکت / گوگل‌پلی", type: "text" },
+  "app.assetlinks": { value: "", group: "app", label: "assetlinks.json (تأیید مالکیت دامنه برای اپ اندروید)", type: "textarea", description: "محتوای فایلی که PWABuilder می‌دهد را عیناً اینجا بگذارید؛ در آدرس /.well-known/assetlinks.json منتشر می‌شود." },
   "backup.enabled": { value: "true", group: "security", label: "بکاپ خودکار روزانه دیتابیس (۳ بامداد)", type: "boolean" },
   "backup.keep": { value: "14", group: "security", label: "تعداد نسخه‌های بکاپ نگه‌داری‌شده", type: "number" },
   "public.heroSubtitle": { value: "کلینیک تخصصی کاردرمانی کودکان و بزرگسالان؛ ارزیابی دقیق، برنامه درمانی شخصی و پیگیری مستمر پیشرفت", group: "public", label: "زیرعنوان صفحه نخست", type: "textarea" },

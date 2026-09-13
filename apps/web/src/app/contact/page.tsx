@@ -12,7 +12,7 @@ export default async function ContactPage() {
   const s = clinic?.settings ?? {};
   return (
     <div className="bg-sand-50">
-      <PublicNav clinicName={s["clinic.name"] ?? ""} />
+      <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
       <div className="mx-auto max-w-6xl px-4 py-12">
         <h1 className="text-3xl font-black text-brand-900">تماس با ما و رزرو ارزیابی</h1>
         <p className="mt-2 text-slate-500">فرم زیر را پر کنید تا همکاران ما با شما تماس بگیرند.</p>

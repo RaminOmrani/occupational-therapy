@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Tabs, Textarea, Toggle } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { AvatarUpload } from "@/components/ui/AvatarUpload";
 
 const WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];
 const COLORS = ["#178a6e", "#e76f51", "#f4a261", "#8b5cf6", "#7ba874", "#0ea5e9", "#ec4899", "#64748b"];
@@ -28,7 +29,7 @@ export default function UsersPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {data?.items.map((u) => (
             <Card key={u.id} className={cn("flex gap-4", !u.isActive && "opacity-60")}>
-              <Avatar name={u.fullName} size="lg" className={u.therapist ? "ring-2 ring-offset-2" : ""} />
+              <AvatarUpload name={u.fullName} src={u.avatar} target="user" id={u.id} size="lg" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2"><h3 className="truncate font-bold">{u.fullName}</h3><button onClick={() => setEdit({ ...u, therapist: u.therapist ?? { workDays: [6, 0, 1, 2, 3], color: COLORS[0], isPublic: true } })} className="text-slate-400 hover:text-brand-600"><Pencil className="h-4 w-4" /></button></div>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5"><Badge tone={u.role === "ADMIN" ? "coral" : u.role === "THERAPIST" ? "brand" : "amber"}>{ROLE_LABELS[u.role as keyof typeof ROLE_LABELS]}</Badge>{!u.isActive && <Badge tone="slate">غیرفعال</Badge>}{u.id === me?.id && <Badge tone="sage"><ShieldCheck className="h-3 w-3" />شما</Badge>}</div>

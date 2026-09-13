@@ -38,7 +38,7 @@ export default function InvoicePage() {
         {/* سربرگ */}
         <div className="flex items-start justify-between gap-4 border-b-2 border-brand-700 pb-4">
           <div className="flex items-center gap-3">
-            <LogoMark className="h-16 w-16" />
+            {s.str("clinic.logo") ? <img src={s.str("clinic.logo")} alt="" className="h-16 w-16 rounded-2xl object-cover" /> : <LogoMark className="h-16 w-16" />}
             <div>
               <h1 className="text-xl font-black text-brand-800">{data.clinic.name}</h1>
               <p className="mt-1 text-xs text-slate-600">{data.clinic.address}</p>

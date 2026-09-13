@@ -5,7 +5,8 @@ import { KeyRound, UserCircle, Save } from "lucide-react";
 import { ROLE_LABELS, toPersianDigits } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Avatar, Button, Card, Field, Input, PageHeader } from "@/components/ui";
+import { Button, Card, Field, Input, PageHeader } from "@/components/ui";
+import { AvatarUpload } from "@/components/ui/AvatarUpload";
 
 export default function AccountPage() {
   const { user, refresh } = useAuth();
@@ -25,7 +26,7 @@ export default function AccountPage() {
       <PageHeader title="حساب کاربری" icon={<UserCircle className="h-5 w-5" />} />
       <div className="grid gap-5 md:grid-cols-2">
         <Card title="مشخصات">
-          <div className="mb-4 flex items-center gap-3"><Avatar name={`${user.firstName} ${user.lastName}`} size="lg" /><div><p className="font-bold">{user.firstName} {user.lastName}</p><p className="text-xs text-slate-400">{ROLE_LABELS[user.role]} · <span className="num" dir="ltr">{toPersianDigits(user.phone)}</span>{user.fileNumber ? ` · پرونده ${user.fileNumber}` : ""}</p></div></div>
+          <div className="mb-4 flex items-center gap-3"><AvatarUpload name={`${user.firstName} ${user.lastName}`} src={user.avatar} target="user" size="lg" /><div><p className="font-bold">{user.firstName} {user.lastName}</p><p className="text-xs text-slate-400">{ROLE_LABELS[user.role]} · <span className="num" dir="ltr">{toPersianDigits(user.phone)}</span>{user.fileNumber ? ` · پرونده ${user.fileNumber}` : ""}</p></div></div>
           <div className="grid gap-3 sm:grid-cols-2"><Field label="نام"><Input value={name.firstName} onChange={(e) => setName({ ...name, firstName: e.target.value })} /></Field><Field label="نام خانوادگی"><Input value={name.lastName} onChange={(e) => setName({ ...name, lastName: e.target.value })} /></Field></div>
           <Button className="mt-4" loading={l1} onClick={saveName} icon={<Save className="h-4 w-4" />}>ذخیره</Button>
         </Card>

@@ -20,7 +20,7 @@ export default async function HomePage() {
 
   return (
     <div className="bg-sand-50">
-      <PublicNav clinicName={name} />
+      <PublicNav clinicName={name} logo={s["clinic.logo"]} />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -89,7 +89,7 @@ export default async function HomePage() {
                   <li key={i} className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-xl bg-brand-800"><Icon className="h-4 w-4 text-amber-400" /></span>{t}</li>
                 ))}
               </ul>
-              <Link href="/login" className="btn-accent mt-8">ورود به اپلیکیشن</Link>
+              <div className="mt-8 flex flex-wrap gap-3"><Link href="/app" className="btn-accent">نصب اپلیکیشن</Link><Link href="/login" className="btn-secondary border-brand-600 bg-transparent text-white hover:bg-brand-800">ورود</Link></div>
             </div>
             <PhoneMock />
           </div>

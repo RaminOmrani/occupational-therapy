@@ -23,7 +23,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const s = clinic?.settings ?? {};
   return (
     <div className="bg-sand-50">
-      <PublicNav clinicName={s["clinic.name"] ?? ""} />
+      <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
       <article className="mx-auto max-w-3xl px-4 py-12">
         {a.category && <span className="badge bg-brand-100 text-brand-800">{a.category}</span>}
         <h1 className="mt-3 text-3xl font-black leading-[1.5] text-brand-900">{a.title}</h1>

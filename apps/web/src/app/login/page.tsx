@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth, type SessionUser } from "@/lib/auth";
 import { Button, Field, Input, Tabs } from "@/components/ui";
 import { LogoMark } from "@/components/layout/Logo";
+import { InstallBanner } from "@/components/layout/Pwa";
 import { usePublicSettings } from "@/lib/settings";
 
 function LoginInner() {
@@ -82,7 +83,8 @@ function LoginInner() {
             {otpSent && <button type="button" onClick={() => setOtpSent(false)} className="w-full text-center text-xs text-slate-400 hover:text-brand-600">تغییر شماره / ارسال مجدد</button>}
           </form>
         </div>
-        <Link href="/" className="mt-5 flex items-center justify-center gap-1 text-sm text-slate-500 hover:text-brand-700"><ArrowLeft className="h-4 w-4" />بازگشت به سایت</Link>
+        <div className="mt-5"><InstallBanner compact /></div>
+        <Link href="/" className="mt-2 flex items-center justify-center gap-1 text-sm text-slate-500 hover:text-brand-700"><ArrowLeft className="h-4 w-4" />بازگشت به سایت</Link>
       </div>
     </div>
   );

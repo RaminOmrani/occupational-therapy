@@ -1,12 +1,27 @@
 {
+  "id": "/panel",
   "name": "کلینیک کاردرمانی ذهن سبز",
   "short_name": "ذهن سبز",
-  "description": "پنل بیماران و همکاران کلینیک کاردرمانی",
-  "start_url": "/panel",
+  "description": "پنل بیماران و همکاران کلینیک کاردرمانی ذهن سبز؛ نوبت‌ها، پرونده، پرداخت و پیام",
+  "start_url": "/panel?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
   "dir": "rtl",
   "lang": "fa",
   "background_color": "#f7f5f0",
   "theme_color": "#178a6e",
-  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+  "categories": ["health", "medical"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "نوبت‌های من", "url": "/panel/my/schedule?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "پیام‌ها", "url": "/panel/messages?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "حساب مالی", "url": "/panel/my/finance?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
 }

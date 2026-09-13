@@ -10,7 +10,7 @@ export default async function BookPage() {
   const s = clinic?.settings ?? {};
   return (
     <div className="bg-sand-50">
-      <PublicNav clinicName={s["clinic.name"] ?? ""} />
+      <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
       <div className="mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-3xl font-black text-brand-900">رزرو نوبت آنلاین</h1>
         <p className="mt-2 text-slate-500">درمانگر و زمان دلخواه را انتخاب کنید؛ پس از تأیید کلینیک، پیامک تأیید دریافت می‌کنید.</p>

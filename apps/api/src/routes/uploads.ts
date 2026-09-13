@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, requireStaff, canAccessPatient } from "../middleware/auth.js";
+import { setSetting } from "../lib/settings.js";
 import { badRequest, forbidden } from "../lib/errors.js";
 import { validate } from "../lib/validate.js";
 
@@ -54,4 +55,30 @@ documentsRouter.delete("/documents/:id", requireStaff, async (req, res) => {
     fs.promises.unlink(path.join(UPLOAD_DIR, path.basename(d.fileUrl))).catch(() => null);
   }
   res.json({ ok: true });
+});
+
+/** آپلود عکس پروفایل بیمار/کاربر یا لوگوی کلینیک؛ target = patient | user | clinic */
+export const avatarRouter = Router();
+avatarRouter.use(requireAuth);
+avatarRouter.post("/avatar", upload.single("file"), async (req, res) => {
+  if (!req.file) throw badRequest("فایلی ارسال نشد");
+  if (!req.file.mimetype.startsWith("image/")) throw badRequest("فقط تصویر مجاز است");
+  const body = validate(z.object({ target: z.enum(["patient", "user", "clinic"]), id: z.string().optional() }), req.body ?? {});
+  const url = `/uploads/${req.file.filename}`;
+  const me = req.user!;
+  if (body.target === "clinic") {
+    if (me.role !== "ADMIN") throw forbidden();
+    await setSetting("clinic.logo", url);
+  } else if (body.target === "patient") {
+    const id = body.id ?? me.patientId ?? "";
+    if (!id || !canAccessPatient(req, id)) throw forbidden();
+    const p = await prisma.patient.update({ where: { id }, data: { avatar: url } });
+    if (p.userId) await prisma.user.update({ where: { id: p.userId }, data: { avatar: url } }).catch(() => null);
+  } else {
+    const id = body.id ?? me.id;
+    if (id !== me.id && me.role !== "ADMIN") throw forbidden();
+    const u = await prisma.user.update({ where: { id }, data: { avatar: url }, include: { patient: { select: { id: true } } } });
+    if (u.patient) await prisma.patient.update({ where: { id: u.patient.id }, data: { avatar: url } }).catch(() => null);
+  }
+  res.status(201).json({ url });
 });

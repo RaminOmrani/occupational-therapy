@@ -5,7 +5,8 @@ import { UserCircle, KeyRound, Phone } from "lucide-react";
 import { formatJalali, toPersianDigits, ageFromBirthDate, GENDER_LABELS } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Avatar, Card, PageHeader, Spinner } from "@/components/ui";
+import { Card, PageHeader, Spinner } from "@/components/ui";
+import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { usePublicSettings } from "@/lib/settings";
 
 export default function MyProfilePage() {
@@ -19,7 +20,7 @@ export default function MyProfilePage() {
       <PageHeader title="پروفایل من" icon={<UserCircle className="h-5 w-5" />} actions={<Link href="/panel/account" className="btn-secondary"><KeyRound className="h-4 w-4" />تغییر رمز</Link>} />
       <div className="grid gap-5 md:grid-cols-3">
         <Card className="flex flex-col items-center text-center md:col-span-1">
-          <Avatar name={p.fullName} size="xl" />
+          <AvatarUpload name={p.fullName} src={p.avatar} target="patient" size="xl" />
           <h2 className="mt-3 text-lg font-bold">{p.fullName}</h2>
           <p className="num text-sm text-slate-500">شماره پرونده: <b className="text-brand-700">{p.fileNumber}</b></p>
           {p.primaryTherapistName && <p className="mt-1 text-xs text-slate-400">درمانگر: {p.primaryTherapistName}</p>}

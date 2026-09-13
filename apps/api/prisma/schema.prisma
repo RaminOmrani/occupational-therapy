@@ -83,6 +83,7 @@ model Patient {
   firstName          String
   lastName           String
   phone              String
+  avatar             String?
   birthDate          DateTime?
   gender             String?
   nationalId         String?

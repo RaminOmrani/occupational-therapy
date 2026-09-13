@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Card, PageHeader, Spinner, Stat, EmptyState, Avatar, ProgressBar, Badge } from "@/components/ui";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { InstallBanner } from "@/components/layout/Pwa";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -168,6 +169,7 @@ function PatientDashboard({ d }: { d: any }) {
   return (
     <>
       <PageHeader title={<Greeting />} subtitle={`شماره پرونده: ${d.patient.fileNumber}${d.patient.primaryTherapist ? ` · درمانگر: ${d.patient.primaryTherapist.user.firstName} ${d.patient.primaryTherapist.user.lastName}` : ""}`} />
+      <InstallBanner />
       {consent.data?.pending && (
         <Link href="/panel/my/consent" className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-700 hover:bg-amber-400/20">
           <FileSignature className="h-5 w-5 shrink-0" /><span>لطفاً <b>رضایت‌نامه درمان</b> را مطالعه و امضا کنید.</span>

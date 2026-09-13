@@ -10,7 +10,7 @@ export default async function AboutPage() {
   const s = clinic?.settings ?? {};
   return (
     <div className="bg-sand-50">
-      <PublicNav clinicName={s["clinic.name"] ?? ""} />
+      <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
       <div className="mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-3xl font-black text-brand-900">درباره {s["clinic.name"]}</h1>
         <p className="mt-6 whitespace-pre-line text-base leading-9 text-slate-600">{s["clinic.about"]}</p>

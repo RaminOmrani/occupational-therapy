@@ -18,7 +18,7 @@ import { usersRouter } from "./routes/users.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { publicRouter } from "./routes/public.js";
-import { uploadsRouter, documentsRouter, UPLOAD_DIR } from "./routes/uploads.js";
+import { uploadsRouter, documentsRouter, avatarRouter, UPLOAD_DIR } from "./routes/uploads.js";
 import { bookingsRouter, publicBookingRouter } from "./routes/bookings.js";
 import { messagesRouter } from "./routes/messages.js";
 import { surveysRouter, publicSurveyRouter } from "./routes/surveys.js";
@@ -54,6 +54,7 @@ export function createApp() {
   app.use("/api/users", usersRouter);
   app.use("/api/dashboard", dashboardRouter);
   app.use("/api/notifications", notificationsRouter);
+  app.use("/api/uploads", avatarRouter);
   app.use("/api/uploads", uploadsRouter);
   app.use("/api/public/booking", publicBookingRouter);
   app.use("/api/public/survey", publicSurveyRouter);

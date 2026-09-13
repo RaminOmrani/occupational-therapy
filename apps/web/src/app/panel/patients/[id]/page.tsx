@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Spinner, Tabs, Textarea, useConfirm } from "@/components/ui";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PatientForm } from "@/components/patient/PatientForm";
+import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { FinancePanel } from "@/components/patient/FinancePanel";
 import { RecordsPanel } from "@/components/patient/RecordsPanel";
 import { AppointmentModal } from "@/components/schedule/AppointmentModal";
@@ -41,7 +42,7 @@ function Inner() {
   return (
     <>
       <PageHeader
-        title={<span className="flex items-center gap-3"><Avatar name={p.fullName} size="lg" />{p.fullName}</span>}
+        title={<span className="flex items-center gap-3"><AvatarUpload name={p.fullName} src={p.avatar} target="patient" id={id} size="lg" />{p.fullName}</span>}
         subtitle={<span className="flex flex-wrap items-center gap-2"><span className="num">پرونده {p.fileNumber}</span>·<StatusBadge status={p.status} />{p.tags.map((t: string) => <Badge key={t} tone="sky">{t}</Badge>)}{p.daysToBirthday !== null && p.daysToBirthday <= 7 && <Badge tone="coral"><Cake className="h-3 w-3" />{p.daysToBirthday === 0 ? "تولدش امروز است!" : `${toPersianDigits(p.daysToBirthday)} روز تا تولد`}</Badge>}</span>}
         actions={<>
           {canEdit && <Button variant="secondary" onClick={() => setEdit(true)} icon={<Pencil className="h-4 w-4" />}>ویرایش</Button>}

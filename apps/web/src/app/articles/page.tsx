@@ -18,7 +18,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
   const data = await serverGet<{ items: any[]; categories: string[] }>(`/articles/public?${qs.toString()}`);
   return (
     <div className="bg-sand-50">
-      <PublicNav clinicName={s["clinic.name"] ?? ""} />
+      <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
       <div className="mx-auto max-w-6xl px-4 py-12">
         <h1 className="text-3xl font-black text-brand-900">مقالات و دانستنی‌ها</h1>
         <p className="mt-2 text-slate-500">مطالب آموزشی تیم درمانگران برای خانواده‌ها</p>

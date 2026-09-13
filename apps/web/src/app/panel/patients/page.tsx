@@ -52,7 +52,7 @@ function PatientsInner() {
                 const age = ageFromBirthDate(p.birthDate);
                 return (
                   <tr key={p.id}>
-                    <td><Link href={`/panel/patients/${p.id}`} className="flex items-center gap-3 font-medium hover:text-brand-700"><Avatar name={p.fullName} size="sm" />{p.fullName}{p.daysToBirthday !== null && p.daysToBirthday <= 7 && <Cake className="h-4 w-4 text-coral-500" />}</Link></td>
+                    <td><Link href={`/panel/patients/${p.id}`} className="flex items-center gap-3 font-medium hover:text-brand-700"><Avatar name={p.fullName} src={p.avatar} size="sm" />{p.fullName}{p.daysToBirthday !== null && p.daysToBirthday <= 7 && <Cake className="h-4 w-4 text-coral-500" />}</Link></td>
                     <td className="num text-xs">{p.fileNumber}</td>
                     <td className="num text-xs" dir="ltr"><a href={`tel:${p.phone}`} className="flex items-center gap-1 hover:text-brand-700"><Phone className="h-3 w-3" />{toPersianDigits(p.phone)}</a></td>
                     <td className="num text-xs">{age !== null ? `${toPersianDigits(age)} سال` : "-"}</td>

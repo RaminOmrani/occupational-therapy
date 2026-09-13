@@ -13,17 +13,18 @@ const NAV = [
   { href: "/about", label: "درباره ما" },
   { href: "/articles", label: "مقالات" },
   { href: "/book", label: "رزرو آنلاین" },
+  { href: "/app", label: "نصب اپلیکیشن" },
   { href: "/contact", label: "تماس با ما" },
 ];
 
-export function PublicNav({ clinicName }: { clinicName: string }) {
+export function PublicNav({ clinicName, logo }: { clinicName: string; logo?: string | null }) {
   const path = usePathname();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 border-b border-sand-200/70 bg-sand-50/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/"><Logo name={clinicName} /></Link>
+        <Link href="/"><Logo name={clinicName} src={logo} /></Link>
         <nav className="hidden items-center gap-1 md:flex">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href} className={cn("rounded-xl px-3.5 py-2 text-sm font-medium transition hover:bg-brand-50 hover:text-brand-700", path === n.href ? "text-brand-700" : "text-slate-600")}>{n.label}</Link>
@@ -53,7 +54,7 @@ export function PublicFooter({ settings }: { settings: Record<string, string> })
     <footer className="mt-20 bg-brand-900 text-brand-100">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-3">
         <div>
-          <div className="flex items-center gap-2.5"><LogoMark /><span className="text-lg font-extrabold text-white">{settings["clinic.name"]}</span></div>
+          <div className="flex items-center gap-2.5">{settings["clinic.logo"] ? <img src={settings["clinic.logo"]} alt="" className="h-10 w-10 rounded-xl bg-white object-cover" /> : <LogoMark />}<span className="text-lg font-extrabold text-white">{settings["clinic.name"]}</span></div>
           <p className="mt-4 text-sm leading-7 text-brand-200">{settings["clinic.tagline"]}</p>
         </div>
         <div>
