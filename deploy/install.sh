@@ -64,7 +64,14 @@ pm2 save
 pm2 startup systemd -u root --hp /root >/dev/null 2>&1 || true
 
 log "تنظیم nginx"
-sed "s/__SERVER_NAME__/${DOMAIN:-_}/" deploy/nginx.conf.template > /etc/nginx/sites-available/clinic
+# دامنه اصلی (بدون زیردامنه) به‌همراه www تنظیم می‌شود
+SERVER_NAMES="${DOMAIN:-_}"
+CERT_ARGS="-d $DOMAIN"
+if [ -n "$DOMAIN" ] && [ "$(echo "$DOMAIN" | tr -cd '.' | wc -c)" -eq 1 ]; then
+  SERVER_NAMES="$DOMAIN www.$DOMAIN"
+  CERT_ARGS="-d $DOMAIN -d www.$DOMAIN"
+fi
+sed "s/__SERVER_NAME__/${SERVER_NAMES}/" deploy/nginx.conf.template > /etc/nginx/sites-available/clinic
 ln -sf /etc/nginx/sites-available/clinic /etc/nginx/sites-enabled/clinic
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
@@ -75,7 +82,7 @@ ufw allow OpenSSH >/dev/null; ufw allow 80 >/dev/null; ufw allow 443 >/dev/null;
 if [ -n "$DOMAIN" ]; then
   log "گواهی https برای $DOMAIN"
   apt-get install -y certbot python3-certbot-nginx
-  certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email --redirect || echo "⚠ certbot ناموفق بود؛ مطمئن شوید DNS دامنه به این سرور اشاره می‌کند و دوباره اجرا کنید: certbot --nginx -d $DOMAIN"
+  certbot --nginx $CERT_ARGS --non-interactive --agree-tos --register-unsafely-without-email --redirect || echo "⚠ certbot ناموفق بود؛ مطمئن شوید DNS دامنه به این سرور اشاره می‌کند و دوباره اجرا کنید: certbot --nginx $CERT_ARGS --redirect"
 fi
 
 log "تمام شد"
