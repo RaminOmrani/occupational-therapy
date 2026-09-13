@@ -18,11 +18,14 @@ export async function ensureDefaultTemplates() {
 }
 
 export async function getProviderConfig(): Promise<SmsProviderConfig> {
+  const password = await getSetting("sms.password");
+  const apiKey = await getSetting("sms.apiKey");
   return {
     provider: await getSetting("sms.provider", "mock"),
     username: await getSetting("sms.username"),
-    password: await getSetting("sms.password"),
-    apiKey: await getSetting("sms.apiKey"),
+    // ملی‌پیامک در حساب‌های جدید به‌جای رمز عبور، کلید API می‌خواهد (خطای -110)؛ اگر کلید وارد شده باشد همان ارسال می‌شود
+    password: apiKey || password,
+    apiKey,
     from: await getSetting("sms.from"),
   };
 }

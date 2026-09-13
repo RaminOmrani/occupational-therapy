@@ -40,7 +40,7 @@ export default function SettingsPage() {
           <div className="mb-5 rounded-2xl bg-brand-50 p-4 text-sm leading-7 text-brand-900">
             <p className="font-bold">راهنمای اتصال ملی‌پیامک</p>
             <ul className="mr-4 list-disc text-xs leading-6">
-              <li><b>melipayamak-rest</b>: نام کاربری + رمز پنل یا <b>کلید API</b> (اگر ملی‌پیامک خطای «ApiKey» داد، کلید API را در فیلد رمز عبور بگذارید) + شماره فرستنده.</li>
+              <li><b>melipayamak-rest</b>: نام کاربری + شماره فرستنده + کلید API (اگر وارد شود، به‌جای رمز عبور استفاده می‌شود).</li>
               <li><b>melipayamak-console</b>: کلید API از کنسول جدید ملی‌پیامک + شماره فرستنده.</li>
               <li>برای ارسال خدماتی با الگوهای تأییدشده، کد هر الگو (bodyId) را در بخش «پیامک ← الگوها» وارد و «استفاده از الگوها» را فعال کنید.</li>
               <li>در حالت <b>mock</b> هیچ پیامکی ارسال نمی‌شود و متن در گزارش ارسال ثبت می‌گردد (مناسب تست).</li>
