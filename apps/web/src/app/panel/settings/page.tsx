@@ -40,7 +40,7 @@ export default function SettingsPage() {
           <div className="mb-5 rounded-2xl bg-brand-50 p-4 text-sm leading-7 text-brand-900">
             <p className="font-bold">راهنمای اتصال ملی‌پیامک</p>
             <ul className="mr-4 list-disc text-xs leading-6">
-              <li><b>melipayamak-rest</b>: نام کاربری و رمز پنل + شماره فرستنده (خط اختصاصی).</li>
+              <li><b>melipayamak-rest</b>: نام کاربری + رمز پنل یا <b>کلید API</b> (اگر ملی‌پیامک خطای «ApiKey» داد، کلید API را در فیلد رمز عبور بگذارید) + شماره فرستنده.</li>
               <li><b>melipayamak-console</b>: کلید API از کنسول جدید ملی‌پیامک + شماره فرستنده.</li>
               <li>برای ارسال خدماتی با الگوهای تأییدشده، کد هر الگو (bodyId) را در بخش «پیامک ← الگوها» وارد و «استفاده از الگوها» را فعال کنید.</li>
               <li>در حالت <b>mock</b> هیچ پیامکی ارسال نمی‌شود و متن در گزارش ارسال ثبت می‌گردد (مناسب تست).</li>
@@ -67,7 +67,7 @@ export default function SettingsPage() {
       {group === "security" && <BackupsCard />}
       {group === "payment" && <p className="mt-3 text-xs leading-6 text-slate-500">برای دریافت مرچنت زرین‌پال در zarinpal.com ثبت‌نام و درگاه بسازید. تا زمانی که «حالت آزمایشی» فعال است، تراکنش‌ها در محیط sandbox انجام می‌شود و پول واقعی جابه‌جا نمی‌شود. «آدرس سایت» در بخش سایت عمومی باید آدرس واقعی (https) باشد تا بازگشت از درگاه کار کند.</p>}
       <Modal open={testOpen} onClose={() => setTestOpen(false)} title="پیامک آزمایشی" size="sm" footer={<><Button variant="secondary" onClick={() => setTestOpen(false)}>بستن</Button><Button onClick={sendTest} icon={<Send className="h-4 w-4" />}>ارسال</Button></>}>
-        <p className="mb-3 text-xs text-slate-500">ابتدا تنظیمات را ذخیره کنید، سپس با تنظیمات ذخیره‌شده پیامک آزمایشی ارسال می‌شود.</p>
+        <p className="mb-3 text-xs text-slate-500">ابتدا تنظیمات را ذخیره کنید. پیامک آزمایشی با «الگوی عمومی» ارسال می‌شود؛ پس کد الگوی عمومی باید ثبت شده باشد.</p>
         <Field label="شماره گیرنده"><Input value={testTo} onChange={(e) => setTestTo(e.target.value)} dir="ltr" className="num text-left" placeholder="09123456789" /></Field>
       </Modal>
     </>

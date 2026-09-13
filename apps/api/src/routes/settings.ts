@@ -5,7 +5,7 @@ import { getAllSettings, setSetting, getPublicSettings } from "../lib/settings.j
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { validate } from "../lib/validate.js";
 import { audit } from "../lib/audit.js";
-import { sendRawSms } from "../lib/sms/service.js";
+import { sendTemplateSms } from "../lib/sms/service.js";
 import { normalizePhone } from "@toranj/shared";
 
 export const settingsRouter = Router();
@@ -45,6 +45,7 @@ settingsRouter.put("/", async (req, res) => {
 /** ارسال پیامک آزمایشی برای بررسی تنظیمات */
 settingsRouter.post("/sms-test", async (req, res) => {
   const body = validate(z.object({ to: z.string().min(10) }), req.body);
-  const log = await sendRawSms(normalizePhone(body.to), "پیامک آزمایشی سامانه کلینیک با موفقیت ارسال شد.", { templateKey: "test" });
+  // از الگوی عمومی استفاده می‌شود تا روی خط خدماتی اشتراکی هم کار کند
+  const log = await sendTemplateSms("general", normalizePhone(body.to), { message: "پیامک آزمایشی سامانه کلینیک با موفقیت ارسال شد." });
   res.json({ log });
 });
