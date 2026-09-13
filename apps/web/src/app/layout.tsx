@@ -19,6 +19,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getServerUser();
   return (
     <html lang="fa" dir="rtl">
+      <head>
+        {/* ثبت زودهنگام سرویس‌ورکر؛ به‌صورت اسکریپت مستقیم تا ابزارهایی مثل PWABuilder هم آن را تشخیص دهند */}
+        <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){})})}" }} />
+      </head>
       <body className="min-h-screen">
         <Providers initialUser={user}>{children}<PwaRegister /></Providers>
       </body>

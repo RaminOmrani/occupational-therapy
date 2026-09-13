@@ -6,22 +6,112 @@
   "start_url": "/panel?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "fa",
   "background_color": "#f7f5f0",
   "theme_color": "#178a6e",
-  "categories": ["health", "medical"],
+  "categories": [
+    "health",
+    "medical"
+  ],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    { "name": "نوبت‌های من", "url": "/panel/my/schedule?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "پیام‌ها", "url": "/panel/messages?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "حساب مالی", "url": "/panel/my/finance?source=pwa", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+    {
+      "name": "نوبت‌های من",
+      "url": "/panel/my/schedule?source=pwa",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "پیام‌ها",
+      "url": "/panel/messages?source=pwa",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "حساب مالی",
+      "url": "/panel/my/finance?source=pwa",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 420
+  },
+  "screenshots": [
+    {
+      "src": "/screenshots/login.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ورود بیماران و همکاران"
+    },
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "داشبورد بیمار: جلسه بعدی، وضعیت مالی و اهداف درمانی"
+    },
+    {
+      "src": "/screenshots/schedule.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "نوبت‌های من"
+    },
+    {
+      "src": "/screenshots/install.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "راهنمای نصب اپلیکیشن"
+    }
   ]
 }
