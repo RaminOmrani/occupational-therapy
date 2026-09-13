@@ -7,9 +7,13 @@ export async function ensureDefaultTemplates() {
   for (const t of SMS_TEMPLATE_DEFAULTS) {
     await prisma.smsTemplate.upsert({
       where: { key: t.key },
-      create: { key: t.key, name: t.name, body: t.body, variables: JSON.stringify(t.variables), isSystem: true, description: t.description },
+      create: { key: t.key, name: t.name, body: t.body, variables: JSON.stringify(t.variables), patternArgs: JSON.stringify(t.patternArgs), isSystem: true, description: t.description },
       update: { isSystem: true, description: t.description, variables: JSON.stringify(t.variables) },
     });
+    // اگر ترتیب متغیرهای الگو هنوز تنظیم نشده، پیش‌فرض را بگذار
+    await prisma.smsTemplate.updateMany({ where: { key: t.key, patternArgs: null }, data: { patternArgs: JSON.stringify(t.patternArgs) } }).catch(() => null);
+    // مهاجرت: الگوی رضایت‌سنجی قدیمی با لینک کامل → نسخه بدون لینک در متغیر
+    if (t.key === "survey") await prisma.smsTemplate.updateMany({ where: { key: "survey", body: { contains: "{{link}}" } }, data: { body: t.body, variables: JSON.stringify(t.variables), patternArgs: JSON.stringify(t.patternArgs) } }).catch(() => null);
   }
 }
 
@@ -61,19 +65,27 @@ export async function sendRawSms(to: string, body: string, opts: SendOptions & {
 export async function sendTemplateSms(templateKey: string, to: string, vars: Record<string, string | number | null | undefined>, opts: SendOptions = {}) {
   const tpl = await prisma.smsTemplate.findUnique({ where: { key: templateKey } });
   const clinic = await getSetting("sms.signature", await getSetting("clinic.name"));
-  const allVars: Record<string, string | number | null | undefined> = { clinic, ...vars };
+  const siteHost = (await getSetting("site.baseUrl", "")).replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const allVars: Record<string, string | number | null | undefined> = { clinic, currency: await getSetting("finance.currency", "تومان"), siteHost, ...vars };
   if (!tpl || !tpl.isActive) {
     const def = SMS_TEMPLATE_DEFAULTS.find((t) => t.key === templateKey);
     if (!def) throw new Error(`الگوی پیامک «${templateKey}» یافت نشد`);
     return sendRawSms(to, renderTemplate(def.body, allVars), { ...opts, templateKey });
   }
   const body = renderTemplate(tpl.body, allVars);
-  const usePatterns = await getSettingBool("sms.usePatterns", false);
+  const usePatterns = await getSettingBool("sms.usePatterns", true);
+  const sharedLine = await getSettingBool("sms.sharedLine", true);
   const cfg = await getProviderConfig();
+  if (cfg.provider !== "mock" && sharedLine && !tpl.patternCode) {
+    // خط خدماتی اشتراکی فقط الگوی تأییدشده می‌فرستد
+    return prisma.smsLog.create({
+      data: { to: normalizePhone(to), body, templateKey, relatedType: opts.related?.type ?? null, relatedId: opts.related?.id ?? null, campaignId: opts.campaignId ?? null, status: "FAILED", provider: cfg.provider, error: `الگوی «${tpl.name}» کد الگوی ملی‌پیامک ندارد؛ در بخش پیامک ← الگوها ثبت کنید` },
+    });
+  }
   if (usePatterns && tpl.patternCode && cfg.provider !== "mock") {
     const phone = normalizePhone(to);
-    const variables = parseJson<string[]>(tpl.variables, []);
-    const args = variables.map((v) => String(allVars[v] ?? ""));
+    const order = parseJson<string[]>(tpl.patternArgs ?? "null", []).length ? parseJson<string[]>(tpl.patternArgs ?? "[]", []) : parseJson<string[]>(tpl.variables, []).filter((v) => v !== "clinic");
+    const args = order.map((v) => String(allVars[v] ?? "").replace(/;/g, "،"));
     const log = await prisma.smsLog.create({
       data: { to: phone, body, templateKey, relatedType: opts.related?.type ?? null, relatedId: opts.related?.id ?? null, campaignId: opts.campaignId ?? null, status: "PENDING" },
     });

@@ -3,7 +3,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { MessageSquareText, Send, Users, FileText, History, Wifi, WifiOff, Eye, Save, Plus, Info, Filter } from "lucide-react";
+import { MessageSquareText, Send, Users, FileText, History, Wifi, WifiOff, Eye, Save, Plus, Info, Filter, Copy, CheckCircle2, AlertCircle } from "lucide-react";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, LEAD_SOURCES, LEAD_SOURCE_LABELS, PATIENT_STATUSES, PATIENT_STATUS_LABELS, GENDERS, GENDER_LABELS, formatJalaliDateTime, toPersianDigits, formatMoney } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -135,8 +135,9 @@ function Templates() {
   const save = async () => {
     setSaving(true);
     try {
-      if (edit.id) await api.patch(`/sms/templates/${edit.id}`, { name: edit.name, body: edit.body, patternCode: edit.patternCode || null, isActive: edit.isActive, description: edit.description });
-      else await api.post("/sms/templates", { key: edit.key, name: edit.name, body: edit.body, patternCode: edit.patternCode || null, description: edit.description });
+      const patternArgs = String(edit.patternArgsText ?? "").split(/[،,]/).map((x: string) => x.trim()).filter(Boolean);
+      if (edit.id) await api.patch(`/sms/templates/${edit.id}`, { name: edit.name, body: edit.body, patternCode: edit.patternCode || null, patternArgs, isActive: edit.isActive, description: edit.description });
+      else await api.post("/sms/templates", { key: edit.key, name: edit.name, body: edit.body, patternCode: edit.patternCode || null, patternArgs: patternArgs.length ? patternArgs : undefined, description: edit.description });
       toast.success("الگو ذخیره شد"); setEdit(null); qc.invalidateQueries({ queryKey: ["sms-templates"] });
     } catch (e: any) { toast.error(e.message); } finally { setSaving(false); }
   };
@@ -145,7 +146,7 @@ function Templates() {
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
-        <p className="flex items-center gap-1 text-xs text-slate-500"><Info className="h-3.5 w-3.5" />الگوهای سیستمی به‌صورت خودکار در رویدادها ارسال می‌شوند. اگر الگوی تأییدشده ملی‌پیامک دارید، کد الگو (bodyId) را وارد کنید و در تنظیمات «استفاده از الگوها» را فعال کنید.</p>
+        <p className="flex items-start gap-1 text-xs leading-6 text-slate-500"><Info className="mt-1 h-3.5 w-3.5 shrink-0" />خط خدماتی اشتراکی ملی‌پیامک فقط الگوهای تأییدشده را می‌فرستد. برای هر الگو: متن «برای ثبت در ملی‌پیامک» را کپی کنید ← در پنل ملی‌پیامک (توسعه‌دهندگان ← وب‌سرویس خدماتی/الگو) ثبت کنید ← پس از تأیید، کد الگو را با «ویرایش» همین‌جا وارد کنید. لینک داخل متغیر ممنوع است.</p>
         {isAdmin && <Button size="sm" onClick={() => setEdit({ key: "", name: "", body: "", patternCode: "", description: "", isActive: true })} icon={<Plus className="h-4 w-4" />}>الگوی جدید</Button>}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
@@ -157,8 +158,16 @@ function Templates() {
             </div>
             <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-sand-100 p-3 font-sans text-sm leading-6">{t.body}</pre>
             {t.description && <p className="mt-2 text-xs text-slate-400">{t.description}</p>}
-            <div className="mt-2 flex flex-wrap gap-1">{t.variables.map((v: string) => <span key={v} className="num rounded-md bg-brand-50 px-1.5 py-0.5 text-[11px] text-brand-700">{`{{${v}}}`}</span>)}</div>
-            {isAdmin && <button onClick={() => { setEdit({ ...t }); setPreview(""); }} className="mt-3 text-xs text-brand-600 hover:underline">ویرایش</button>}
+            <div className="mt-3 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-bold text-brand-800">متن برای ثبت در ملی‌پیامک (خط خدماتی ← الگو)</p>
+                <button onClick={() => { navigator.clipboard?.writeText(t.providerText); toast.success("متن الگو کپی شد"); }} className="flex items-center gap-1 text-[11px] text-brand-600 hover:underline"><Copy className="h-3 w-3" />کپی</button>
+              </div>
+              <pre className="mt-1 whitespace-pre-wrap font-sans text-xs leading-6 text-slate-700" dir="rtl">{t.providerText}</pre>
+              <p className="mt-1 text-[11px] text-slate-400">ترتیب متغیرها: {t.patternArgs.map((a: string, i: number) => `{${i}} = ${a}`).join("، ") || "بدون متغیر"}</p>
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-[11px]">{t.patternCode ? <><CheckCircle2 className="h-3.5 w-3.5 text-sage-700" /><span className="text-sage-700">کد الگو ثبت شده: <b className="num">{t.patternCode}</b></span></> : <><AlertCircle className="h-3.5 w-3.5 text-amber-500" /><span className="text-amber-600">کد الگو وارد نشده؛ تا ثبت نشود ارسال نمی‌شود</span></>}</div>
+            {isAdmin && <button onClick={() => { setEdit({ ...t, patternArgsText: (t.patternArgs ?? []).join(", ") }); setPreview(""); }} className="mt-3 text-xs text-brand-600 hover:underline">ویرایش / ثبت کد الگو</button>}
           </Card>
         ))}
       </div>
@@ -167,7 +176,8 @@ function Templates() {
           <div className="grid gap-3 sm:grid-cols-2">
             {!edit.id && <Field label="کلید (انگلیسی)" required hint="مثال: summer_offer"><Input value={edit.key} onChange={(e) => setEdit({ ...edit, key: e.target.value })} dir="ltr" /></Field>}
             <Field label="نام" required><Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
-            <Field label="کد الگوی ملی‌پیامک (bodyId)" hint="فقط برای ارسال خدماتی"><Input value={edit.patternCode ?? ""} onChange={(e) => setEdit({ ...edit, patternCode: e.target.value })} dir="ltr" className="num" /></Field>
+            <Field label="کد الگوی ملی‌پیامک (bodyId)" hint="کدی که ملی‌پیامک بعد از تأیید الگو می‌دهد"><Input value={edit.patternCode ?? ""} onChange={(e) => setEdit({ ...edit, patternCode: e.target.value })} dir="ltr" className="num" /></Field>
+            <Field label="ترتیب متغیرها در الگوی ملی‌پیامک" hint="به ترتیب {0}, {1}, ... با ویرگول؛ نام کلینیک ثابت در متن است" className="sm:col-span-2"><Input value={edit.patternArgsText ?? ""} onChange={(e) => setEdit({ ...edit, patternArgsText: e.target.value })} dir="ltr" className="num" placeholder="name, date, time" /></Field>
             <Field label="متن الگو" required className="sm:col-span-2" hint="متغیرها را با {{name}} بنویسید"><Textarea value={edit.body} onChange={(e) => setEdit({ ...edit, body: e.target.value })} className="min-h-[140px]" dir="rtl" /></Field>
             <Field label="توضیح" className="sm:col-span-2"><Input value={edit.description ?? ""} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></Field>
             {edit.id && <div className="sm:col-span-2"><Toggle checked={edit.isActive} onChange={(c) => setEdit({ ...edit, isActive: c })} label="فعال" /></div>}

@@ -439,6 +439,7 @@ model SmsTemplate {
   body        String
   variables   String   @default("[]") // JSON string[]
   patternCode String? // bodyId ملی‌پیامک
+  patternArgs String? // JSON string[]: ترتیب متغیرهای الگوی ثبت‌شده در ملی‌پیامک ({0},{1},...)
   isSystem    Boolean  @default(false)
   isActive    Boolean  @default(true)
   description String?

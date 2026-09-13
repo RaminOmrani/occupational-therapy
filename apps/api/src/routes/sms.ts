@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { normalizePhone, isValidMobile, daysUntilBirthday, renderTemplate } from "@toranj/shared";
+import { normalizePhone, isValidMobile, daysUntilBirthday, renderTemplate, toProviderPattern } from "@toranj/shared";
 import { prisma, parseJson } from "../lib/prisma.js";
 import { validate, zOptionalString } from "../lib/validate.js";
 import { badRequest, notFound } from "../lib/errors.js";
@@ -17,19 +17,28 @@ smsRouter.use(requireAuth, requireAdminOrSecretary);
 // ---------- الگوها ----------
 smsRouter.get("/templates", async (_req, res) => {
   const items = await prisma.smsTemplate.findMany({ orderBy: [{ isSystem: "desc" }, { name: "asc" }] });
-  res.json({ items: items.map((t) => ({ ...t, variables: parseJson<string[]>(t.variables, []) })) });
+  const fixed = { clinic: await getSetting("sms.signature", await getSetting("clinic.name")), currency: await getSetting("finance.currency", "تومان"), siteHost: (await getSetting("site.baseUrl", "")).replace(/^https?:\/\//, "").replace(/\/$/, "") };
+  res.json({
+    items: items.map((t) => {
+      const variables = parseJson<string[]>(t.variables, []);
+      const patternArgs = parseJson<string[]>(t.patternArgs ?? "null", []).length ? parseJson<string[]>(t.patternArgs ?? "[]", []) : variables.filter((v) => v !== "clinic");
+      return { ...t, variables, patternArgs, providerText: toProviderPattern(t.body, patternArgs, fixed) };
+    }),
+  });
 });
 smsRouter.post("/templates", requireRole("ADMIN"), async (req, res) => {
-  const body = validate(z.object({ key: z.string().regex(/^[a-z0-9_]+$/, "کلید فقط حروف کوچک انگلیسی، عدد و _"), name: z.string().min(1), body: z.string().min(1), patternCode: zOptionalString, description: zOptionalString }), req.body);
+  const body = validate(z.object({ key: z.string().regex(/^[a-z0-9_]+$/, "کلید فقط حروف کوچک انگلیسی، عدد و _"), name: z.string().min(1), body: z.string().min(1), patternCode: zOptionalString, patternArgs: z.array(z.string()).optional(), description: zOptionalString }), req.body);
   const variables = [...new Set([...body.body.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((m) => m[1]))];
-  const t = await prisma.smsTemplate.create({ data: { ...body, variables: JSON.stringify(variables), isSystem: false } });
+  const { patternArgs, ...rest } = body;
+  const t = await prisma.smsTemplate.create({ data: { ...rest, variables: JSON.stringify(variables), patternArgs: JSON.stringify(patternArgs ?? variables.filter((v) => v !== "clinic")), isSystem: false } });
   res.status(201).json({ template: { ...t, variables } });
 });
 smsRouter.patch("/templates/:id", requireRole("ADMIN"), async (req, res) => {
-  const body = validate(z.object({ name: z.string().optional(), body: z.string().optional(), patternCode: zOptionalString, isActive: z.boolean().optional(), description: zOptionalString }), req.body);
+  const body = validate(z.object({ name: z.string().optional(), body: z.string().optional(), patternCode: zOptionalString, patternArgs: z.array(z.string()).optional(), isActive: z.boolean().optional(), description: zOptionalString }), req.body);
   const cur = await prisma.smsTemplate.findUnique({ where: { id: String(req.params.id) } });
   if (!cur) throw notFound();
   const data: any = { ...body };
+  if (body.patternArgs) data.patternArgs = JSON.stringify(body.patternArgs);
   if (body.body && !cur.isSystem) data.variables = JSON.stringify([...new Set([...body.body.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((m) => m[1]))]);
   const t = await prisma.smsTemplate.update({ where: { id: cur.id }, data });
   res.json({ template: { ...t, variables: parseJson<string[]>(t.variables, []) } });

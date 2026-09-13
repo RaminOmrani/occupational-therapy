@@ -20,7 +20,7 @@ export async function maybeSendSurvey(patientId: string) {
     const token = randomBytes(12).toString("base64url");
     await prisma.surveyToken.create({ data: { token, patientId, sessionCount: done } });
     const base = (await getSetting("site.baseUrl", "http://localhost:3000")).replace(/\/$/, "");
-    await sendTemplateSms("survey", patient.phone, { name: `${patient.firstName} ${patient.lastName}`, link: `${base}/survey/${token}` }, { related: { type: "patient", id: patientId } });
+    await sendTemplateSms("survey", patient.phone, { name: `${patient.firstName} ${patient.lastName}`, link: `${base}/survey/${token}`, token }, { related: { type: "patient", id: patientId } });
   } catch (e) {
     console.error("survey failed", e);
   }
