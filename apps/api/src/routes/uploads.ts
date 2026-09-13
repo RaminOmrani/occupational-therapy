@@ -5,7 +5,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth, requireStaff, canAccessPatient } from "../middleware/auth.js";
+import { requireAuth, requireStaff, requireAdmin, canAccessPatient } from "../middleware/auth.js";
 import { setSetting } from "../lib/settings.js";
 import { badRequest, forbidden } from "../lib/errors.js";
 import { validate } from "../lib/validate.js";
@@ -81,4 +81,23 @@ avatarRouter.post("/avatar", upload.single("file"), async (req, res) => {
     if (u.patient) await prisma.patient.update({ where: { id: u.patient.id }, data: { avatar: url } }).catch(() => null);
   }
   res.status(201).json({ url });
+});
+
+/** آپلود فایل APK اندروید (فقط مدیر)؛ لینک دانلود در تنظیمات app.apkUrl ثبت می‌شود */
+const apkUpload = multer({
+  storage: multer.diskStorage({ destination: UPLOAD_DIR, filename: (_req, _file, cb) => cb(null, `zehnesabz-${Date.now()}.apk`) }),
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => (path.extname(file.originalname).toLowerCase() === ".apk" ? cb(null, true) : cb(badRequest("فقط فایل .apk مجاز است"))),
+});
+export const apkRouter = Router();
+apkRouter.use(requireAuth, requireAdmin);
+apkRouter.post("/apk", apkUpload.single("file"), async (req, res) => {
+  if (!req.file) throw badRequest("فایلی ارسال نشد");
+  // نسخه‌های قبلی حذف می‌شوند تا فضای سرور پر نشود
+  for (const f of fs.readdirSync(UPLOAD_DIR)) {
+    if (/^zehnesabz-\d+\.apk$/.test(f) && f !== req.file.filename) fs.rmSync(path.join(UPLOAD_DIR, f), { force: true });
+  }
+  const url = `/uploads/${req.file.filename}`;
+  await setSetting("app.apkUrl", url);
+  res.status(201).json({ url, size: req.file.size });
 });

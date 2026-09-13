@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Tabs, Textarea, Toggle } from "@/components/ui";
 import { BackupsCard } from "@/components/settings/BackupsCard";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
+import { ApkUpload } from "@/components/settings/ApkUpload";
 
 const ICONS: Record<string, any> = { clinic: Building2, public: Globe, schedule: CalendarDays, finance: Wallet, crm: Users, sms: MessageSquareText, security: ShieldCheck, general: Settings, booking: CalendarDays, payment: Wallet, consent: ShieldCheck, app: Smartphone };
 
@@ -55,7 +56,8 @@ export default function SettingsPage() {
             const wide = i.type === "textarea" || i.type === "json";
             return (
               <Field key={i.key} label={i.label ?? i.key} hint={i.description} className={wide ? "md:col-span-2" : ""}>
-                {i.type === "image" ? <div className="flex items-center gap-3"><AvatarUpload name={values["clinic.name"] ?? "لوگو"} src={val || null} target="clinic" size="xl" onUploaded={(u) => setValues({ ...values, [i.key]: u })} /><span className="text-xs text-slate-400">روی دوربین کلیک کنید و تصویر را انتخاب کنید؛ بلافاصله ذخیره می‌شود.</span></div>
+                {i.key === "app.apkUrl" ? <ApkUpload value={val} onChange={(u) => setValues({ ...values, [i.key]: u })} />
+                  : i.type === "image" ? <div className="flex items-center gap-3"><AvatarUpload name={values["clinic.name"] ?? "لوگو"} src={val || null} target="clinic" size="xl" onUploaded={(u) => setValues({ ...values, [i.key]: u })} /><span className="text-xs text-slate-400">روی دوربین کلیک کنید و تصویر را انتخاب کنید؛ بلافاصله ذخیره می‌شود.</span></div>
                   : i.type === "boolean" ? <Toggle checked={val === "true"} onChange={(c) => set(c ? "true" : "false")} label={val === "true" ? "فعال" : "غیرفعال"} />
                   : i.type === "select" ? <Select value={val} onChange={(e) => set(e.target.value)}>{(i.options ?? []).map((o: string) => <option key={o} value={o}>{o}</option>)}</Select>
                   : i.type === "textarea" ? <Textarea value={val} onChange={(e) => set(e.target.value)} />
