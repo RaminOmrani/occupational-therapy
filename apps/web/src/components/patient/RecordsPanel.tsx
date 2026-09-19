@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 type Tab = "assessments" | "intake" | "progress" | "goals" | "home" | "appointments";
 
-/** پرونده بالینی بیمار: مشترک بین نمای کارکنان و نمای خود بیمار */
+/** پرونده بالینی مراجع: مشترک بین نمای کارکنان و نمای خود مراجع */
 export function RecordsPanel({ patientId, initialTab = "assessments" }: { patientId: string; initialTab?: Tab }) {
   const { user } = useAuth();
   const isStaff = user?.role !== "PATIENT";

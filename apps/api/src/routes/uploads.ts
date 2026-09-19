@@ -33,7 +33,7 @@ uploadsRouter.post("/", upload.single("file"), (req, res) => {
   res.status(201).json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname, size: req.file.size, mimeType: req.file.mimetype });
 });
 
-/** مدارک بیمار (عکس نسخه، گزارش پزشکی و...) */
+/** مدارک مراجع (عکس نسخه، گزارش پزشکی و...) */
 uploadsRouter.post("/patients/:patientId/documents", upload.single("file"), async (req, res) => {
   if (!req.file) throw badRequest("فایلی ارسال نشد");
   const body = validate(z.object({ title: z.string().min(1).optional() }), req.body ?? {});
@@ -57,7 +57,7 @@ documentsRouter.delete("/documents/:id", requireStaff, async (req, res) => {
   res.json({ ok: true });
 });
 
-/** آپلود عکس پروفایل بیمار/کاربر یا لوگوی کلینیک؛ target = patient | user | clinic */
+/** آپلود عکس پروفایل مراجع/کاربر یا لوگوی کلینیک؛ target = patient | user | clinic */
 export const avatarRouter = Router();
 avatarRouter.use(requireAuth);
 avatarRouter.post("/avatar", upload.single("file"), async (req, res) => {

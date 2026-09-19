@@ -39,7 +39,7 @@ export default async function AppPage() {
         </div>
         <div className="card mt-6 p-6 text-sm leading-7 text-slate-600">
           <p className="font-bold text-slate-800">ورود به اپلیکیشن</p>
-          <p>بیماران با شماره موبایل ثبت‌شده در کلینیک و کد پیامکی وارد می‌شوند. اگر پرونده ندارید، از <a href="/book" className="text-brand-600 hover:underline">رزرو نوبت آنلاین</a> شروع کنید.</p>
+          <p>مراجعین با شماره موبایل ثبت‌شده در کلینیک و کد پیامکی وارد می‌شوند. اگر پرونده ندارید، از <a href="/book" className="text-brand-600 hover:underline">رزرو نوبت آنلاین</a> شروع کنید.</p>
         </div>
       </div>
       <PublicFooter settings={s} />

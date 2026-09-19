@@ -61,7 +61,7 @@ export function PublicFooter({ settings }: { settings: Record<string, string> })
           <h4 className="mb-4 font-bold text-white">دسترسی سریع</h4>
           <ul className="space-y-2 text-sm">
             {NAV.map((n) => <li key={n.href}><Link href={n.href} className="hover:text-white">{n.label}</Link></li>)}
-            <li><Link href="/login" className="hover:text-white">ورود بیماران و همکاران</Link></li>
+            <li><Link href="/login" className="hover:text-white">ورود مراجعین و همکاران</Link></li>
           </ul>
         </div>
         <div>

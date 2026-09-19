@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Wallet, Receipt, TrendingDown, Percent, Users, Eye, Check, X } from "lucide-react";
+import { Wallet, Receipt, ReceiptText, TrendingDown, Percent, Users, Eye, Check, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis } from "recharts";
 import { INVOICE_STATUSES, INVOICE_STATUS_LABELS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, formatJalali, formatMoney, toPersianDigits, addDays } from "@toranj/shared";
 import { api } from "@/lib/api";
@@ -37,13 +37,13 @@ function FinanceInner() {
 
   return (
     <>
-      <PageHeader title="مالی" subtitle="درآمد، صورت‌حساب‌ها، پرداخت‌ها و بدهکاران" icon={<Wallet className="h-5 w-5" />} actions={<><JalaliDatePicker value={from} onChange={setFrom} placeholder="از تاریخ" className="w-36" /><JalaliDatePicker value={to} onChange={setTo} placeholder="تا تاریخ" className="w-36" /></>} />
+      <PageHeader title="مالی" subtitle="درآمد، صورت‌حساب‌ها، پرداخت‌ها و بدهکاران" icon={<Wallet className="h-5 w-5" />} actions={<><Link href="/panel/finance/daily" className="btn-secondary"><ReceiptText className="h-4 w-4" />صورت مالی روزانه</Link><JalaliDatePicker value={from} onChange={setFrom} placeholder="از تاریخ" className="w-36" /><JalaliDatePicker value={to} onChange={setTo} placeholder="تا تاریخ" className="w-36" /></>} />
       {r && (
         <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="درآمد (بازه)" value={formatMoney(r.totalIncome)} icon={<Wallet className="h-6 w-6" />} tone="sage" />
           <Stat label="صورت‌حساب صادرشده" value={formatMoney(r.totalInvoiced)} icon={<Receipt className="h-6 w-6" />} />
           <Stat label="تخفیف داده‌شده" value={formatMoney(r.totalDiscount)} icon={<Percent className="h-6 w-6" />} tone="amber" />
-          <Stat label="مجموع بدهی بیماران" value={formatMoney(r.totalDebt)} icon={<TrendingDown className="h-6 w-6" />} tone="coral" hint={`${toPersianDigits(r.debtorsCount)} بیمار بدهکار`} />
+          <Stat label="مجموع بدهی مراجعین" value={formatMoney(r.totalDebt)} icon={<TrendingDown className="h-6 w-6" />} tone="coral" hint={`${toPersianDigits(r.debtorsCount)} مراجع بدهکار`} />
         </div>
       )}
       {dialog}
@@ -52,7 +52,7 @@ function FinanceInner() {
       {tab === "claims" && (
         <Card padded={false} className="overflow-x-auto">
           {claims.isLoading ? <Spinner /> : claims.data?.items.length ? (
-            <table className="table"><thead><tr><th>تاریخ</th><th>بیمار</th><th>مبلغ</th><th>بابت</th><th>پیگیری</th><th>توضیح</th><th>وضعیت</th><th></th></tr></thead>
+            <table className="table"><thead><tr><th>تاریخ</th><th>مراجع</th><th>مبلغ</th><th>بابت</th><th>پیگیری</th><th>توضیح</th><th>وضعیت</th><th></th></tr></thead>
               <tbody>{claims.data.items.map((c) => <tr key={c.id}><td className="num">{formatJalali(c.createdAt)}</td><td><Link href={`/panel/patients/${c.patientId}?tab=finance`} className="font-medium hover:text-brand-700">{c.patient.firstName} {c.patient.lastName}</Link><span className="mr-1 num text-xs text-slate-400">{c.patient.fileNumber}</span></td><td className="num font-bold">{formatMoney(c.amount)}</td><td className="text-xs">{c.purpose === "WALLET" ? "کیف پول" : "بدهی"}</td><td className="num text-xs">{c.refId ? toPersianDigits(c.refId) : "-"}</td><td className="text-xs text-slate-500">{c.note ?? c.error ?? ""}</td><td><StatusBadge status={c.status === "PAID" ? "PAID" : c.status === "PENDING" ? "PENDING" : "FAILED"} /></td><td>{c.status === "PENDING" && <span className="flex gap-1"><Button size="sm" onClick={() => approveClaim(c.id)} icon={<Check className="h-4 w-4" />}>تأیید</Button><Button size="sm" variant="secondary" onClick={() => rejectClaim(c.id)} icon={<X className="h-4 w-4" />}>رد</Button></span>}</td></tr>)}</tbody></table>
           ) : <EmptyState title="اعلام پرداختی ثبت نشده" />}
         </Card>
@@ -84,10 +84,10 @@ function FinanceInner() {
 
       {tab === "invoices" && (
         <>
-          <Card className="mb-4"><div className="grid gap-3 md:grid-cols-3"><SearchInput value={q} onChange={setQ} placeholder="شماره صورت‌حساب یا نام بیمار..." className="md:col-span-2" /><Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">همه وضعیت‌ها</option>{INVOICE_STATUSES.map((s) => <option key={s} value={s}>{INVOICE_STATUS_LABELS[s]}</option>)}</Select></div></Card>
+          <Card className="mb-4"><div className="grid gap-3 md:grid-cols-3"><SearchInput value={q} onChange={setQ} placeholder="شماره صورت‌حساب یا نام مراجع..." className="md:col-span-2" /><Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">همه وضعیت‌ها</option>{INVOICE_STATUSES.map((s) => <option key={s} value={s}>{INVOICE_STATUS_LABELS[s]}</option>)}</Select></div></Card>
           <Card padded={false} className="overflow-x-auto">
             {invoices.isLoading ? <Spinner /> : invoices.data?.items.length ? (
-              <table className="table"><thead><tr><th>شماره</th><th>بیمار</th><th>تاریخ</th><th>سررسید</th><th>مبلغ</th><th>پرداختی</th><th>مانده</th><th>وضعیت</th><th></th></tr></thead>
+              <table className="table"><thead><tr><th>شماره</th><th>مراجع</th><th>تاریخ</th><th>سررسید</th><th>مبلغ</th><th>پرداختی</th><th>مانده</th><th>وضعیت</th><th></th></tr></thead>
                 <tbody>{invoices.data.items.map((i) => <tr key={i.id}><td className="num text-xs">{i.number}</td><td><Link href={`/panel/patients/${i.patientId}?tab=finance`} className="font-medium hover:text-brand-700">{i.patientName}</Link></td><td className="num">{formatJalali(i.date)}</td><td className="num">{formatJalali(i.dueDate)}</td><td className="num">{formatMoney(i.total, "")}</td><td className="num text-sage-700">{formatMoney(i.paid, "")}</td><td className="num font-bold text-coral-600">{formatMoney(Math.max(0, i.total - i.paid), "")}</td><td><StatusBadge status={i.status} /></td><td><Link href={`/panel/finance/invoices/${i.id}`} className="text-brand-600"><Eye className="h-4 w-4" /></Link></td></tr>)}</tbody></table>
             ) : <EmptyState title="صورت‌حسابی یافت نشد" />}
           </Card>
@@ -99,7 +99,7 @@ function FinanceInner() {
           <Card className="mb-4"><div className="flex flex-wrap items-center gap-3"><Select value={method} onChange={(e) => setMethod(e.target.value)} className="w-48"><option value="">همه روش‌ها</option>{PAYMENT_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>)}</Select>{payments.data && <span className="text-sm">جمع: <b className="num text-brand-700">{formatMoney(payments.data.sum)}</b></span>}</div></Card>
           <Card padded={false} className="overflow-x-auto">
             {payments.isLoading ? <Spinner /> : payments.data?.items.length ? (
-              <table className="table"><thead><tr><th>تاریخ</th><th>بیمار</th><th>مبلغ</th><th>روش</th><th>صورت‌حساب</th><th>دریافت‌کننده</th><th>توضیح</th></tr></thead>
+              <table className="table"><thead><tr><th>تاریخ</th><th>مراجع</th><th>مبلغ</th><th>روش</th><th>صورت‌حساب</th><th>دریافت‌کننده</th><th>توضیح</th></tr></thead>
                 <tbody>{payments.data.items.map((p) => <tr key={p.id}><td className="num">{formatJalali(p.date)}</td><td><Link href={`/panel/patients/${p.patientId}?tab=finance`} className="font-medium hover:text-brand-700">{p.patientName}</Link></td><td className="num font-bold text-sage-700">{formatMoney(p.amount, "")}</td><td>{PAYMENT_METHOD_LABELS[p.method as keyof typeof PAYMENT_METHOD_LABELS]}</td><td className="num text-xs">{p.invoice?.number ?? "-"}</td><td className="text-xs">{p.receivedBy ? `${p.receivedBy.firstName} ${p.receivedBy.lastName}` : "-"}</td><td className="text-xs text-slate-500">{p.note ?? ""}</td></tr>)}</tbody></table>
             ) : <EmptyState title="پرداختی یافت نشد" />}
           </Card>
@@ -109,7 +109,7 @@ function FinanceInner() {
       {tab === "debtors" && (
         <Card padded={false} className="overflow-x-auto">
           {debtors.isLoading ? <Spinner /> : debtors.data?.items.length ? (
-            <table className="table"><thead><tr><th>بیمار</th><th>شماره پرونده</th><th>موبایل</th><th>بدهی</th><th>سررسید گذشته</th><th>صورت‌حساب باز</th><th></th></tr></thead>
+            <table className="table"><thead><tr><th>مراجع</th><th>شماره پرونده</th><th>موبایل</th><th>بدهی</th><th>سررسید گذشته</th><th>صورت‌حساب باز</th><th></th></tr></thead>
               <tbody>{debtors.data.items.sort((a: any, b: any) => b.finance.balance - a.finance.balance).map((p: any) => <tr key={p.id}><td><Link href={`/panel/patients/${p.id}?tab=finance`} className="font-medium hover:text-brand-700">{p.fullName}</Link></td><td className="num text-xs">{p.fileNumber}</td><td className="num text-xs" dir="ltr">{toPersianDigits(p.phone)}</td><td className="num font-bold text-coral-600">{formatMoney(p.finance.balance)}</td><td className="num text-xs">{p.finance.overdueAmount ? formatMoney(p.finance.overdueAmount) : "-"}</td><td className="num text-xs">{toPersianDigits(p.finance.openInvoices)}</td><td><Link href={`/panel/patients/${p.id}?tab=finance`} className="text-xs text-brand-600 hover:underline">پروفایل مالی</Link></td></tr>)}</tbody></table>
           ) : <EmptyState title="بدهکاری وجود ندارد 🎉" icon={<Users className="h-6 w-6" />} />}
         </Card>

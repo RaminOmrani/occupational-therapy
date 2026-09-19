@@ -7,6 +7,7 @@ import { ROLES, ROLE_LABELS, WEEKDAYS_FA, formatJalali, formatJalaliDateTime, to
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Tabs, Textarea, Toggle } from "@/components/ui";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 
@@ -79,7 +80,7 @@ function UserModal({ initial, onClose, onDone }: { initial: any; onClose: () => 
             <div className="sm:col-span-2 mt-2 border-t border-sand-200 pt-4 text-sm font-bold text-brand-800">اطلاعات درمانگر</div>
             <Field label="تخصص"><Input value={t.specialty} onChange={(e) => setT("specialty", e.target.value)} /></Field>
             <Field label="شماره نظام / پروانه"><Input value={t.licenseNo} onChange={(e) => setT("licenseNo", e.target.value)} /></Field>
-            <Field label="قیمت پیش‌فرض جلسه (تومان)"><Input value={t.sessionPrice} onChange={(e) => setT("sessionPrice", e.target.value)} className="num" dir="ltr" /></Field>
+            <Field label="قیمت پیش‌فرض جلسه (تومان)"><MoneyInput value={t.sessionPrice} onChange={(d) => setT("sessionPrice", d)} suffix="تومان" /></Field>
             <Field label="ترتیب نمایش"><Input type="number" value={t.sortOrder} onChange={(e) => setT("sortOrder", e.target.value)} className="num" dir="ltr" /></Field>
             <Field label="رنگ در تقویم"><div className="flex flex-wrap gap-2">{COLORS.map((c) => <button key={c} type="button" onClick={() => setT("color", c)} className={cn("h-8 w-8 rounded-full ring-offset-2 transition", t.color === c && "ring-2 ring-slate-500")} style={{ background: c }} />)}</div></Field>
             <Field label="روزهای کاری"><div className="flex flex-wrap gap-1">{WEEK_ORDER.map((d) => <button key={d} type="button" onClick={() => setT("workDays", t.workDays.includes(d) ? t.workDays.filter((x: number) => x !== d) : [...t.workDays, d])} className={cn("rounded-lg border px-2.5 py-1.5 text-xs", t.workDays.includes(d) ? "border-brand-600 bg-brand-600 text-white" : "border-sand-300")}>{WEEKDAYS_FA[d]}</button>)}</div></Field>

@@ -26,7 +26,7 @@ export function LeadModal({ lead, onClose, onDone }: { lead?: any; onClose: () =
         <Field label="منبع"><Select value={v.source} onChange={(e) => setV({ ...v, source: e.target.value })}>{LEAD_SOURCES.map((s) => <option key={s} value={s}>{LEAD_SOURCE_LABELS[s]}</option>)}</Select></Field>
         <Field label="وضعیت"><Select value={v.status} onChange={(e) => setV({ ...v, status: e.target.value })}>{LEAD_STATUSES.map((s) => <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>)}</Select></Field>
         <Field label="پیگیری بعدی"><JalaliDatePicker value={v.followUpAt} onChange={(d) => setV({ ...v, followUpAt: d })} /></Field>
-        <Field label="علاقه‌مندی / نیاز" className="sm:col-span-2"><Input value={v.interest} onChange={(e) => setV({ ...v, interest: e.target.value })} placeholder="مثلاً: کاردرمانی کودک ۴ ساله" /></Field>
+        <Field label="علاقه‌مندی / نیاز" className="sm:col-span-2"><Input value={v.interest} onChange={(e) => setV({ ...v, interest: e.target.value })} placeholder="مثلاً: توان‌بخشی کودک ۴ ساله" /></Field>
         <Field label="یادداشت" className="sm:col-span-2"><Textarea value={v.notes} onChange={(e) => setV({ ...v, notes: e.target.value })} className="min-h-[60px]" /></Field>
       </div>
     </Modal>

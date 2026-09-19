@@ -6,7 +6,7 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 export const reportsRouter = Router();
 reportsRouter.use(requireAuth, requireRole("ADMIN", "SECRETARY"));
 
-/** گزارش‌های مدیریتی: نرخ تبدیل لید، غیبت، درآمد به تفکیک درمانگر، بیماران در خطر ریزش */
+/** گزارش‌های مدیریتی: نرخ تبدیل لید، غیبت، درآمد به تفکیک درمانگر، مراجعین در خطر ریزش */
 reportsRouter.get("/management", async (req, res) => {
   const from = req.query.from ? startOfDay(new Date(String(req.query.from))) : addDays(new Date(), -30);
   const to = req.query.to ? endOfDay(new Date(String(req.query.to))) : new Date();
@@ -45,7 +45,7 @@ reportsRouter.get("/management", async (req, res) => {
     .map((p) => ({ id: p.id, fullName: `${p.firstName} ${p.lastName}`, fileNumber: p.fileNumber, phone: p.phone, therapist: p.primaryTherapist ? `${p.primaryTherapist.user.firstName} ${p.primaryTherapist.user.lastName}` : null, lastVisit: p.appointments[0]?.startAt ?? null, daysSince: p.appointments[0] ? Math.floor((Date.now() - p.appointments[0].startAt.getTime()) / 86400000) : null }))
     .sort((a, b) => (b.daysSince ?? 9999) - (a.daysSince ?? 9999));
 
-  // روند ماهانه بیماران جدید (۶ ماه اخیر)
+  // روند ماهانه مراجعین جدید (۶ ماه اخیر)
   const months: { label: string; from: Date; to: Date }[] = [];
   for (let i = 5; i >= 0; i--) { const d = new Date(); d.setMonth(d.getMonth() - i); months.push({ label: d.toISOString().slice(0, 7), from: new Date(d.getFullYear(), d.getMonth(), 1), to: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59) }); }
   const newPatientsTrend = await Promise.all(months.map(async (m) => ({ month: m.from.toISOString(), count: await prisma.patient.count({ where: { createdAt: { gte: m.from, lte: m.to } } }), sessions: await prisma.appointment.count({ where: { status: "DONE", startAt: { gte: m.from, lte: m.to } } }) })));

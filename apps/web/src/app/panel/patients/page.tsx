@@ -28,7 +28,7 @@ function PatientsInner() {
 
   return (
     <>
-      <PageHeader title="بیماران" subtitle={data ? `${toPersianDigits(data.total)} پرونده` : ""} icon={<Users className="h-5 w-5" />} actions={user?.role !== "THERAPIST" && <Link href="/panel/patients/new" className="btn-primary"><Plus className="h-4 w-4" />پرونده جدید</Link>} />
+      <PageHeader title="مراجعین" subtitle={data ? `${toPersianDigits(data.total)} پرونده` : ""} icon={<Users className="h-5 w-5" />} actions={user?.role !== "THERAPIST" && <Link href="/panel/patients/new" className="btn-primary"><Plus className="h-4 w-4" />پرونده جدید</Link>} />
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-6">
           <SearchInput value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="نام، نام خانوادگی، شماره پرونده، موبایل، کد ملی..." className="md:col-span-2" autoFocus />
@@ -44,9 +44,28 @@ function PatientsInner() {
         </div>
       </Card>
       <Card padded={false} className="overflow-x-auto">
-        {isLoading && !data ? <Spinner /> : data?.items.length ? (
-          <table className="table">
-            <thead><tr><th>بیمار</th><th>شماره پرونده</th><th>موبایل</th><th>سن</th><th>درمانگر</th><th>تشخیص</th><th>وضعیت</th><th>ثبت</th></tr></thead>
+        {isLoading && !data ? <Spinner /> : data?.items.length ? (<>
+          {/* موبایل: کارت */}
+          <ul className="divide-y divide-sand-100 md:hidden">
+            {data.items.map((p: any) => {
+              const age = ageFromBirthDate(p.birthDate);
+              return (
+                <li key={p.id} className="px-4 py-3">
+                  <Link href={`/panel/patients/${p.id}`} className="flex items-center gap-3">
+                    <Avatar name={p.fullName} src={p.avatar} size="md" />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2 font-bold">{p.fullName}{p.daysToBirthday !== null && p.daysToBirthday <= 7 && <Cake className="h-4 w-4 text-coral-500" />}<StatusBadge status={p.status} /></span>
+                      <span className="num mt-0.5 block text-xs text-slate-500">{p.fileNumber}{age !== null ? ` · ${toPersianDigits(age)} سال` : ""}{p.primaryTherapistName ? ` · ${p.primaryTherapistName}` : ""}</span>
+                      {p.diagnosis && <span className="mt-0.5 block truncate text-xs text-slate-400">{p.diagnosis}</span>}
+                    </span>
+                  </Link>
+                  <a href={`tel:${p.phone}`} className="num mt-1.5 inline-flex items-center gap-1 text-xs text-brand-700" dir="ltr"><Phone className="h-3 w-3" />{toPersianDigits(p.phone)}</a>
+                </li>
+              );
+            })}
+          </ul>
+          <table className="table hidden md:table">
+            <thead><tr><th>مراجع</th><th>شماره پرونده</th><th>موبایل</th><th>سن</th><th>درمانگر</th><th>تشخیص</th><th>وضعیت</th><th>ثبت</th></tr></thead>
             <tbody>
               {data.items.map((p: any) => {
                 const age = ageFromBirthDate(p.birthDate);
@@ -65,7 +84,7 @@ function PatientsInner() {
               })}
             </tbody>
           </table>
-        ) : <EmptyState title="بیماری یافت نشد" description="فیلترها را تغییر دهید یا پرونده جدید بسازید" action={<Link href="/panel/patients/new" className="btn-primary">پرونده جدید</Link>} />}
+        </>) : <EmptyState title="مراجعی یافت نشد" description="فیلترها را تغییر دهید یا پرونده جدید بسازید" action={<Link href="/panel/patients/new" className="btn-primary">پرونده جدید</Link>} />}
       </Card>
       {pages > 1 && (
         <div className="mt-4 flex items-center justify-center gap-2 text-sm">

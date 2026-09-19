@@ -11,7 +11,7 @@ messagesRouter.use(requireAuth);
 
 const senderSel = { sender: { select: { id: true, firstName: true, lastName: true, role: true } } } as const;
 
-/** فهرست گفتگوها (کارکنان): بیمارانی که پیام دارند + تعداد نخوانده */
+/** فهرست گفتگوها (کارکنان): مراجعینی که پیام دارند + تعداد نخوانده */
 messagesRouter.get("/conversations", requireStaff, async (req, res) => {
   const where: any = {};
   if (req.user!.role === "THERAPIST" && req.query.all !== "1") where.patient = { primaryTherapistId: req.user!.therapistId };

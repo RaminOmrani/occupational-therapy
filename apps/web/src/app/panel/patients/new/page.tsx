@@ -16,7 +16,7 @@ function Inner() {
   if (leadId && !lead) return null;
   return (
     <>
-      <PageHeader title="پرونده جدید" subtitle={leadId ? `تبدیل لید ${lead?.lead.leadNumber} به بیمار` : "شماره پرونده به‌صورت خودکار اختصاص داده می‌شود"} icon={<UserPlus className="h-5 w-5" />} />
+      <PageHeader title="پرونده جدید" subtitle={leadId ? `تبدیل لید ${lead?.lead.leadNumber} به مراجع` : "شماره پرونده به‌صورت خودکار اختصاص داده می‌شود"} icon={<UserPlus className="h-5 w-5" />} />
       <Card className="max-w-3xl">
         <PatientForm initial={initial} leadId={leadId} onSaved={(p) => router.push(`/panel/patients/${p.id}`)} onCancel={() => router.back()} />
       </Card>

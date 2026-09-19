@@ -41,7 +41,7 @@ function publicUser(u: any) {
   };
 }
 
-/** ورود با شماره موبایل و رمز عبور (کارکنان و بیمارانی که رمز دارند) */
+/** ورود با شماره موبایل و رمز عبور (کارکنان و مراجعینی که رمز دارند) */
 authRouter.post("/login", limiter, async (req, res) => {
   const body = validate(z.object({ phone: z.string().min(10), password: z.string().min(4) }), req.body);
   const phone = normalizePhone(body.phone);
@@ -52,7 +52,7 @@ authRouter.post("/login", limiter, async (req, res) => {
   res.json({ token, user: publicUser(user) });
 });
 
-/** درخواست کد یکبارمصرف (بیماران و کارکنان) */
+/** درخواست کد یکبارمصرف (مراجعین و کارکنان) */
 authRouter.post("/otp/request", limiter, async (req, res) => {
   const body = validate(z.object({ phone: z.string().min(10) }), req.body);
   const phone = normalizePhone(body.phone);

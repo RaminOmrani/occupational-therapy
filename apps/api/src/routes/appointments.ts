@@ -40,13 +40,13 @@ async function assertNoConflict(therapistId: string, patientId: string, startAt:
     include,
   });
   if (conflict) {
-    const who = conflict.therapistId === therapistId ? "درمانگر" : "بیمار";
+    const who = conflict.therapistId === therapistId ? "درمانگر" : "مراجع";
     throw badRequest(`تداخل زمانی: ${who} در این بازه نوبت دیگری دارد (${formatTime(conflict.startAt)} تا ${formatTime(conflict.endAt)})`);
   }
 }
 
 const apptSchema = z.object({
-  patientId: z.string().min(1, "بیمار را انتخاب کنید"),
+  patientId: z.string().min(1, "مراجع را انتخاب کنید"),
   therapistId: z.string().min(1, "درمانگر را انتخاب کنید"),
   startAt: zDate,
   durationMin: zOptionalInt,
@@ -56,7 +56,7 @@ const apptSchema = z.object({
   status: z.enum(APPOINTMENT_STATUSES).optional(),
 });
 
-/** فهرست نوبت‌ها با فیلتر تاریخ/درمانگر/بیمار/وضعیت؛ هر نقش فقط موارد مربوط به خود را می‌بیند */
+/** فهرست نوبت‌ها با فیلتر تاریخ/درمانگر/مراجع/وضعیت؛ هر نقش فقط موارد مربوط به خود را می‌بیند */
 appointmentsRouter.get("/", async (req, res) => {
   const from = req.query.from ? new Date(String(req.query.from)) : startOfDay(new Date());
   const to = req.query.to ? new Date(String(req.query.to)) : endOfDay(from);
@@ -70,7 +70,7 @@ appointmentsRouter.get("/", async (req, res) => {
   res.json({ items: rows.map(shape) });
 });
 
-/** نوبت‌های آینده کاربر جاری (بیمار/درمانگر) */
+/** نوبت‌های آینده کاربر جاری (مراجع/درمانگر) */
 appointmentsRouter.get("/mine", async (req, res) => {
   const where: any = { startAt: { gte: startOfDay(new Date()) }, status: { in: ["SCHEDULED", "CONFIRMED"] } };
   if (req.user!.role === "THERAPIST") where.therapistId = req.user!.therapistId;
@@ -127,7 +127,7 @@ appointmentsRouter.delete("/:id", requireAdminOrSecretary, async (req, res) => {
 
 /**
  * قطعی‌کردن برنامه یک روز: همه نوبت‌های SCHEDULED آن روز به CONFIRMED تبدیل می‌شوند و
- * به بیماران (هر نوبت) و درمانگران (خلاصه روز) پیامک و اعلان درون‌برنامه ارسال می‌شود.
+ * به مراجعین (هر نوبت) و درمانگران (خلاصه روز) پیامک و اعلان درون‌برنامه ارسال می‌شود.
  */
 appointmentsRouter.post("/fix-day", requireAdminOrSecretary, async (req, res) => {
   const body = validate(z.object({ date: zDate, therapistId: z.string().optional(), resend: z.boolean().optional() }), req.body);
@@ -138,23 +138,29 @@ appointmentsRouter.post("/fix-day", requireAdminOrSecretary, async (req, res) =>
   const autoSms = await getSettingBool("sms.autoOnFix", true);
   let smsCount = 0;
   const byTherapist = new Map<string, typeof rows>();
+  const byPatient = new Map<string, typeof rows>();
   for (const a of rows) {
-    const shouldSms = autoSms && (body.resend || !a.smsFixedSentAt);
     await prisma.appointment.update({ where: { id: a.id }, data: { status: "CONFIRMED", fixedAt: a.fixedAt ?? now } });
+    byPatient.set(a.patientId, [...(byPatient.get(a.patientId) ?? []), a]);
+    byTherapist.set(a.therapistId, [...(byTherapist.get(a.therapistId) ?? []), a]);
+  }
+  // هر مراجع در روز فقط یک پیامک می‌گیرد؛ اگر چند نوبت دارد، ساعت‌ها و درمانگرها با هم ذکر می‌شوند
+  for (const [, list] of byPatient) {
+    const a = list[0];
+    const times = list.map((x) => formatTime(x.startAt)).join(" و ");
+    const therapistNames = [...new Set(list.map((x) => `${x.therapist.user.firstName} ${x.therapist.user.lastName}`))].join(" و ");
+    const shouldSms = autoSms && (body.resend || list.some((x) => !x.smsFixedSentAt));
     if (shouldSms) {
       await sendTemplateSms(
         "appointment_fixed",
         a.patient.phone,
-        { name: `${a.patient.firstName} ${a.patient.lastName}`, therapist: `${a.therapist.user.firstName} ${a.therapist.user.lastName}`, date: formatJalaliLong(a.startAt), time: formatTime(a.startAt) },
+        { name: `${a.patient.firstName} ${a.patient.lastName}`, therapist: therapistNames, date: formatJalaliLong(a.startAt), time: times },
         { related: { type: "appointment", id: a.id } },
       );
-      await prisma.appointment.update({ where: { id: a.id }, data: { smsFixedSentAt: now } });
+      await prisma.appointment.updateMany({ where: { id: { in: list.map((x) => x.id) } }, data: { smsFixedSentAt: now } });
       smsCount += 1;
     }
-    await notifyUser(a.patient.userId, "نوبت شما قطعی شد", `${formatJalaliLong(a.startAt, true)} ساعت ${formatTime(a.startAt)} با ${a.therapist.user.firstName} ${a.therapist.user.lastName}`, "/panel/my/schedule");
-    const list = byTherapist.get(a.therapistId) ?? [];
-    list.push(a);
-    byTherapist.set(a.therapistId, list);
+    await notifyUser(a.patient.userId, list.length > 1 ? "نوبت‌های شما قطعی شد" : "نوبت شما قطعی شد", `${formatJalaliLong(a.startAt, true)} ساعت ${times} با ${therapistNames}`, "/panel/my/schedule");
   }
   for (const [, list] of byTherapist) {
     const t = list[0].therapist;
@@ -174,7 +180,7 @@ appointmentsRouter.post("/fix-day", requireAdminOrSecretary, async (req, res) =>
   res.json({ ok: true, confirmed: rows.length, smsSent: smsCount });
 });
 
-/** کپی برنامه یک روز به روز دیگر (برای بیماران با برنامه ثابت هفتگی) */
+/** کپی برنامه یک روز به روز دیگر (برای مراجعین با برنامه ثابت هفتگی) */
 appointmentsRouter.post("/copy-day", requireAdminOrSecretary, async (req, res) => {
   const body = validate(z.object({ from: zDate, to: zDate, therapistId: z.string().optional() }), req.body);
   const where: any = { startAt: { gte: startOfDay(body.from), lte: endOfDay(body.from) }, status: { in: ["SCHEDULED", "CONFIRMED", "DONE"] } };

@@ -11,7 +11,7 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ name = "کلینیک کاردرمانی ذهن سبز", className, light, src }: { name?: string; className?: string; light?: boolean; src?: string | null }) {
+export function Logo({ name = "کلینیک توان‌بخشی ذهن سبز 💚", className, light, src }: { name?: string; className?: string; light?: boolean; src?: string | null }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
       {src ? <img src={src} alt={name} className="h-10 w-10 rounded-xl object-cover" /> : <LogoMark />}

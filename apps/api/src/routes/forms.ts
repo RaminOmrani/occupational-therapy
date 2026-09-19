@@ -30,7 +30,7 @@ function resolveTherapistId(req: any, given?: string | null): string {
   return given;
 }
 
-/** فیلترهای مشترک: بیمار، درمانگر، بازه تاریخ، جستجوی نام */
+/** فیلترهای مشترک: مراجع، درمانگر، بازه تاریخ، جستجوی نام */
 async function commonWhere(req: any) {
   const where: any = {};
   if (req.query.patientId) where.patientId = String(req.query.patientId);
@@ -171,7 +171,7 @@ formsRouter.delete("/assessments/:id", requireRole("ADMIN", "THERAPIST"), async 
   res.json({ ok: true });
 });
 
-/** روند امتیاز ارزیابی‌های یک بیمار برای نمودار پیشرفت */
+/** روند امتیاز ارزیابی‌های یک مراجع برای نمودار پیشرفت */
 formsRouter.get("/assessments/trend/:patientId", async (req, res) => {
   if (!canAccessPatient(req, String(req.params.patientId))) throw forbidden();
   const rows = await prisma.assessment.findMany({ where: { patientId: String(req.params.patientId), ...(req.user!.role === "PATIENT" ? { visibleToPatient: true } : {}) }, orderBy: { date: "asc" }, select: { id: true, type: true, date: true, score: true, maxScore: true } });
@@ -358,7 +358,7 @@ formsRouter.patch("/home-programs/:id", requireStaff, async (req, res) => {
   const h = await prisma.homeProgram.update({ where: { id: String(req.params.id) }, data: rest });
   res.json({ program: { ...h, completions: parseJson<string[]>(h.completions, []) } });
 });
-/** بیمار انجام تمرین امروز را ثبت می‌کند */
+/** مراجع انجام تمرین امروز را ثبت می‌کند */
 formsRouter.post("/home-programs/:id/complete", async (req, res) => {
   const h = await prisma.homeProgram.findUnique({ where: { id: String(req.params.id) } });
   if (!h || !canAccessPatient(req, h.patientId)) throw notFound();

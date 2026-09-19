@@ -35,7 +35,7 @@ export default function LeadPage() {
       {dialog}
       <PageHeader title={`${l.firstName} ${l.lastName}`.trim()} subtitle={<span className="num">لید {l.leadNumber} · {LEAD_SOURCE_LABELS[l.source as keyof typeof LEAD_SOURCE_LABELS]} · ثبت {formatJalali(l.createdAt)}</span>} actions={<>
         <Button variant="secondary" onClick={() => setEdit(true)} icon={<Pencil className="h-4 w-4" />}>ویرایش</Button>
-        {l.patient ? <Link href={`/panel/patients/${l.patient.id}`} className="btn-secondary">پرونده {l.patient.fileNumber}</Link> : <Link href={`/panel/patients/new?leadId=${l.id}`} className="btn-primary">تبدیل به بیمار<ArrowLeft className="h-4 w-4" /></Link>}
+        {l.patient ? <Link href={`/panel/patients/${l.patient.id}`} className="btn-secondary">پرونده {l.patient.fileNumber}</Link> : <Link href={`/panel/patients/new?leadId=${l.id}`} className="btn-primary">تبدیل به مراجع<ArrowLeft className="h-4 w-4" /></Link>}
       </>} />
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">

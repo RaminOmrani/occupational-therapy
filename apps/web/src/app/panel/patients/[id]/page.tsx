@@ -96,7 +96,7 @@ function Inner() {
             </Card>
             {consent.data && (
               <Card title="رضایت‌نامه" actions={<FileSignature className="h-4 w-4 text-slate-400" />}>
-                {consent.data.signed ? <p className="text-sm text-sage-700">امضا شده توسط {consent.data.signed.signerName} · <Link href={`/panel/consents/${consent.data.signed.id}`} className="text-brand-600 hover:underline">مشاهده</Link></p> : consent.data.pending ? <p className="text-sm text-amber-600">هنوز امضا نشده؛ بیمار از پنل خود می‌تواند امضا کند.</p> : <p className="text-sm text-slate-400">الزامی نیست</p>}
+                {consent.data.signed ? <p className="text-sm text-sage-700">امضا شده توسط {consent.data.signed.signerName} · <Link href={`/panel/consents/${consent.data.signed.id}`} className="text-brand-600 hover:underline">مشاهده</Link></p> : consent.data.pending ? <p className="text-sm text-amber-600">هنوز امضا نشده؛ مراجع از پنل خود می‌تواند امضا کند.</p> : <p className="text-sm text-slate-400">الزامی نیست</p>}
               </Card>
             )}
             <Card title="آمار درمان">
@@ -112,7 +112,7 @@ function Inner() {
       {tab === "documents" && <DocumentsTab patientId={id} />}
       {tab === "feedback" && <FeedbackTab patientId={id} />}
 
-      <Modal open={edit} onClose={() => setEdit(false)} title="ویرایش اطلاعات بیمار" size="lg">
+      <Modal open={edit} onClose={() => setEdit(false)} title="ویرایش اطلاعات مراجع" size="lg">
         <PatientForm initial={p} patientId={id} onSaved={() => { setEdit(false); refresh(); }} onCancel={() => setEdit(false)} />
       </Modal>
       {sms && <SmsModal patient={p} onClose={() => setSms(false)} />}

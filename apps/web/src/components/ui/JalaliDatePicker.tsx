@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { JALALI_MONTHS, formatJalali, jalaliMonthLength, jalaliToDate, parseJalali, toJalali, toPersianDigits, toEnglishDigits } from "@toranj/shared";
+import { JALALI_MONTHS, formatJalali, jalaliMonthLength, jalaliToDate, parseJalali, toJalali, toPersianDigits } from "@toranj/shared";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -77,7 +77,9 @@ export function JalaliDatePicker({ value, onChange, placeholder = "۱۴۰۳/۰۱
               <select value={view.jm} onChange={(e) => setView({ ...view, jm: +e.target.value })} className="rounded-lg bg-sand-100 px-1 py-0.5 text-sm">
                 {JALALI_MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
               </select>
-              <input value={toPersianDigits(view.jy)} onChange={(e) => { const y = +toEnglishDigits(e.target.value); if (y > 1300 && y < 1500) setView({ ...view, jy: y }); }} className="num w-16 rounded-lg bg-sand-100 px-1 py-0.5 text-center text-sm" />
+              <select value={view.jy} onChange={(e) => setView({ ...view, jy: +e.target.value })} className="num rounded-lg bg-sand-100 px-1 py-0.5 text-sm" aria-label="سال">
+                {Array.from({ length: today.jy + 3 - 1300 + 1 }, (_, i) => today.jy + 3 - i).map((y) => <option key={y} value={y}>{toPersianDigits(y)}</option>)}
+              </select>
             </div>
             <button type="button" onClick={() => shift(1)} className="rounded-lg p-1 hover:bg-sand-200"><ChevronLeft className="h-4 w-4" /></button>
           </div>

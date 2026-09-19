@@ -20,16 +20,22 @@ async function sendReminders() {
     where: { status: { in: ["CONFIRMED", "SCHEDULED"] }, smsReminderSentAt: null, startAt: { gte: windowStart, lte: windowEnd } },
     include: { patient: true, therapist: { include: { user: true } } },
   });
-  for (const a of due) {
+  // نوبت‌های یک مراجع در این بازه با هم در یک پیامک یادآوری می‌شوند
+  const byPatient = new Map<string, typeof due>();
+  for (const a of due) byPatient.set(a.patientId, [...(byPatient.get(a.patientId) ?? []), a]);
+  for (const [, list] of byPatient) {
+    const a = list[0];
+    const times = list.map((x) => formatTime(x.startAt)).join(" و ");
+    const therapistNames = [...new Set(list.map((x) => `${x.therapist.user.firstName} ${x.therapist.user.lastName}`))].join(" و ");
     try {
       await sendTemplateSms(
         "appointment_reminder",
         a.patient.phone,
-        { name: `${a.patient.firstName} ${a.patient.lastName}`, therapist: `${a.therapist.user.firstName} ${a.therapist.user.lastName}`, time: formatTime(a.startAt), date: formatJalaliLong(a.startAt) },
+        { name: `${a.patient.firstName} ${a.patient.lastName}`, therapist: therapistNames, time: times, date: formatJalaliLong(a.startAt) },
         { related: { type: "appointment", id: a.id } },
       );
-      await prisma.appointment.update({ where: { id: a.id }, data: { smsReminderSentAt: new Date() } });
-      await notifyUser(a.patient.userId, "یادآوری جلسه", `جلسه شما امروز ساعت ${formatTime(a.startAt)} برگزار می‌شود`, "/panel/my/schedule");
+      await prisma.appointment.updateMany({ where: { id: { in: list.map((x) => x.id) } }, data: { smsReminderSentAt: new Date() } });
+      await notifyUser(a.patient.userId, "یادآوری جلسه", `جلسه شما امروز ساعت ${times} برگزار می‌شود`, "/panel/my/schedule");
     } catch (e) {
       console.error("reminder failed", a.id, e);
     }

@@ -52,9 +52,9 @@ function AdminDashboard({ d, isAdmin }: { d: any; isAdmin: boolean }) {
       )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="نوبت‌های امروز" value={toPersianDigits(d.todayAppointments.length)} icon={<CalendarDays className="h-6 w-6" />} hint={`فردا: ${toPersianDigits(d.tomorrowAppts)} نوبت`} />
-        <Stat label="بیماران فعال" value={toPersianDigits(d.patientsActive)} icon={<Users className="h-6 w-6" />} tone="sage" hint={`${toPersianDigits(d.newPatientsMonth)} بیمار جدید این ماه`} />
+        <Stat label="مراجعین فعال" value={toPersianDigits(d.patientsActive)} icon={<Users className="h-6 w-6" />} tone="sage" hint={`${toPersianDigits(d.newPatientsMonth)} مراجع جدید این ماه`} />
         <Stat label="لیدهای جدید" value={toPersianDigits(d.newLeads)} icon={<UserPlus className="h-6 w-6" />} tone="amber" hint={d.leadsFollowUp ? `${toPersianDigits(d.leadsFollowUp)} لید نیازمند پیگیری` : "پیگیری معوقه ندارید"} />
-        <Stat label="درآمد ۳۰ روز اخیر" value={formatMoney(d.incomeMonth)} icon={<Wallet className="h-6 w-6" />} tone="coral" hint={`بدهی کل بیماران: ${formatMoney(d.totalDebt)} (${toPersianDigits(d.debtorsCount)} نفر)`} />
+        <Stat label="درآمد ۳۰ روز اخیر" value={formatMoney(d.incomeMonth)} icon={<Wallet className="h-6 w-6" />} tone="coral" hint={`بدهی کل مراجعین: ${formatMoney(d.totalDebt)} (${toPersianDigits(d.debtorsCount)} نفر)`} />
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-3">
@@ -81,7 +81,7 @@ function AdminDashboard({ d, isAdmin }: { d: any; isAdmin: boolean }) {
               <li><Link href="/panel/leads?followUpDue=1" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><UserPlus className="h-4 w-4 text-amber-500" />لید نیازمند پیگیری</span><b className="num">{toPersianDigits(d.leadsFollowUp)}</b></Link></li>
               <li><Link href="/panel/bookings" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><Globe className="h-4 w-4 text-sky-500" />درخواست نوبت آنلاین</span><b className={`num ${d.pendingBookings ? "text-coral-600" : ""}`}>{toPersianDigits(d.pendingBookings ?? 0)}</b></Link></li>
               <li><Link href="/panel/finance?tab=claims" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><Wallet className="h-4 w-4 text-sage-700" />اعلام پرداخت در انتظار تأیید</span><b className={`num ${d.pendingClaims ? "text-coral-600" : ""}`}>{toPersianDigits(d.pendingClaims ?? 0)}</b></Link></li>
-              <li><Link href="/panel/messages" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-violet-500" />پیام بی‌پاسخ بیماران</span><b className={`num ${d.unreadMessages ? "text-coral-600" : ""}`}>{toPersianDigits(d.unreadMessages ?? 0)}</b></Link></li>
+              <li><Link href="/panel/messages" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-violet-500" />پیام بی‌پاسخ مراجعین</span><b className={`num ${d.unreadMessages ? "text-coral-600" : ""}`}>{toPersianDigits(d.unreadMessages ?? 0)}</b></Link></li>
               <li><Link href="/panel/sms?tab=logs" className="flex items-center justify-between rounded-xl px-2 py-1.5 hover:bg-sand-100"><span className="flex items-center gap-2"><MessageSquareText className="h-4 w-4 text-brand-500" />پیامک‌های امروز</span><b className="num">{toPersianDigits(d.smsToday)}</b></Link></li>
             </ul>
           </Card>
@@ -126,7 +126,7 @@ function TherapistDashboard({ d }: { d: any }) {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="جلسات امروز" value={toPersianDigits(d.todayAppointments.length)} icon={<CalendarDays className="h-6 w-6" />} />
         <Stat label="جلسات این هفته" value={toPersianDigits(d.weekCount)} icon={<CalendarCheck className="h-6 w-6" />} tone="amber" />
-        <Stat label="بیماران فعال من" value={toPersianDigits(d.patientsCount)} icon={<Users className="h-6 w-6" />} tone="sage" />
+        <Stat label="مراجعین فعال من" value={toPersianDigits(d.patientsCount)} icon={<Users className="h-6 w-6" />} tone="sage" />
         <Stat label="جلسات انجام‌شده (۳۰ روز)" value={toPersianDigits(d.doneMonth)} icon={<TrendingUp className="h-6 w-6" />} tone="violet" />
       </div>
       <div className="mt-6 grid gap-5 lg:grid-cols-3">

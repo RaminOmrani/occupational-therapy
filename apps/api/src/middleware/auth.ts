@@ -68,7 +68,7 @@ export const requireStaff = requireRole("ADMIN", "THERAPIST", "SECRETARY");
 export const requireAdmin = requireRole("ADMIN");
 export const requireAdminOrSecretary = requireRole("ADMIN", "SECRETARY");
 
-/** بیمار فقط به داده‌های خودش دسترسی دارد؛ کارکنان به همه */
+/** مراجع فقط به داده‌های خودش دسترسی دارد؛ کارکنان به همه */
 export function canAccessPatient(req: Request, patientId: string): boolean {
   if (!req.user) return false;
   if (req.user.role === "PATIENT") return req.user.patientId === patientId;

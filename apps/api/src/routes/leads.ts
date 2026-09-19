@@ -50,7 +50,7 @@ leadsRouter.post("/quick", async (req, res) => {
   const phone = normalizePhone(body.phone);
   if (!isValidMobile(phone)) throw badRequest("شماره موبایل معتبر نیست");
   const existingPatient = await prisma.patient.findFirst({ where: { phone } });
-  if (existingPatient) throw badRequest(`این شماره قبلاً به‌عنوان بیمار (${existingPatient.fileNumber}) ثبت شده است`);
+  if (existingPatient) throw badRequest(`این شماره قبلاً به‌عنوان مراجع (${existingPatient.fileNumber}) ثبت شده است`);
   const existingLead = await prisma.lead.findFirst({ where: { phone, status: { not: "LOST" } } });
   if (existingLead) return res.json({ lead: existingLead, existed: true });
   const lead = await prisma.lead.create({

@@ -10,6 +10,7 @@ import { formatJalali, formatMoney, toPersianDigits, PAYMENT_METHODS, PAYMENT_ME
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button, Card, EmptyState, Field, Input, Modal, Select, Spinner, Stat, Tabs, Textarea, Toggle, useConfirm } from "@/components/ui";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker";
 
@@ -50,7 +51,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
     try { await api.post(`/finance/patients/${patientId}/debt-reminder`); toast.success("پیامک یادآوری بدهی ارسال شد"); } catch (e: any) { toast.error(e.message); }
   };
   const deletePayment = async (id: string) => {
-    if (!(await confirm("این پرداخت حذف شود؟ مانده حساب بیمار تغییر می‌کند."))) return;
+    if (!(await confirm("این پرداخت حذف شود؟ مانده حساب مراجع تغییر می‌کند."))) return;
     try { await api.delete(`/finance/payments/${id}`); toast.success("حذف شد"); refresh(); } catch (e: any) { toast.error(e.message); }
   };
 
@@ -96,7 +97,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
         </Card>
       )}
       {canEdit && pendingClaims.length > 0 && (
-        <Card title={<span className="flex items-center gap-2"><Clock className="h-5 w-5 text-amber-500" />اعلام پرداخت در انتظار تأیید</span>} subtitle="بیمار اعلام کرده کارت‌به‌کارت انجام داده؛ پس از بررسی حساب، تأیید کنید" className="border-amber-400/40">
+        <Card title={<span className="flex items-center gap-2"><Clock className="h-5 w-5 text-amber-500" />اعلام پرداخت در انتظار تأیید</span>} subtitle="مراجع اعلام کرده کارت‌به‌کارت انجام داده؛ پس از بررسی حساب، تأیید کنید" className="border-amber-400/40">
           <ul className="space-y-2">{pendingClaims.map((c: any) => (
             <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-400/10 px-3 py-2 text-sm">
               <span className="num">{formatJalali(c.createdAt)} · <b>{formatMoney(c.amount, cur)}</b>{c.refId ? ` · پیگیری ${toPersianDigits(c.refId)}` : ""}{c.note ? ` · ${c.note}` : ""} · {c.purpose === "WALLET" ? "شارژ کیف پول" : "بابت بدهی"}</span>
@@ -106,7 +107,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
         </Card>
       )}
       {canEdit && payCfg.data?.enabled && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 p-3"><CreditCard className="h-5 w-5 text-brand-700" /><span className="text-sm">لینک پرداخت آنلاین برای بیمار{payCfg.data.sandbox ? " (آزمایشی)" : ""}:</span><Button size="sm" variant="secondary" onClick={() => setModal("online")}>ایجاد پرداخت</Button></div>
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 p-3"><CreditCard className="h-5 w-5 text-brand-700" /><span className="text-sm">لینک پرداخت آنلاین برای مراجع{payCfg.data.sandbox ? " (آزمایشی)" : ""}:</span><Button size="sm" variant="secondary" onClick={() => setModal("online")}>ایجاد پرداخت</Button></div>
       )}
       {canEdit && (
         <div className="flex flex-wrap gap-2">
@@ -187,7 +188,7 @@ function PaymentModal({ patientId, invoices, walletBalance, onClose, onDone }: {
   return (
     <Modal open onClose={onClose} title="ثبت پرداخت" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit as any}>ثبت</Button></>}>
       <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-        <Field label="مبلغ (تومان)" required><Input value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} className="num" dir="ltr" required autoFocus inputMode="numeric" /></Field>
+        <Field label="مبلغ (تومان)" required><MoneyInput value={v.amount} onChange={(d) => setV({ ...v, amount: d })} suffix="تومان" required autoFocus /></Field>
         <Field label="روش پرداخت" hint={v.method === "WALLET" ? `موجودی کیف پول: ${formatMoney(walletBalance)}` : undefined}>
           <Select value={v.method} onChange={(e) => setV({ ...v, method: e.target.value })}>{PAYMENT_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>)}</Select>
         </Field>
@@ -197,14 +198,14 @@ function PaymentModal({ patientId, invoices, walletBalance, onClose, onDone }: {
         <Field label="تاریخ"><JalaliDatePicker value={v.date} onChange={(d) => setV({ ...v, date: d })} /></Field>
         <Field label="شماره پیگیری / رسید"><Input value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} dir="ltr" className="num" /></Field>
         <Field label="توضیح"><Input value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} /></Field>
-        <div className="sm:col-span-2"><Toggle checked={v.sendSms} onChange={(c) => setV({ ...v, sendSms: c })} label="ارسال پیامک رسید پرداخت به بیمار" /></div>
+        <div className="sm:col-span-2"><Toggle checked={v.sendSms} onChange={(c) => setV({ ...v, sendSms: c })} label="ارسال پیامک رسید پرداخت به مراجع" /></div>
       </form>
     </Modal>
   );
 }
 
 function InvoiceModal({ patientId, onClose, onDone }: { patientId: string; onClose: () => void; onDone: () => void }) {
-  const [items, setItems] = useState([{ title: "جلسه کاردرمانی", qty: 1, unitPrice: 0 }]);
+  const [items, setItems] = useState([{ title: "جلسه توان‌بخشی", qty: 1, unitPrice: 0 }]);
   const [discount, setDiscount] = useState("");
   const [discountNote, setDiscountNote] = useState("");
   const [dueDate, setDueDate] = useState<Date | null>(null);
@@ -227,13 +228,13 @@ function InvoiceModal({ patientId, onClose, onDone }: { patientId: string; onClo
           <div key={i} className="grid grid-cols-12 gap-2">
             <Input className="col-span-6" value={it.title} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} placeholder="شرح" />
             <Input className="num col-span-2" type="number" min={1} value={it.qty} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, qty: Number(e.target.value) } : x)))} />
-            <Input className="num col-span-3" type="number" value={it.unitPrice} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, unitPrice: Number(e.target.value) } : x)))} placeholder="قیمت واحد" />
+            <div className="col-span-3"><MoneyInput value={it.unitPrice} onChange={(d) => setItems(items.map((x, j) => (j === i ? { ...x, unitPrice: Number(d || 0) } : x)))} placeholder="قیمت واحد" /></div>
             <button type="button" className="col-span-1 text-coral-500" onClick={() => setItems(items.filter((_, j) => j !== i))}><Trash2 className="mx-auto h-4 w-4" /></button>
           </div>
         ))}
         <Button type="button" variant="ghost" size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setItems([...items, { title: "", qty: 1, unitPrice: 0 }])}>افزودن ردیف</Button>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="تخفیف (تومان)"><Input value={discount} onChange={(e) => setDiscount(e.target.value)} className="num" dir="ltr" /></Field>
+          <Field label="تخفیف (تومان)"><MoneyInput value={discount} onChange={(d) => setDiscount(d)} suffix="تومان" /></Field>
           <Field label="دلیل تخفیف"><Input value={discountNote} onChange={(e) => setDiscountNote(e.target.value)} /></Field>
           <Field label="مهلت پرداخت"><JalaliDatePicker value={dueDate} onChange={setDueDate} /></Field>
         </div>
@@ -255,7 +256,7 @@ function WalletModal({ patientId, onClose, onDone }: { patientId: string; onClos
     <Modal open onClose={onClose} title="تراکنش کیف پول" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>ثبت</Button></>}>
       <div className="space-y-3">
         <Field label="نوع"><Select value={v.type} onChange={(e) => setV({ ...v, type: e.target.value })}>{WALLET_TX_TYPES.filter((t) => t !== "CHARGE").map((t) => <option key={t} value={t}>{WALLET_TX_LABELS[t]}</option>)}</Select></Field>
-        <Field label="مبلغ (تومان)"><Input value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} className="num" dir="ltr" autoFocus /></Field>
+        <Field label="مبلغ (تومان)"><MoneyInput value={v.amount} onChange={(d) => setV({ ...v, amount: d })} suffix="تومان" autoFocus /></Field>
         <Field label="توضیح"><Input value={v.description} onChange={(e) => setV({ ...v, description: e.target.value })} /></Field>
       </div>
     </Modal>
@@ -270,12 +271,12 @@ function DiscountModal({ patientId, onClose, onDone }: { patientId: string; onCl
     try { await api.post("/finance/discounts", { patientId, title: v.title, percent: v.percent ? Number(v.percent) : null, amount: v.amount ? Number(v.amount) : null, reason: v.reason, validTo: v.validTo?.toISOString() ?? null }); toast.success("تخفیف ثبت شد"); onDone(); onClose(); } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
   return (
-    <Modal open onClose={onClose} title="تخفیف اختصاصی بیمار" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>ثبت</Button></>}>
+    <Modal open onClose={onClose} title="تخفیف اختصاصی مراجع" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>ثبت</Button></>}>
       <div className="space-y-3">
         <Field label="عنوان" required><Input value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} autoFocus /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="درصد"><Input value={v.percent} onChange={(e) => setV({ ...v, percent: e.target.value })} className="num" dir="ltr" /></Field>
-          <Field label="یا مبلغ ثابت"><Input value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} className="num" dir="ltr" /></Field>
+          <Field label="یا مبلغ ثابت"><MoneyInput value={v.amount} onChange={(d) => setV({ ...v, amount: d })} suffix="تومان" /></Field>
         </div>
         <Field label="دلیل"><Input value={v.reason} onChange={(e) => setV({ ...v, reason: e.target.value })} /></Field>
         <Field label="اعتبار تا"><JalaliDatePicker value={v.validTo} onChange={(d) => setV({ ...v, validTo: d })} /></Field>
@@ -296,7 +297,7 @@ function OnlinePayModal({ patientId, balance, minAmount, onClose }: { patientId:
     <Modal open onClose={onClose} title="پرداخت آنلاین" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={go} icon={<CreditCard className="h-4 w-4" />}>انتقال به درگاه</Button></>}>
       <div className="space-y-3">
         <Field label="بابت"><Select value={purpose} onChange={(e) => setPurpose(e.target.value as any)}><option value="INVOICE">پرداخت بدهی / صورت‌حساب</option><option value="WALLET">شارژ کیف پول</option></Select></Field>
-        <Field label="مبلغ (تومان)" hint={`حداقل ${formatMoney(minAmount)}`}><Input value={amount} onChange={(e) => setAmount(e.target.value)} className="num" dir="ltr" autoFocus /></Field>
+        <Field label="مبلغ (تومان)" hint={`حداقل ${formatMoney(minAmount)}`}><MoneyInput value={amount} onChange={(d) => setAmount(d)} suffix="تومان" autoFocus /></Field>
         <p className="text-xs text-slate-400">پس از پرداخت موفق در درگاه زرین‌پال، به همین صفحه بازمی‌گردید و مبلغ به‌صورت خودکار ثبت می‌شود.</p>
       </div>
     </Modal>
@@ -316,7 +317,7 @@ function ClaimModal({ patientId, balance, onClose, onDone }: { patientId: string
     <Modal open onClose={onClose} title="اعلام پرداخت کارت‌به‌کارت" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>ثبت</Button></>}>
       <div className="space-y-3">
         <Field label="بابت"><Select value={v.purpose} onChange={(e) => setV({ ...v, purpose: e.target.value })}><option value="INVOICE">بدهی / صورت‌حساب</option><option value="WALLET">شارژ کیف پول</option></Select></Field>
-        <Field label="مبلغ واریزی (تومان)" required><Input value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} className="num" dir="ltr" autoFocus inputMode="numeric" /></Field>
+        <Field label="مبلغ واریزی (تومان)" required><MoneyInput value={v.amount} onChange={(d) => setV({ ...v, amount: d })} suffix="تومان" autoFocus /></Field>
         <Field label="شماره پیگیری / ۴ رقم آخر کارت" hint="از رسید بانک"><Input value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} className="num" dir="ltr" /></Field>
         <Field label="توضیح"><Input value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} /></Field>
       </div>

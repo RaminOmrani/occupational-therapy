@@ -1,14 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
-import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_LABELS } from "@toranj/shared";
+import { Trash2, Banknote } from "lucide-react";
+import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_LABELS, formatMoney } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useTherapists } from "@/lib/hooks";
 import { Button, Field, Input, Modal, Select, Textarea, useConfirm } from "@/components/ui";
 import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker";
 import { PatientPicker } from "@/components/ui/PatientPicker";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 interface Initial {
   id?: string;
@@ -23,7 +24,7 @@ interface Initial {
   status?: string;
 }
 
-export function AppointmentModal({ open, onClose, initial, onSaved }: { open: boolean; onClose: () => void; initial?: Initial; onSaved: () => void }) {
+export function AppointmentModal({ open, onClose, initial, onSaved, onSettle }: { open: boolean; onClose: () => void; initial?: Initial; onSaved: () => void; onSettle?: () => void }) {
   const { user } = useAuth();
   const { data: therapists } = useTherapists();
   const { confirm, dialog } = useConfirm();
@@ -50,7 +51,7 @@ export function AppointmentModal({ open, onClose, initial, onSaved }: { open: bo
   }, [open, initial, user]);
 
   const save = async () => {
-    if (!v.patientId) return toast.error("بیمار را انتخاب کنید");
+    if (!v.patientId) return toast.error("مراجع را انتخاب کنید");
     if (!v.therapistId) return toast.error("درمانگر را انتخاب کنید");
     if (!v.startAt) return toast.error("زمان را مشخص کنید");
     setLoading(true);
@@ -69,10 +70,10 @@ export function AppointmentModal({ open, onClose, initial, onSaved }: { open: bo
   const timeStr = v.startAt ? `${String(v.startAt.getHours()).padStart(2, "0")}:${String(v.startAt.getMinutes()).padStart(2, "0")}` : "";
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? "ویرایش نوبت" : "نوبت جدید"} footer={<>{isEdit && canDelete && <Button variant="ghost" onClick={remove} icon={<Trash2 className="h-4 w-4" />} className="ml-auto text-coral-600">حذف</Button>}<Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={save}>{isEdit ? "ذخیره" : "ثبت نوبت"}</Button></>}>
+    <Modal open={open} onClose={onClose} title={isEdit ? "ویرایش نوبت" : "نوبت جدید"} footer={<>{isEdit && canDelete && <Button variant="ghost" onClick={remove} icon={<Trash2 className="h-4 w-4" />} className="text-coral-600">حذف</Button>}{isEdit && canDelete && onSettle && v.status !== "CANCELLED" && <Button variant="accent" onClick={onSettle} icon={<Banknote className="h-4 w-4" />} className="ml-auto">تسویه</Button>}<Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={save}>{isEdit ? "ذخیره" : "ثبت نوبت"}</Button></>}>
       {dialog}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="بیمار" required className="sm:col-span-2"><PatientPicker value={v.patientId} initialLabel={v.patientLabel} onChange={(id, p) => setV({ ...v, patientId: id ?? "", patientLabel: p ? `${p.fullName} (${p.fileNumber})` : "", therapistId: v.therapistId || p?.primaryTherapistId || "" })} /></Field>
+        <Field label="مراجع" required className="sm:col-span-2"><PatientPicker value={v.patientId} initialLabel={v.patientLabel} onChange={(id, p) => setV({ ...v, patientId: id ?? "", patientLabel: p ? `${p.fullName} (${p.fileNumber})` : "", therapistId: v.therapistId || p?.primaryTherapistId || "" })} /></Field>
         <Field label="درمانگر" required>
           <Select value={v.therapistId} onChange={(e) => setV({ ...v, therapistId: e.target.value })} disabled={user?.role === "THERAPIST"}>
             <option value="">انتخاب کنید</option>
@@ -83,7 +84,7 @@ export function AppointmentModal({ open, onClose, initial, onSaved }: { open: bo
         <Field label="ساعت شروع" required><Input type="time" value={timeStr} onChange={(e) => { const [h, m] = e.target.value.split(":").map(Number); const d = new Date(v.startAt ?? new Date()); d.setHours(h || 0, m || 0, 0, 0); setV({ ...v, startAt: d }); }} className="num" dir="ltr" step={300} /></Field>
         <Field label="مدت (دقیقه)"><Select value={v.durationMin} onChange={(e) => setV({ ...v, durationMin: Number(e.target.value) })}>{[30, 45, 60, 90].map((m) => <option key={m} value={m}>{m} دقیقه</option>)}</Select></Field>
         <Field label="اتاق"><Input value={v.room} onChange={(e) => setV({ ...v, room: e.target.value })} placeholder="مثلاً: اتاق ۲" /></Field>
-        <Field label="قیمت جلسه (تومان)" hint={therapist?.sessionPrice ? `پیش‌فرض درمانگر: ${therapist.sessionPrice.toLocaleString()}` : undefined}><Input value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} className="num" dir="ltr" placeholder="پیش‌فرض" /></Field>
+        <Field label="قیمت جلسه (تومان)" hint={therapist?.sessionPrice ? `پیش‌فرض درمانگر: ${formatMoney(therapist.sessionPrice)}` : undefined}><MoneyInput value={v.price} onChange={(d) => setV({ ...v, price: d })} placeholder="پیش‌فرض" suffix="تومان" /></Field>
         {isEdit && <Field label="وضعیت"><Select value={v.status} onChange={(e) => setV({ ...v, status: e.target.value })}>{APPOINTMENT_STATUSES.map((s) => <option key={s} value={s}>{APPOINTMENT_STATUS_LABELS[s]}</option>)}</Select></Field>}
         <Field label="یادداشت" className="sm:col-span-2"><Textarea value={v.notes} onChange={(e) => setV({ ...v, notes: e.target.value })} className="min-h-[60px]" /></Field>
       </div>

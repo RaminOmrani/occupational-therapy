@@ -13,7 +13,7 @@ const ICONS: Record<string, any> = { activity: Activity, brain: Brain, sparkles:
 export default async function HomePage() {
   const clinic = await getClinic();
   const s = clinic?.settings ?? {};
-  const name = s["clinic.name"] ?? "کلینیک کاردرمانی";
+  const name = s["clinic.name"] ?? "کلینیک توان‌بخشی";
   let services: { title: string; description: string; icon: string }[] = [];
   try { services = JSON.parse(s["clinic.services"] ?? "[]"); } catch {}
   const articles = (await serverGet<{ items: any[] }>("/articles/public", 60))?.items?.slice(0, 3) ?? [];
@@ -28,12 +28,12 @@ export default async function HomePage() {
         <div className="pointer-events-none absolute -right-32 top-40 h-96 w-96 rounded-full bg-coral-200/40 blur-3xl" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 md:grid-cols-2 md:py-24">
           <div className="animate-fade-up">
-            <span className="badge bg-brand-100 text-brand-800">کاردرمانی کودکان و بزرگسالان</span>
+            <span className="badge bg-brand-100 text-brand-800">توان‌بخشی کودکان و بزرگسالان</span>
             <h1 className="mt-5 text-3xl font-black leading-[1.35] text-brand-900 md:text-5xl md:leading-[1.3]">{s["public.heroTitle"]}</h1>
             <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">{s["public.heroSubtitle"]}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/book" className="btn-primary px-6 py-3 text-base">رزرو نوبت آنلاین<ArrowLeft className="h-4 w-4" /></Link>
-              <Link href="/login" className="btn-secondary px-6 py-3 text-base">ورود بیماران</Link>
+              <Link href="/login" className="btn-secondary px-6 py-3 text-base">ورود مراجعین</Link>
             </div>
             <div className="mt-10 grid max-w-md grid-cols-3 gap-4">
               {[{ v: clinic?.stats.patients ?? 0, l: "مراجع" }, { v: clinic?.stats.sessions ?? 0, l: "جلسه درمانی" }, { v: clinic?.therapists.length ?? 0, l: "درمانگر متخصص" }].map((x) => (
@@ -75,7 +75,7 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="grid items-center gap-10 md:grid-cols-2">
             <div>
-              <span className="badge bg-brand-700 text-brand-100">اپلیکیشن بیماران</span>
+              <span className="badge bg-brand-700 text-brand-100">اپلیکیشن مراجعین</span>
               <h2 className="mt-4 text-2xl font-black md:text-3xl">پرونده درمانی شما، همیشه در دسترس</h2>
               <p className="mt-4 leading-8 text-brand-100">با همان شماره موبایل وارد شوید و برنامه جلسات، نتایج ارزیابی‌ها، گزارش پیشرفت، تمرین‌های خانگی و وضعیت مالی خود را ببینید.</p>
               <ul className="mt-6 space-y-3 text-sm">
@@ -124,7 +124,7 @@ export default async function HomePage() {
           <div className="mb-8 flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-black text-brand-900 md:text-3xl">مقالات آموزشی</h2>
-              <p className="mt-2 text-slate-500">دانستنی‌های کاردرمانی برای خانواده‌ها</p>
+              <p className="mt-2 text-slate-500">دانستنی‌های توان‌بخشی برای خانواده‌ها</p>
             </div>
             <Link href="/articles" className="text-sm font-medium text-brand-700 hover:underline">همه مقالات</Link>
           </div>

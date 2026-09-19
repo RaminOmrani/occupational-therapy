@@ -20,7 +20,7 @@ const MAP: Record<string, { label: string; tone: Tone }> = {
   ISSUED: { label: INVOICE_STATUS_LABELS.ISSUED, tone: "amber" },
   PARTIAL: { label: INVOICE_STATUS_LABELS.PARTIAL, tone: "violet" },
   PAID: { label: INVOICE_STATUS_LABELS.PAID, tone: "sage" },
-  // بیمار
+  // مراجع
   ACTIVE: { label: PATIENT_STATUS_LABELS.ACTIVE, tone: "brand" },
   DISCHARGED: { label: PATIENT_STATUS_LABELS.DISCHARGED, tone: "sage" },
   ARCHIVED: { label: PATIENT_STATUS_LABELS.ARCHIVED, tone: "slate" },

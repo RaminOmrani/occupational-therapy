@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { Button, Spinner, Textarea, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
-/** گفتگوی یک بیمار با کلینیک؛ برای بیمار مسیر mine و برای کارکنان شناسه بیمار */
+/** گفتگوی یک مراجع با کلینیک؛ برای مراجع مسیر mine و برای کارکنان شناسه مراجع */
 export function MessageThread({ patientId }: { patientId: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();

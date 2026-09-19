@@ -38,7 +38,7 @@ function Inner() {
 
   return (
     <>
-      <PageHeader title="لیدها (CRM)" subtitle="از تماس اول تا تبدیل به بیمار" icon={<UserPlus className="h-5 w-5" />} actions={<Button variant="secondary" onClick={() => setFull(true)} icon={<UserPlus className="h-4 w-4" />}>لید کامل</Button>} />
+      <PageHeader title="لیدها (CRM)" subtitle="از تماس اول تا تبدیل به مراجع" icon={<UserPlus className="h-5 w-5" />} actions={<Button variant="secondary" onClick={() => setFull(true)} icon={<UserPlus className="h-4 w-4" />}>لید کامل</Button>} />
       <Card className="mb-5 border-brand-200 bg-gradient-to-l from-brand-50 to-white">
         <form onSubmit={quickAdd} className="flex flex-wrap items-end gap-3">
           <div className="flex-1"><label className="label flex items-center gap-1"><Zap className="h-3.5 w-3.5 text-amber-500" />ثبت سریع لید: فقط شماره موبایل را وارد کنید</label><Input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="09123456789" dir="ltr" className="num text-left text-lg" autoFocus /></div>
@@ -70,7 +70,7 @@ function Inner() {
                   <td className={cn("num text-xs", due && "font-bold text-coral-600")}>{l.followUpAt ? formatJalali(l.followUpAt) : "-"}</td>
                   <td className="text-xs">{l.assignedTo ? `${l.assignedTo.firstName} ${l.assignedTo.lastName}` : "-"}</td>
                   <td className="num text-xs text-slate-400">{formatJalali(l.createdAt)}</td>
-                  <td>{l.patient ? <Link href={`/panel/patients/${l.patient.id}`} className="text-xs text-sage-700 hover:underline">{l.patient.fileNumber}</Link> : <Link href={`/panel/patients/new?leadId=${l.id}`} className="flex items-center gap-1 text-xs text-brand-600 hover:underline">تبدیل به بیمار<ArrowLeft className="h-3 w-3" /></Link>}</td>
+                  <td>{l.patient ? <Link href={`/panel/patients/${l.patient.id}`} className="text-xs text-sage-700 hover:underline">{l.patient.fileNumber}</Link> : <Link href={`/panel/patients/new?leadId=${l.id}`} className="flex items-center gap-1 text-xs text-brand-600 hover:underline">تبدیل به مراجع<ArrowLeft className="h-3 w-3" /></Link>}</td>
                 </tr>
               );
             })}</tbody>

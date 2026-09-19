@@ -53,8 +53,8 @@ function SingleSend() {
   };
   return (
     <Card className="max-w-2xl">
-      <Tabs value={mode} onChange={setMode} className="mb-4" tabs={[{ key: "patient", label: "به بیمار" }, { key: "phone", label: "به شماره دلخواه" }]} />
-      {mode === "patient" ? <Field label="بیمار"><PatientPicker value={patientId} onChange={(id, p) => { setPatientId(id); setPatientPhone(p?.phone ?? ""); }} /></Field> : <Field label="شماره موبایل"><Input value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" className="num text-left" placeholder="09123456789" /></Field>}
+      <Tabs value={mode} onChange={setMode} className="mb-4" tabs={[{ key: "patient", label: "به مراجع" }, { key: "phone", label: "به شماره دلخواه" }]} />
+      {mode === "patient" ? <Field label="مراجع"><PatientPicker value={patientId} onChange={(id, p) => { setPatientId(id); setPatientPhone(p?.phone ?? ""); }} /></Field> : <Field label="شماره موبایل"><Input value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" className="num text-left" placeholder="09123456789" /></Field>}
       <Field label="متن پیام" hint="امضای کلینیک به‌صورت خودکار به انتهای پیام اضافه می‌شود" className="mt-4"><Textarea value={message} onChange={(e) => setMessage(e.target.value)} className="min-h-[140px]" /></Field>
       <div className="mt-3 flex items-center justify-between"><span className="num text-xs text-slate-400">{toPersianDigits(message.length)} کاراکتر · حدود {toPersianDigits(Math.ceil(message.length / 70) || 1)} پیامک</span><Button loading={loading} onClick={send} disabled={!message.trim()} icon={<Send className="h-4 w-4" />}>ارسال</Button></div>
     </Card>
@@ -86,7 +86,7 @@ function GroupSend({ onDone }: { onDone: () => void }) {
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       <Card title="۱. گیرندگان را فیلتر کنید" className="lg:col-span-2" subtitle="مثل CRM: بر اساس درمانگر، وضعیت مالی، تولد نزدیک، سن، آخرین مراجعه و...">
-        <Tabs value={f.audience} onChange={(a) => { setF({ audience: a, status: "ACTIVE" }); setPreview(null); }} className="mb-4" tabs={[{ key: "patients", label: "بیماران" }, { key: "leads", label: "لیدها" }, { key: "custom", label: "شماره‌های دلخواه" }]} />
+        <Tabs value={f.audience} onChange={(a) => { setF({ audience: a, status: "ACTIVE" }); setPreview(null); }} className="mb-4" tabs={[{ key: "patients", label: "مراجعین" }, { key: "leads", label: "لیدها" }, { key: "custom", label: "شماره‌های دلخواه" }]} />
         {f.audience === "patients" && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="وضعیت پرونده"><Select value={f.status ?? ""} onChange={(e) => set("status", e.target.value)}><option value="">همه (غیر بایگانی)</option>{PATIENT_STATUSES.map((s) => <option key={s} value={s}>{PATIENT_STATUS_LABELS[s]}</option>)}</Select></Field>

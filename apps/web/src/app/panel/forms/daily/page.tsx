@@ -44,7 +44,7 @@ export default function DailyPage() {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h3 className="font-bold">{formatJalaliLong(d.date, true)}</h3>
-                  <p className="text-xs text-slate-400">{d.therapistName}{d.patientName ? ` · بیمار: ${d.patientName}` : ""} · {toPersianDigits(d.sessionsDone)} جلسه</p>
+                  <p className="text-xs text-slate-400">{d.therapistName}{d.patientName ? ` · مراجع: ${d.patientName}` : ""} · {toPersianDigits(d.sessionsDone)} جلسه</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {d.mood && <span className="text-xl" title="حال و انرژی">{MOODS[d.mood - 1]}</span>}
@@ -85,7 +85,7 @@ function DailyModal({ initial, onClose, onDone }: { initial: any; onClose: () =>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="تاریخ"><JalaliDatePicker value={v.date} onChange={(d) => d && setV({ ...v, date: d })} /></Field>
         {user?.role === "ADMIN" && !initial.id && <Field label="درمانگر" required><Select value={v.therapistUserId} onChange={(e) => setV({ ...v, therapistUserId: e.target.value })}><option value="">انتخاب کنید</option>{therapists?.items.map((t) => <option key={t.userId} value={t.userId}>{t.fullName}</option>)}</Select></Field>}
-        <Field label="بیمار (اختیاری)" hint="اگر گزارش مربوط به یک بیمار خاص است"><PatientPicker value={v.patientId} initialLabel={v.patientLabel} onChange={(id, p) => setV({ ...v, patientId: id ?? "", patientLabel: p?.fullName ?? "" })} /></Field>
+        <Field label="مراجع (اختیاری)" hint="اگر گزارش مربوط به یک مراجع خاص است"><PatientPicker value={v.patientId} initialLabel={v.patientLabel} onChange={(id, p) => setV({ ...v, patientId: id ?? "", patientLabel: p?.fullName ?? "" })} /></Field>
         <Field label="تعداد جلسات انجام‌شده"><Input type="number" min={0} value={v.sessionsDone} onChange={(e) => setV({ ...v, sessionsDone: e.target.value })} className="num" dir="ltr" /></Field>
         <Field label="فعالیت‌های امروز" required className="sm:col-span-2"><Textarea value={v.activities} onChange={(e) => setV({ ...v, activities: e.target.value })} rows={3} autoFocus /></Field>
         <Field label="دستاوردها و نکات مثبت"><Textarea value={v.achievements} onChange={(e) => setV({ ...v, achievements: e.target.value })} rows={2} /></Field>

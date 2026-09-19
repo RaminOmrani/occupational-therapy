@@ -23,7 +23,7 @@ paymentsRouter.get("/config", requireAuth, async (_req, res) => {
   res.json({ enabled: c.enabled, provider: c.provider, sandbox: c.sandbox, minAmount: c.min });
 });
 
-/** شروع پرداخت آنلاین (بیمار یا کارکنان از طرف بیمار) */
+/** شروع پرداخت آنلاین (مراجع یا کارکنان از طرف مراجع) */
 paymentsRouter.post("/start", requireAuth, async (req, res) => {
   const c = await cfg();
   if (!c.enabled) throw badRequest("درگاه پرداخت آنلاین فعال نیست");
@@ -85,7 +85,7 @@ paymentsRouter.get("/intents", requireAuth, async (req, res) => {
   res.json({ items });
 });
 
-/** ---------- اعلام پرداخت کارت‌به‌کارت (بیمار ثبت می‌کند، منشی تأیید) ---------- */
+/** ---------- اعلام پرداخت کارت‌به‌کارت (مراجع ثبت می‌کند، منشی تأیید) ---------- */
 paymentsRouter.post("/claim", requireAuth, async (req, res) => {
   const body = validate(z.object({ patientId: zOptionalString, amount: zInt.refine((v) => v > 0, "مبلغ نامعتبر است"), reference: zOptionalString, note: zOptionalString, purpose: z.enum(["INVOICE", "WALLET"]).default("INVOICE") }), req.body);
   const patientId = req.user!.role === "PATIENT" ? req.user!.patientId! : body.patientId;
@@ -117,7 +117,7 @@ paymentsRouter.post("/claims/:id/approve", requireAuth, requireAdminOrSecretary,
     await prisma.walletTransaction.create({ data: { patientId: c.patientId, amount, type: "DEPOSIT", description: `کارت‌به‌کارت${c.refId ? ` - پیگیری ${c.refId}` : ""}`, createdById: req.user!.id } });
   } else {
     const inv = await prisma.invoice.findFirst({ where: { patientId: c.patientId, status: { in: ["ISSUED", "PARTIAL"] } }, orderBy: { date: "asc" } });
-    await prisma.payment.create({ data: { patientId: c.patientId, invoiceId: inv?.id ?? null, amount, method: "TRANSFER", reference: c.refId ?? null, note: c.note ?? "اعلام پرداخت بیمار", receivedById: req.user!.id } });
+    await prisma.payment.create({ data: { patientId: c.patientId, invoiceId: inv?.id ?? null, amount, method: "TRANSFER", reference: c.refId ?? null, note: c.note ?? "اعلام پرداخت مراجع", receivedById: req.user!.id } });
     if (inv) await recomputeInvoice(inv.id);
   }
   await prisma.paymentIntent.update({ where: { id: c.id }, data: { status: "PAID", amount, paidAt: new Date(), handledById: req.user!.id } });

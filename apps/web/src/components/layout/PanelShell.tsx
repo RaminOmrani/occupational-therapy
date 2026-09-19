@@ -27,6 +27,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
   const unreadMsgs = useQuery({ queryKey: ["msg-unread"], queryFn: () => api.get<{ unread: number }>("/messages/unread"), refetchInterval: 30_000, enabled: !!user });
   if (loading || !user) return <Spinner className="min-h-screen" />;
   const items = navForRole(user.role);
+  const activeHref = items.filter((i) => path === i.href || path.startsWith(i.href + "/")).sort((a, b) => b.href.length - a.href.length)[0]?.href;
   const groups = [...new Set(items.map((i) => i.group ?? ""))];
   const fullName = `${user.firstName} ${user.lastName}`;
 
@@ -37,7 +38,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
           {g && <p className="mb-1.5 px-3 text-[11px] font-semibold text-brand-300/80">{g}</p>}
           <ul className="space-y-0.5">
             {items.filter((i) => (i.group ?? "") === g).map((i) => {
-              const active = i.href === "/panel" ? path === "/panel" : path.startsWith(i.href);
+              const active = i.href === activeHref;
               return (
                 <li key={i.href}>
                   <Link href={i.href} className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", active ? "bg-white/15 text-white shadow-inner" : "text-brand-100/90 hover:bg-white/10 hover:text-white")}>
@@ -88,7 +89,7 @@ export function PanelShell({ children }: { children: ReactNode }) {
             <UserMenu name={fullName} role={user.role} onLogout={logout} avatar={user.avatar} />
           </div>
         </header>
-        <main className="panel-main flex-1 px-4 py-6 lg:px-8">{children}</main>
+        <main className="panel-main flex-1 overflow-x-clip px-4 py-6 lg:px-8">{children}</main>
       </div>
     </div>
   );
@@ -111,7 +112,7 @@ function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 z-40 mt-2 w-80 rounded-2xl border border-sand-200 bg-white shadow-card animate-fade-up">
+          <div className="fixed inset-x-3 top-16 z-40 rounded-2xl border border-sand-200 bg-white shadow-card animate-fade-up sm:absolute sm:inset-x-auto sm:left-0 sm:top-auto sm:mt-2 sm:w-80">
             <div className="flex items-center justify-between border-b border-sand-200 px-4 py-2.5">
               <p className="text-sm font-bold">اعلان‌ها</p>
               <button onClick={readAll} className="flex items-center gap-1 text-xs text-brand-600 hover:underline"><CheckCheck className="h-3.5 w-3.5" />خواندن همه</button>

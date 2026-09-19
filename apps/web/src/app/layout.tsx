@@ -5,8 +5,8 @@ import { getServerUser } from "@/lib/server";
 import { PwaRegister } from "@/components/layout/Pwa";
 
 export const metadata: Metadata = {
-  title: { default: "کلینیک کاردرمانی ذهن سبز", template: "%s | کلینیک کاردرمانی ذهن سبز" },
-  description: "کلینیک تخصصی کاردرمانی ذهن سبز مشهد؛ ارزیابی دقیق، برنامه درمانی شخصی و پیگیری مستمر پیشرفت",
+  title: { default: "کلینیک توان‌بخشی ذهن سبز 💚", template: "%s | کلینیک توان‌بخشی ذهن سبز 💚" },
+  description: "کلینیک تخصصی توان‌بخشی ذهن سبز مشهد؛ ارزیابی دقیق، برنامه درمانی شخصی و پیگیری مستمر پیشرفت",
   manifest: "/manifest.json",
   icons: { icon: [{ url: "/icons/favicon-32.png", sizes: "32x32" }, { url: "/icon.svg", type: "image/svg+xml" }], apple: "/icons/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "ذهن سبز", statusBarStyle: "default" },

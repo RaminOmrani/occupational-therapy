@@ -21,8 +21,8 @@
 | کلید | رویداد | متغیرها |
 |---|---|---|
 | `otp` | ورود با کد یکبارمصرف | clinic, code, minutes |
-| `welcome` | ساخت پرونده بیمار | name, clinic, fileNumber |
-| `appointment_fixed` | قطعی‌شدن نوبت توسط منشی (به بیمار) | name, therapist, date, time, clinic |
+| `welcome` | ساخت پرونده مراجع | name, clinic, fileNumber |
+| `appointment_fixed` | قطعی‌شدن نوبت توسط منشی (به مراجع) | name, therapist, date, time, clinic |
 | `appointment_fixed_therapist` | خلاصه برنامه روز (به درمانگر) | name, date, count, time, clinic |
 | `appointment_reminder` | N ساعت قبل از جلسه (پیش‌فرض ۲) | name, therapist, time, clinic |
 | `appointment_cancelled` | لغو نوبت | name, date, time, clinic |

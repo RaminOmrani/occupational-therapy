@@ -13,7 +13,7 @@ interface Props {
   disabled?: boolean;
 }
 
-/** جستجو و انتخاب بیمار با نام، شماره پرونده یا موبایل */
+/** جستجو و انتخاب مراجع با نام، شماره پرونده یا موبایل */
 export function PatientPicker({ value, onChange, initialLabel, className, disabled }: Props) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -37,7 +37,7 @@ export function PatientPicker({ value, onChange, initialLabel, className, disabl
   return (
     <div ref={ref} className={cn("relative", className)}>
       <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-      <input value={q} disabled={disabled} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder="نام، شماره پرونده یا موبایل بیمار..." className="input pr-9" />
+      <input value={q} disabled={disabled} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder="نام، شماره پرونده یا موبایل مراجع..." className="input pr-9" />
       {open && (
         <div className="absolute right-0 z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl border border-sand-200 bg-white p-1 shadow-card">
           {isFetching && !data ? <p className="p-3 text-xs text-slate-400">در حال جستجو...</p> : null}
@@ -47,7 +47,7 @@ export function PatientPicker({ value, onChange, initialLabel, className, disabl
               <span className="num text-xs text-slate-400">{p.fileNumber} · {toPersianDigits(p.phone)}</span>
             </button>
           ))}
-          {data && !data.items.length && <p className="p-3 text-xs text-slate-400">بیماری یافت نشد</p>}
+          {data && !data.items.length && <p className="p-3 text-xs text-slate-400">مراجعی یافت نشد</p>}
         </div>
       )}
     </div>

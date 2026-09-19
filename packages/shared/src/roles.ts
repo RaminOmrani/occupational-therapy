@@ -5,7 +5,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "مدیریت",
   THERAPIST: "درمانگر",
   SECRETARY: "منشی",
-  PATIENT: "بیمار",
+  PATIENT: "مراجع",
 };
 
 /** نقش‌هایی که به بخش کارکنان کلینیک تعلق دارند */

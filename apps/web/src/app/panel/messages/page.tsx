@@ -18,7 +18,7 @@ export default function MessagesPage() {
   const { data, isLoading } = useQuery({ queryKey: ["conversations", all], queryFn: () => api.get<{ items: any[] }>("/messages/conversations", { all: all ? 1 : "" }), refetchInterval: 20_000 });
   return (
     <>
-      <PageHeader title="پیام‌ها" subtitle="گفتگو با بیماران بین جلسات" icon={<MessageCircle className="h-5 w-5" />} actions={<><Button onClick={() => setPick(true)} icon={<Plus className="h-4 w-4" />}>پیام جدید</Button>{user?.role === "THERAPIST" && <Toggle checked={all} onChange={setAll} label="همه بیماران" />}</>} />
+      <PageHeader title="پیام‌ها" subtitle="گفتگو با مراجعین بین جلسات" icon={<MessageCircle className="h-5 w-5" />} actions={<><Button onClick={() => setPick(true)} icon={<Plus className="h-4 w-4" />}>پیام جدید</Button>{user?.role === "THERAPIST" && <Toggle checked={all} onChange={setAll} label="همه مراجعین" />}</>} />
       {isLoading ? <Spinner /> : data?.items.length ? (
         <Card padded={false}>
           <ul className="divide-y divide-sand-100">
@@ -33,8 +33,8 @@ export default function MessagesPage() {
             ))}
           </ul>
         </Card>
-      ) : <EmptyState title="گفتگویی نیست" description="با دکمه «پیام جدید» به یک بیمار پیام بدهید" icon={<MessageCircle className="h-6 w-6" />} />}
-      <Modal open={pick} onClose={() => setPick(false)} title="پیام جدید به بیمار" size="sm"><Field label="بیمار"><PatientPicker value={null} onChange={(id) => { if (id) { setPick(false); router.push(`/panel/messages/${id}`); } }} /></Field></Modal>
+      ) : <EmptyState title="گفتگویی نیست" description="با دکمه «پیام جدید» به یک مراجع پیام بدهید" icon={<MessageCircle className="h-6 w-6" />} />}
+      <Modal open={pick} onClose={() => setPick(false)} title="پیام جدید به مراجع" size="sm"><Field label="مراجع"><PatientPicker value={null} onChange={(id) => { if (id) { setPick(false); router.push(`/panel/messages/${id}`); } }} /></Field></Modal>
     </>
   );
 }

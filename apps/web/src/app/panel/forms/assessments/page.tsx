@@ -21,7 +21,7 @@ export default function AssessmentsListPage() {
       <Card padded={false} className="overflow-x-auto">
         {isLoading && !data ? <Spinner /> : data?.items.length ? (
           <table className="table">
-            <thead><tr><th>تاریخ</th><th>بیمار</th><th>نوع</th><th className="w-48">امتیاز</th><th>درمانگر</th><th>خلاصه</th><th></th></tr></thead>
+            <thead><tr><th>تاریخ</th><th>مراجع</th><th>نوع</th><th className="w-48">امتیاز</th><th>درمانگر</th><th>خلاصه</th><th></th></tr></thead>
             <tbody>{data.items.map((i) => { const pct = i.maxScore ? Math.round((i.score / i.maxScore) * 100) : 0; return (
               <tr key={i.id}><td className="num">{formatJalali(i.date)}</td><td><Link href={`/panel/patients/${i.patientId}?tab=records`} className="font-medium hover:text-brand-700">{i.patientName}</Link><span className="mr-1 num text-xs text-slate-400">{i.patient.fileNumber}</span></td><td><Badge tone={tone(i.type)}>{ASSESSMENT_TYPE_LABELS[i.type as AssessmentType]}</Badge></td><td><div className="flex items-center gap-2"><ProgressBar value={pct} tone={tone(i.type)} className="flex-1" /><span className="num w-10 text-xs font-bold">{toPersianDigits(pct)}٪</span></div></td><td className="text-xs">{i.therapistName}</td><td className="max-w-[200px] truncate text-xs text-slate-500">{i.summary ?? "-"}</td><td><Link href={`/panel/forms/assessments/${i.id}`} className="text-brand-600"><Eye className="h-4 w-4" /></Link></td></tr>
             ); })}</tbody>

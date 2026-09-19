@@ -16,7 +16,24 @@ export async function ensureDefaultSettings() {
       update: { group: def.group, label: def.label, description: def.description, type: def.type, secret: !!def.secret },
     });
   }
+  await migrateSettings();
   await reloadSettings();
+}
+
+/** به‌روزرسانی یک‌باره‌ی مقادیر قدیمی که هنوز دست نخورده‌اند (تغییر برند و ساعت کاری) */
+const VALUE_MIGRATIONS: { key: string; from: string; to: string }[] = [
+  { key: "schedule.endHour", from: "20", to: "22" },
+  { key: "clinic.name", from: "کلینیک کاردرمانی ذهن سبز", to: DEFAULT_SETTINGS["clinic.name"].value },
+];
+async function migrateSettings() {
+  for (const m of VALUE_MIGRATIONS) {
+    await prisma.setting.updateMany({ where: { key: m.key, value: m.from }, data: { value: m.to } });
+  }
+  const rows = await prisma.setting.findMany({ where: { OR: [{ group: "clinic" }, { group: "public" }, { group: "consent" }, { group: "booking" }, { group: "sms" }] } });
+  for (const r of rows) {
+    const v = r.value.replace(/کاردرمانی/g, "توان‌بخشی").replace(/بیماران/g, "مراجعین").replace(/بیمار(?!ی)/g, "مراجع");
+    if (v !== r.value) await prisma.setting.update({ where: { key: r.key }, data: { value: v } });
+  }
 }
 
 export async function reloadSettings() {

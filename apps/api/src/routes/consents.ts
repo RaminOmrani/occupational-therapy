@@ -18,7 +18,7 @@ async function currentTemplate() {
   return { title, content, hash, required: await getSettingBool("consent.required", true) };
 }
 
-/** وضعیت رضایت‌نامه بیمار: آیا نسخه جاری امضا شده؟ */
+/** وضعیت رضایت‌نامه مراجع: آیا نسخه جاری امضا شده؟ */
 consentsRouter.get("/status/:patientId", async (req, res) => {
   const patientId = req.params.patientId === "me" ? req.user!.patientId! : String(req.params.patientId);
   if (!canAccessPatient(req, patientId)) throw forbidden();

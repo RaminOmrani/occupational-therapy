@@ -19,7 +19,7 @@ const FIELDS: { key: string; label: string; hint?: string; rows?: number }[] = [
   { key: "previousTherapy", label: "درمان‌های قبلی" },
   { key: "precautions", label: "احتیاط‌ها و موارد منع", hint: "تشنج، آلرژی، محدودیت حرکتی..." },
   { key: "expectations", label: "انتظارات مراجع/خانواده از درمان" },
-  { key: "diagnosis", label: "تشخیص کاردرمانی" },
+  { key: "diagnosis", label: "تشخیص توان‌بخشی" },
   { key: "plan", label: "برنامه درمانی پیشنهادی", hint: "تعداد جلسات، رویکرد، اهداف کلی", rows: 4 },
 ];
 
@@ -47,7 +47,7 @@ export function IntakeEditor({ id, initialPatientId }: { id?: string; initialPat
   }, [id, setHead]);
 
   const save = async () => {
-    if (!head.patientId) return toast.error("بیمار را انتخاب کنید");
+    if (!head.patientId) return toast.error("مراجع را انتخاب کنید");
     if (!v.chiefComplaint?.trim()) return toast.error("شکایت اصلی الزامی است");
     setLoading(true);
     try {

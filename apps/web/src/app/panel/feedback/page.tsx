@@ -19,11 +19,11 @@ function Inner() {
   const [text, setText] = useState("");
   const { data, isLoading } = useQuery({ queryKey: ["feedbacks", status, type], queryFn: () => api.get<{ items: any[] }>("/feedback", { status, type }) });
   const refresh = () => qc.invalidateQueries({ queryKey: ["feedbacks"] });
-  const send = async () => { try { await api.patch(`/feedback/${reply.id}`, { reply: text }); toast.success("پاسخ ثبت و به بیمار اعلان شد"); setReply(null); setText(""); refresh(); } catch (e: any) { toast.error(e.message); } };
+  const send = async () => { try { await api.patch(`/feedback/${reply.id}`, { reply: text }); toast.success("پاسخ ثبت و به مراجع اعلان شد"); setReply(null); setText(""); refresh(); } catch (e: any) { toast.error(e.message); } };
   const mark = async (id: string, s: string) => { await api.patch(`/feedback/${id}`, { status: s }); refresh(); };
   return (
     <>
-      <PageHeader title="انتقادات و پیشنهادات" subtitle="صدای مراجعان؛ پاسخ شما در پنل بیمار نمایش داده می‌شود" icon={<MessageSquareHeart className="h-5 w-5" />} actions={<Select value={type} onChange={(e) => setType(e.target.value)} className="w-40"><option value="">همه انواع</option>{FEEDBACK_TYPES.map((t) => <option key={t} value={t}>{FEEDBACK_TYPE_LABELS[t]}</option>)}</Select>} />
+      <PageHeader title="انتقادات و پیشنهادات" subtitle="صدای مراجعان؛ پاسخ شما در پنل مراجع نمایش داده می‌شود" icon={<MessageSquareHeart className="h-5 w-5" />} actions={<Select value={type} onChange={(e) => setType(e.target.value)} className="w-40"><option value="">همه انواع</option>{FEEDBACK_TYPES.map((t) => <option key={t} value={t}>{FEEDBACK_TYPE_LABELS[t]}</option>)}</Select>} />
       <Tabs value={status} onChange={setStatus} className="mb-5" tabs={[{ key: "", label: "همه" }, ...FEEDBACK_STATUSES.map((s) => ({ key: s, label: FEEDBACK_STATUS_LABELS[s] }))]} />
       {isLoading ? <Spinner /> : data?.items.length ? (
         <div className="space-y-4">

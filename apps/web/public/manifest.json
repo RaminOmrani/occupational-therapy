@@ -1,8 +1,8 @@
 {
   "id": "/panel",
-  "name": "کلینیک کاردرمانی ذهن سبز",
+  "name": "کلینیک توان‌بخشی ذهن سبز 💚",
   "short_name": "ذهن سبز",
-  "description": "پنل بیماران و همکاران کلینیک کاردرمانی ذهن سبز؛ نوبت‌ها، پرونده، پرداخت و پیام",
+  "description": "پنل مراجعین و همکاران کلینیک توان‌بخشی ذهن سبز 💚؛ نوبت‌ها، پرونده، پرداخت و پیام",
   "start_url": "/panel?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -90,14 +90,14 @@
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "ورود بیماران و همکاران"
+      "label": "ورود مراجعین و همکاران"
     },
     {
       "src": "/screenshots/dashboard.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "داشبورد بیمار: جلسه بعدی، وضعیت مالی و اهداف درمانی"
+      "label": "داشبورد مراجع: جلسه بعدی، وضعیت مالی و اهداف درمانی"
     },
     {
       "src": "/screenshots/schedule.png",

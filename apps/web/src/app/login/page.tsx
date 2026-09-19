@@ -57,9 +57,9 @@ function LoginInner() {
       <div className="w-full max-w-md animate-fade-up">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <LogoMark className="h-16 w-16" />
-          <p className="text-lg font-extrabold text-brand-800">{settings.str("clinic.name", "کلینیک کاردرمانی ذهن سبز")}</p>
+          <p className="text-lg font-extrabold text-brand-800">{settings.str("clinic.name", "کلینیک توان‌بخشی ذهن سبز 💚")}</p>
           <h1 className="text-xl font-black text-brand-900">ورود به سامانه</h1>
-          <p className="text-sm text-slate-500">بیماران با کد پیامکی، همکاران با رمز عبور</p>
+          <p className="text-sm text-slate-500">مراجعین با کد پیامکی، همکاران با رمز عبور</p>
         </div>
         <div className="card p-6">
           <Tabs value={mode} onChange={(m) => { setMode(m); setOtpSent(false); }} tabs={[{ key: "otp", label: <span className="flex items-center gap-1.5"><Smartphone className="h-4 w-4" />کد پیامکی</span> }, { key: "password", label: <span className="flex items-center gap-1.5"><KeyRound className="h-4 w-4" />رمز عبور</span> }]} className="mb-5" />

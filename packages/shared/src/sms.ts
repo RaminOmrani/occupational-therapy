@@ -20,15 +20,15 @@ export const SMS_TEMPLATE_DEFAULTS: SmsTemplateDef[] = [
     body: "کد ورود شما به {{clinic}}: {{code}}\nاین کد تا {{minutes}} دقیقه معتبر است.",
     variables: ["clinic", "code", "minutes"],
     patternArgs: ["code", "minutes"],
-    description: "هنگام ورود بیمار با شماره موبایل ارسال می‌شود.",
+    description: "هنگام ورود مراجع با شماره موبایل ارسال می‌شود.",
   },
   {
     key: "welcome",
-    name: "خوش‌آمد به بیمار جدید",
+    name: "خوش‌آمد به مراجع جدید",
     body: "{{name}} عزیز، به {{clinic}} خوش آمدید. شماره پرونده شما: {{fileNumber}}\nبرای مشاهده برنامه جلسات و پرونده خود با همین شماره وارد اپلیکیشن شوید.",
     variables: ["name", "clinic", "fileNumber"],
     patternArgs: ["name", "fileNumber"],
-    description: "پس از ثبت پرونده بیمار ارسال می‌شود.",
+    description: "پس از ثبت پرونده مراجع ارسال می‌شود.",
   },
   {
     key: "appointment_fixed",
@@ -36,7 +36,7 @@ export const SMS_TEMPLATE_DEFAULTS: SmsTemplateDef[] = [
     body: "{{name}} عزیز، نوبت شما با {{therapist}} در تاریخ {{date}} ساعت {{time}} قطعی شد.\n{{clinic}}",
     variables: ["name", "therapist", "date", "time", "clinic"],
     patternArgs: ["name", "therapist", "date", "time"],
-    description: "به‌محض قطعی‌شدن برنامه توسط منشی به بیمار ارسال می‌شود.",
+    description: "به‌محض قطعی‌شدن برنامه توسط منشی به مراجع ارسال می‌شود.",
   },
   {
     key: "appointment_fixed_therapist",
@@ -76,7 +76,7 @@ export const SMS_TEMPLATE_DEFAULTS: SmsTemplateDef[] = [
     body: "{{name}} عزیز، مانده بدهی شما {{balance}} {{currency}} است. لطفاً نسبت به تسویه اقدام فرمایید.\n{{clinic}}",
     variables: ["name", "balance", "currency", "clinic"],
     patternArgs: ["name", "balance"],
-    description: "به‌صورت دستی از پروفایل مالی بیمار ارسال می‌شود.",
+    description: "به‌صورت دستی از پروفایل مالی مراجع ارسال می‌شود.",
   },
   {
     key: "birthday",
@@ -84,7 +84,7 @@ export const SMS_TEMPLATE_DEFAULTS: SmsTemplateDef[] = [
     body: "{{name}} عزیز، تولدتان مبارک! آرزوی سلامتی و شادی برای شما داریم.\n{{clinic}}",
     variables: ["name", "clinic"],
     patternArgs: ["name"],
-    description: "در روز تولد بیمار (در صورت فعال‌بودن) ارسال می‌شود.",
+    description: "در روز تولد مراجع (در صورت فعال‌بودن) ارسال می‌شود.",
   },
   {
     key: "lead_followup",

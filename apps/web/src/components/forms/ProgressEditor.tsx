@@ -32,7 +32,7 @@ export function ProgressEditor({ id, initialPatientId, appointmentId }: { id?: s
   }, [id, setHead]);
 
   const save = async () => {
-    if (!head.patientId) return toast.error("بیمار را انتخاب کنید");
+    if (!head.patientId) return toast.error("مراجع را انتخاب کنید");
     setLoading(true);
     try {
       const payload = { ...v, sessionNumber: v.sessionNumber ? Number(v.sessionNumber) : null, progressScore: v.progressScore || null, cooperation: v.cooperation || null, patientId: head.patientId, therapistId: head.therapistId || undefined, date: head.date?.toISOString(), visibleToPatient: head.visibleToPatient, appointmentId };
@@ -68,7 +68,7 @@ export function ProgressEditor({ id, initialPatientId, appointmentId }: { id?: s
           <Field label="O — مشاهدات عینی (Objective)" hint="اندازه‌گیری‌ها و مشاهدات درمانگر"><Textarea value={v.objective} onChange={(e) => setV({ ...v, objective: e.target.value })} rows={3} disabled={readOnly} /></Field>
           <Field label="A — ارزیابی (Assessment)" hint="تحلیل پیشرفت نسبت به اهداف"><Textarea value={v.assessment} onChange={(e) => setV({ ...v, assessment: e.target.value })} rows={3} disabled={readOnly} /></Field>
           <Field label="P — برنامه (Plan)" hint="برنامه جلسه بعد"><Textarea value={v.plan} onChange={(e) => setV({ ...v, plan: e.target.value })} rows={3} disabled={readOnly} /></Field>
-          <Field label="تکلیف خانگی" hint="در پنل بیمار برجسته نمایش داده می‌شود" className="md:col-span-2"><Textarea value={v.homework} onChange={(e) => setV({ ...v, homework: e.target.value })} rows={2} disabled={readOnly} /></Field>
+          <Field label="تکلیف خانگی" hint="در پنل مراجع برجسته نمایش داده می‌شود" className="md:col-span-2"><Textarea value={v.homework} onChange={(e) => setV({ ...v, homework: e.target.value })} rows={2} disabled={readOnly} /></Field>
         </div>
       </Card>
       <div className="no-print flex flex-wrap justify-end gap-2">

@@ -20,7 +20,7 @@ export default function IntakeListPage() {
       <Card padded={false} className="overflow-x-auto">
         {isLoading && !data ? <Spinner /> : data?.items.length ? (
           <table className="table">
-            <thead><tr><th>تاریخ</th><th>بیمار</th><th>شکایت اصلی</th><th>تشخیص</th><th>درمانگر</th><th></th></tr></thead>
+            <thead><tr><th>تاریخ</th><th>مراجع</th><th>شکایت اصلی</th><th>تشخیص</th><th>درمانگر</th><th></th></tr></thead>
             <tbody>{data.items.map((i) => (
               <tr key={i.id}><td className="num">{formatJalali(i.date)}</td><td><Link href={`/panel/patients/${i.patientId}?tab=records`} className="font-medium hover:text-brand-700">{i.patientName}</Link><span className="mr-1 text-xs text-slate-400 num">{i.patient.fileNumber}</span></td><td className="max-w-xs truncate text-xs">{i.chiefComplaint}</td><td className="max-w-[160px] truncate text-xs text-slate-500">{i.diagnosis ?? "-"}</td><td className="text-xs">{i.therapistName}</td><td><Link href={`/panel/forms/intake/${i.id}`} className="text-brand-600"><Eye className="h-4 w-4" /></Link></td></tr>
             ))}</tbody>

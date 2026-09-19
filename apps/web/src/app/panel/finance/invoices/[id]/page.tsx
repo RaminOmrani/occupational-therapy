@@ -54,7 +54,7 @@ export default function InvoicePage() {
 
         {/* مشخصات */}
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 rounded-xl border border-sand-300 p-3 text-sm sm:grid-cols-4">
-          <div><p className="text-[11px] text-slate-500">نام بیمار</p><p className="font-bold">{inv.patientName}</p></div>
+          <div><p className="text-[11px] text-slate-500">نام مراجع</p><p className="font-bold">{inv.patientName}</p></div>
           <div><p className="text-[11px] text-slate-500">شماره پرونده</p><p className="num font-bold">{inv.patient.fileNumber}</p></div>
           <div><p className="text-[11px] text-slate-500">تاریخ صدور</p><p className="num font-bold">{formatJalaliLong(inv.date)}</p></div>
           <div><p className="text-[11px] text-slate-500">مهلت پرداخت</p><p className="num font-bold">{inv.dueDate ? formatJalaliLong(inv.dueDate) : "-"}</p></div>

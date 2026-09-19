@@ -48,7 +48,7 @@ export function AssessmentEditor({ id, initialPatientId, initialType }: { id?: s
   const setNote = (key: string, note: string) => setItems({ ...items, [key]: { ...(items[key] ?? { key, score: null }), key, note } });
 
   const save = async () => {
-    if (!head.patientId) return toast.error("بیمار را انتخاب کنید");
+    if (!head.patientId) return toast.error("مراجع را انتخاب کنید");
     setLoading(true);
     try {
       const payload = { patientId: head.patientId, therapistId: head.therapistId || undefined, type, date: head.date?.toISOString(), items: list, summary, recommendations, visibleToPatient: head.visibleToPatient };

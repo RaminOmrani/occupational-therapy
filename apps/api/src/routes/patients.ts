@@ -34,10 +34,10 @@ const patientSchema = z.object({
   leadId: zOptionalString,
 });
 
-/** ایجاد حساب کاربری بیمار (ورود با OTP) و ارسال پیامک خوش‌آمد */
+/** ایجاد حساب کاربری مراجع (ورود با OTP) و ارسال پیامک خوش‌آمد */
 export async function ensurePatientAccount(patientId: string) {
   const p = await prisma.patient.findUnique({ where: { id: patientId }, include: { user: true } });
-  if (!p) throw notFound("بیمار یافت نشد");
+  if (!p) throw notFound("مراجع یافت نشد");
   if (p.user) return p.user;
   const phone = normalizePhone(p.phone);
   if (!isValidMobile(phone)) throw badRequest("برای ساخت حساب، شماره موبایل معتبر لازم است");
@@ -74,7 +74,7 @@ function shape(p: any) {
 
 patientsRouter.use(requireAuth);
 
-/** جستجو و فهرست بیماران با فیلترهای متنوع */
+/** جستجو و فهرست مراجعین با فیلترهای متنوع */
 patientsRouter.get("/", requireStaff, async (req, res) => {
   const q = String(req.query.q ?? "").trim();
   const status = String(req.query.status ?? "");
@@ -153,7 +153,7 @@ patientsRouter.post("/", requireStaff, async (req, res) => {
   });
   if (leadId) {
     await prisma.lead.update({ where: { id: leadId }, data: { status: "CONVERTED" } }).catch(() => null);
-    await prisma.leadActivity.create({ data: { leadId, type: "STATUS", content: `تبدیل به بیمار با شماره پرونده ${fileNumber}`, byName: `${req.user!.firstName} ${req.user!.lastName}` } }).catch(() => null);
+    await prisma.leadActivity.create({ data: { leadId, type: "STATUS", content: `تبدیل به مراجع با شماره پرونده ${fileNumber}`, byName: `${req.user!.firstName} ${req.user!.lastName}` } }).catch(() => null);
   }
   if (createAccount !== false) {
     try {
@@ -173,7 +173,7 @@ patientsRouter.post("/", requireStaff, async (req, res) => {
 patientsRouter.get("/:id", async (req, res) => {
   if (!canAccessPatient(req, String(req.params.id))) throw forbidden();
   const p = await prisma.patient.findUnique({ where: { id: String(req.params.id) }, include: patientInclude });
-  if (!p) throw notFound("بیمار یافت نشد");
+  if (!p) throw notFound("مراجع یافت نشد");
   const [finance, counts, nextAppointment, lastAppointment] = await Promise.all([
     patientFinancialSummary(p.id),
     Promise.all([
@@ -218,10 +218,10 @@ patientsRouter.post("/:id/account", requireStaff, async (req, res) => {
   res.json({ ok: true, userId: user.id });
 });
 
-/** بازنشانی رمز عبور بیمار به شماره پرونده */
+/** بازنشانی رمز عبور مراجع به شماره پرونده */
 patientsRouter.post("/:id/reset-password", requireStaff, async (req, res) => {
   const p = await prisma.patient.findUnique({ where: { id: String(req.params.id) } });
-  if (!p || !p.userId) throw notFound("حساب کاربری برای این بیمار وجود ندارد");
+  if (!p || !p.userId) throw notFound("حساب کاربری برای این مراجع وجود ندارد");
   await prisma.user.update({ where: { id: p.userId }, data: { passwordHash: await hashPassword(p.fileNumber) } });
   res.json({ ok: true, message: `رمز عبور به شماره پرونده (${p.fileNumber}) بازنشانی شد` });
 });
@@ -232,7 +232,7 @@ patientsRouter.delete("/:id", requireRole("ADMIN"), async (req, res) => {
   res.json({ ok: true });
 });
 
-/** خلاصه کامل پرونده بالینی (برای صفحه بیمار) */
+/** خلاصه کامل پرونده بالینی (برای صفحه مراجع) */
 patientsRouter.get("/:id/timeline", async (req, res) => {
   if (!canAccessPatient(req, String(req.params.id))) throw forbidden();
   const id = String(req.params.id);

@@ -22,7 +22,7 @@ export default function BirthdaysPage() {
   };
   return (
     <>
-      <PageHeader title="تولدهای نزدیک" subtitle="بیمارانی که به‌زودی تولد دارند؛ فرصت خوبی برای ارسال پیام و تخفیف" icon={<Cake className="h-5 w-5" />} actions={<><Select value={days} onChange={(e) => setDays(Number(e.target.value))} className="w-40">{[3, 7, 14, 30].map((d) => <option key={d} value={d}>{toPersianDigits(d)} روز آینده</option>)}</Select><Button onClick={sendAll} loading={sending} disabled={!data?.items.length} icon={<MessageSquareText className="h-4 w-4" />}>پیامک تبریک گروهی</Button></>} />
+      <PageHeader title="تولدهای نزدیک" subtitle="مراجعینی که به‌زودی تولد دارند؛ فرصت خوبی برای ارسال پیام و تخفیف" icon={<Cake className="h-5 w-5" />} actions={<><Select value={days} onChange={(e) => setDays(Number(e.target.value))} className="w-40">{[3, 7, 14, 30].map((d) => <option key={d} value={d}>{toPersianDigits(d)} روز آینده</option>)}</Select><Button onClick={sendAll} loading={sending} disabled={!data?.items.length} icon={<MessageSquareText className="h-4 w-4" />}>پیامک تبریک گروهی</Button></>} />
       {isLoading ? <Spinner /> : data?.items.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.items.map((p) => (
