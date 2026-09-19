@@ -101,3 +101,17 @@ apkRouter.post("/apk", apkUpload.single("file"), async (req, res) => {
   await setSetting("app.apkUrl", url);
   res.status(201).json({ url, size: req.file.size });
 });
+
+/** آپلود رسانه (صوت، ویدیو، PDF) برای بخش محتوا؛ کارکنان؛ تا ۳۰۰ مگابایت */
+const MEDIA_EXT = [".mp3", ".m4a", ".aac", ".ogg", ".wav", ".mp4", ".webm", ".mov", ".pdf", ".epub"];
+const mediaUpload = multer({
+  storage: multer.diskStorage({ destination: UPLOAD_DIR, filename: (_req, file, cb) => cb(null, `media-${Date.now()}-${Math.random().toString(36).slice(2, 7)}${path.extname(file.originalname).toLowerCase().slice(0, 8)}`) }),
+  limits: { fileSize: 300 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => (MEDIA_EXT.includes(path.extname(file.originalname).toLowerCase()) ? cb(null, true) : cb(badRequest("فقط فایل صوتی، ویدیویی، PDF یا ePub مجاز است"))),
+});
+export const mediaRouter = Router();
+mediaRouter.use(requireAuth, requireStaff);
+mediaRouter.post("/media", mediaUpload.single("file"), (req, res) => {
+  if (!req.file) throw badRequest("فایلی ارسال نشد");
+  res.status(201).json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname, size: req.file.size, mimeType: req.file.mimetype });
+});

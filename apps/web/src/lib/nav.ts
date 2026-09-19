@@ -36,7 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/panel/reports", label: "گزارش‌های مدیریتی", icon: BarChart3, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },
   { href: "/panel/sms", label: "پیامک", icon: MessageSquareText, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },
   { href: "/panel/feedback", label: "انتقادات و پیشنهادات", icon: MessageSquareHeart, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },
-  { href: "/panel/articles", label: "مقالات سایت", icon: Newspaper, roles: ["ADMIN", "THERAPIST", "SECRETARY"], group: "مدیریت" },
+  { href: "/panel/articles", label: "رسانه و محتوا", icon: Newspaper, roles: ["ADMIN", "THERAPIST", "SECRETARY"], group: "مدیریت" },
   { href: "/panel/users", label: "کاربران و درمانگران", icon: UserCog, roles: ["ADMIN"], group: "مدیریت" },
   { href: "/panel/settings", label: "تنظیمات", icon: Settings, roles: ["ADMIN"], group: "مدیریت" },
 ];

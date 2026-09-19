@@ -35,11 +35,11 @@ export default async function HomePage() {
               <Link href="/book" className="btn-primary px-6 py-3 text-base">رزرو نوبت آنلاین<ArrowLeft className="h-4 w-4" /></Link>
               <Link href="/login" className="btn-secondary px-6 py-3 text-base">ورود مراجعین</Link>
             </div>
-            <div className="mt-10 grid max-w-md grid-cols-3 gap-4">
-              {[{ v: clinic?.stats.patients ?? 0, l: "مراجع" }, { v: clinic?.stats.sessions ?? 0, l: "جلسه درمانی" }, { v: clinic?.therapists.length ?? 0, l: "درمانگر متخصص" }].map((x) => (
-                <div key={x.l} className="rounded-2xl border border-sand-200 bg-white/70 p-3 text-center">
-                  <div className="num text-2xl font-black text-brand-700">{toPersianDigits(x.v)}+</div>
-                  <div className="text-xs text-slate-500">{x.l}</div>
+            <div className="mt-10 grid max-w-lg grid-cols-3 gap-3">
+              {(clinic?.showcase ?? []).slice(0, 6).map((x) => (
+                <div key={x.key} className="rounded-2xl border border-sand-200 bg-white/70 p-3 text-center">
+                  <div className="num text-2xl font-black text-brand-700">{toPersianDigits(x.value)}{x.suffix ?? "+"}</div>
+                  <div className="text-xs text-slate-500">{x.label}</div>
                 </div>
               ))}
             </div>
@@ -118,15 +118,15 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      {/* Articles */}
+      {/* Media */}
       {articles.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-8">
           <div className="mb-8 flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-black text-brand-900 md:text-3xl">مقالات آموزشی</h2>
-              <p className="mt-2 text-slate-500">دانستنی‌های توان‌بخشی برای خانواده‌ها</p>
+              <h2 className="text-2xl font-black text-brand-900 md:text-3xl">{s["public.mediaTitle"] ?? "رسانه"}</h2>
+              <p className="mt-2 text-slate-500">{s["public.mediaSubtitle"]}</p>
             </div>
-            <Link href="/articles" className="text-sm font-medium text-brand-700 hover:underline">همه مقالات</Link>
+            <Link href="/media" className="text-sm font-medium text-brand-700 hover:underline">مشاهده همه</Link>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
             {articles.map((a) => <ArticleCard key={a.id} a={a} />)}

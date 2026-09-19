@@ -19,7 +19,7 @@ export async function getClinic() {
   try {
     const res = await fetch(`${SERVER_API_URL}/api/public/clinic`, { next: { revalidate: 60 } });
     if (!res.ok) return null;
-    return (await res.json()) as { settings: Record<string, string>; therapists: { id: string; fullName: string; specialty: string | null; bio: string | null; avatar: string | null; color: string }[]; stats: { patients: number; sessions: number; articles: number } };
+    return (await res.json()) as { settings: Record<string, string>; therapists: { id: string; fullName: string; specialty: string | null; bio: string | null; avatar: string | null; color: string }[]; stats: { patients: number; sessions: number; articles: number }; showcase: { key: string; label: string; value: number | string; suffix?: string }[] };
   } catch {
     return null;
   }

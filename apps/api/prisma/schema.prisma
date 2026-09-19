@@ -421,6 +421,16 @@ model Article {
   coverImage  String?
   category    String?
   tags        String    @default("[]")
+  type        String    @default("ARTICLE") // ARTICLE | VIDEO | PODCAST | BOOK
+  format      String    @default("markdown") // markdown | html
+  mediaUrl    String? // فایل صوتی/ویدیویی آپلودشده یا لینک مستقیم
+  embedUrl    String? // لینک آپارات/یوتیوب
+  fileUrl     String? // فایل PDF کتاب
+  externalUrl String? // لینک منبع یا خرید
+  duration    String? // مدت ویدیو/پادکست یا تعداد صفحات کتاب
+  authorLabel String? // نویسنده/گوینده نمایشی (برای محتوای غیر درمانگران)
+  sourceName  String? // نام منبع خارجی
+  featured    Boolean   @default(false)
   published   Boolean   @default(false)
   publishedAt DateTime?
   views       Int       @default(0)

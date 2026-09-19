@@ -6,7 +6,7 @@ import { validate, zDate, zOptionalString, zOptionalInt } from "../lib/validate.
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { requireAuth, requireStaff, requireAdminOrSecretary } from "../middleware/auth.js";
 import { sendTemplateSms } from "../lib/sms/service.js";
-import { getSettingBool, getSettingNumber } from "../lib/settings.js";
+import { getSetting, getSettingBool, getSettingNumber } from "../lib/settings.js";
 import { notifyUser } from "../lib/notify.js";
 import { audit } from "../lib/audit.js";
 import { maybeSendSurvey } from "../lib/survey.js";
@@ -112,6 +112,10 @@ appointmentsRouter.patch("/:id", requireStaff, async (req, res) => {
     include,
   });
   if (status === "DONE" && cur.status !== "DONE") maybeSendSurvey(a.patientId);
+  if (status === "NO_SHOW" && cur.status !== "NO_SHOW" && (await getSettingBool("sms.autoNoShow", false))) {
+    const phone = await getSetting("clinic.phone", "");
+    sendTemplateSms("no_show", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), phone }, { related: { type: "appointment", id: a.id } }).catch(console.error);
+  }
   if (status === "CANCELLED" && cur.status !== "CANCELLED") {
     sendTemplateSms("appointment_cancelled", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), time: formatTime(a.startAt) }, { related: { type: "appointment", id: a.id } }).catch(console.error);
   }
@@ -151,12 +155,19 @@ appointmentsRouter.post("/fix-day", requireAdminOrSecretary, async (req, res) =>
     const therapistNames = [...new Set(list.map((x) => `${x.therapist.user.firstName} ${x.therapist.user.lastName}`))].join(" و ");
     const shouldSms = autoSms && (body.resend || list.some((x) => !x.smsFixedSentAt));
     if (shouldSms) {
-      await sendTemplateSms(
-        "appointment_fixed",
-        a.patient.phone,
-        { name: `${a.patient.firstName} ${a.patient.lastName}`, therapist: therapistNames, date: formatJalaliLong(a.startAt), time: times },
-        { related: { type: "appointment", id: a.id } },
-      );
+      // اگر چند نوبت دارد و الگوی «چند نوبت» کد الگو دارد، از آن استفاده می‌شود؛ وگرنه الگوی معمولی با ساعت‌های ترکیبی
+      const multi = list.length > 1 ? await prisma.smsTemplate.findUnique({ where: { key: "appointment_fixed_multi" } }) : null;
+      if (multi?.patternCode && multi.isActive !== false) {
+        const listText = list.map((x) => `${formatTime(x.startAt)} ${x.therapist.user.firstName} ${x.therapist.user.lastName}`).join("، ");
+        await sendTemplateSms("appointment_fixed_multi", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), list: listText }, { related: { type: "appointment", id: a.id } });
+      } else {
+        await sendTemplateSms(
+          "appointment_fixed",
+          a.patient.phone,
+          { name: `${a.patient.firstName} ${a.patient.lastName}`, therapist: therapistNames, date: formatJalaliLong(a.startAt), time: times },
+          { related: { type: "appointment", id: a.id } },
+        );
+      }
       await prisma.appointment.updateMany({ where: { id: { in: list.map((x) => x.id) } }, data: { smsFixedSentAt: now } });
       smsCount += 1;
     }

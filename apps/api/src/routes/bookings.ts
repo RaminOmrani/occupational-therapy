@@ -82,6 +82,9 @@ publicBookingRouter.post("/", limiter, async (req, res) => {
   const msg = `${body.firstName} ${body.lastName} برای ${formatJalaliLong(body.startAt)} ساعت ${formatTime(body.startAt)}`;
   await notifyRole("SECRETARY", "درخواست نوبت آنلاین", msg, "/panel/bookings");
   await notifyRole("ADMIN", "درخواست نوبت آنلاین", msg, "/panel/bookings");
+  if (await getSettingBool("sms.autoBookingReceived", true)) {
+    sendTemplateSms("booking_received", phone, { name: `${body.firstName} ${body.lastName}`, date: formatJalaliLong(body.startAt), time: formatTime(body.startAt) }, { related: { type: "booking", id: br.id } }).catch(console.error);
+  }
   res.status(201).json({ ok: true, id: br.id, message: "درخواست شما ثبت شد. پس از تأیید کلینیک، پیامک تأیید دریافت می‌کنید." });
 });
 

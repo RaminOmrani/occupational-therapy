@@ -19,11 +19,29 @@ publicRouter.get("/clinic", async (_req, res) => {
   const therapists = showTherapists
     ? await prisma.therapist.findMany({ where: { isPublic: true, user: { isActive: true } }, include: { user: { select: { firstName: true, lastName: true, avatar: true } } }, orderBy: { sortOrder: "asc" } })
     : [];
-  const [patientsCount, sessionsCount, articlesCount] = await Promise.all([prisma.patient.count(), prisma.appointment.count({ where: { status: "DONE" } }), prisma.article.count({ where: { published: true } })]);
+  const [patientsCount, sessionsCount, articlesCount, therapistsCount, ratings] = await Promise.all([
+    prisma.patient.count(),
+    prisma.appointment.count({ where: { status: "DONE" } }),
+    prisma.article.count({ where: { published: true } }),
+    prisma.therapist.count({ where: { user: { isActive: true } } }),
+    prisma.feedback.aggregate({ where: { rating: { not: null } }, _avg: { rating: true }, _count: { rating: true } }),
+  ]);
+  // نوار آمار: مقدار دستی تنظیمات اولویت دارد؛ خالی = محاسبه خودکار
+  const pick = (key: string, auto: number | null) => { const v = settings[key]; return v && !isNaN(Number(v)) ? Number(v) : auto; };
+  const satisfactionAuto = ratings._count.rating >= 3 && ratings._avg.rating ? Math.round((ratings._avg.rating / 5) * 100) : null;
+  const showcase = settings["public.stats.enabled"] !== "false" ? [
+    pick("public.stats.years", null) != null && { key: "years", label: "سال تجربه", value: pick("public.stats.years", null) },
+    { key: "patients", label: "مراجع", value: pick("public.stats.patients", patientsCount) },
+    { key: "sessions", label: "جلسه درمانی", value: pick("public.stats.sessions", sessionsCount) },
+    pick("public.stats.satisfaction", satisfactionAuto) != null && { key: "satisfaction", label: "رضایت مراجعین", value: pick("public.stats.satisfaction", satisfactionAuto), suffix: "٪" },
+    { key: "therapists", label: "درمانگر متخصص", value: pick("public.stats.therapists", therapistsCount) },
+    settings["public.stats.extraLabel"] && settings["public.stats.extraValue"] && { key: "extra", label: settings["public.stats.extraLabel"], value: settings["public.stats.extraValue"] },
+  ].filter(Boolean) : [];
   res.json({
     settings,
     therapists: therapists.map((t) => ({ id: t.id, fullName: `${t.user.firstName} ${t.user.lastName}`, specialty: t.specialty, bio: t.bio, avatar: t.user.avatar, color: t.color })),
     stats: { patients: patientsCount, sessions: sessionsCount, articles: articlesCount },
+    showcase,
   });
 });
 

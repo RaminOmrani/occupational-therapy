@@ -11,7 +11,7 @@ import { toPersianDigits, toJalali } from "@toranj/shared";
 const NAV = [
   { href: "/", label: "خانه" },
   { href: "/about", label: "درباره ما" },
-  { href: "/articles", label: "مقالات" },
+  { href: "/media", label: "رسانه" },
   { href: "/book", label: "رزرو آنلاین" },
   { href: "/app", label: "نصب اپلیکیشن" },
   { href: "/contact", label: "تماس با ما" },

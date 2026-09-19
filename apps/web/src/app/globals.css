@@ -103,3 +103,20 @@ body {
     max-width: none !important;
   }
 }
+
+/* ───── ویرایشگر متن غنی و نمایش محتوا ───── */
+.rich-editor p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #94a3b8; float: right; pointer-events: none; height: 0; }
+.rich-editor { line-height: 2; }
+.rich-editor table, .prose-fa table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 1rem 0; }
+.rich-editor td, .rich-editor th, .prose-fa td, .prose-fa th { border: 1px solid #e2ded3; padding: 6px 10px; vertical-align: top; min-width: 3em; position: relative; }
+.rich-editor th, .prose-fa th { background: #f3f0e8; font-weight: 700; }
+.rich-editor .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(23, 138, 110, 0.12); pointer-events: none; }
+.rich-editor .column-resize-handle { position: absolute; left: -2px; top: 0; bottom: 0; width: 4px; background: #178a6e; pointer-events: none; }
+.rich-editor img.ProseMirror-selectednode, .rich-editor .ProseMirror-selectednode { outline: 3px solid #178a6e; border-radius: 12px; }
+.media-embed, .prose-fa .media-embed, .prose-fa div[data-youtube-video] { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 1.25rem 0; border-radius: 16px; overflow: hidden; background: #0f172a; }
+.media-embed iframe, .prose-fa .media-embed iframe, .prose-fa div[data-youtube-video] iframe { position: absolute; inset: 0; width: 100% !important; height: 100% !important; border: 0; }
+.prose-fa video, .prose-fa audio { width: 100%; margin: 1rem 0; }
+.prose-fa video { border-radius: 16px; background: #0f172a; }
+.prose-fa mark { padding: 0 2px; border-radius: 3px; }
+.prose-fa [dir="ltr"] { direction: ltr; text-align: left; }
+.prose-fa img { max-width: 100%; height: auto; }
