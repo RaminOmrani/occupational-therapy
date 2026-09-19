@@ -3,10 +3,18 @@ import { cn } from "@/lib/utils";
 /** نشان کلینیک: دست باز درون برگ سبز؛ نماد مراقبت، رشد و حرکت */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" className={cn("h-10 w-10", className)} aria-hidden>
-      <path d="M32 4C16 4 6 16 6 32c0 16 12 28 26 28 16 0 26-12 26-28C58 16 48 4 32 4z" fill="#178a6e" />
-      <path d="M22 40V26a3 3 0 0 1 6 0v10M28 34V22a3 3 0 0 1 6 0v12M34 34V24a3 3 0 0 1 6 0v10M40 36v-6a3 3 0 0 1 6 0v8c0 8-6 12-12 12h-2c-5 0-8-2-11-6l-5-7a3 3 0 0 1 5-3l3 4" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="47" cy="17" r="4" fill="#f4a261" />
+    <svg viewBox="0 0 512 512" className={cn("h-10 w-10 shrink-0", className)} aria-hidden>
+      <rect width="512" height="512" rx="112" fill="#178a6e" />
+      <g transform="translate(256 250)">
+        <path d="M-10,-124 C-40,-138 -78,-128 -96,-104 C-128,-108 -156,-84 -152,-50 C-172,-30 -172,6 -152,26 C-160,58 -140,90 -106,96 C-92,124 -50,132 -24,112 C-18,118 -12,120 -10,120 Z" fill="#ffffff" />
+        <path d="M10,-124 C40,-138 78,-128 96,-104 C128,-108 156,-84 152,-50 C172,-30 172,6 152,26 C160,58 140,90 106,96 C92,124 50,132 24,112 C18,118 12,120 10,120 Z" fill="#ffffff" />
+        <g fill="none" stroke="#178a6e" strokeWidth="11" strokeLinecap="round"><path d="M-26,-100 C-80,-60 -100,10 -44,100" /><path d="M26,-100 C80,-60 100,10 44,100" /></g>
+        <g fill="none" stroke="#178a6e" strokeWidth="8" strokeLinecap="round" opacity="0.9">
+          <path d="M-62,-64 C-92,-58 -114,-40 -126,-16" /><path d="M-78,-8 C-108,2 -128,22 -134,48" /><path d="M-62,44 C-90,56 -106,74 -108,92" />
+          <path d="M62,-64 C92,-58 114,-40 126,-16" /><path d="M78,-8 C108,2 128,22 134,48" /><path d="M62,44 C90,56 106,74 108,92" />
+        </g>
+        <path d="M0,120 C2,150 -10,172 -30,188" fill="none" stroke="#ffffff" strokeWidth="14" strokeLinecap="round" />
+      </g>
     </svg>
   );
 }
