@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ReceiptText, LayoutDashboard, Users, UserPlus, CalendarDays, ClipboardList, Activity, TrendingUp, NotebookPen, Wallet, MessageSquareText, Cake, Newspaper, MessageSquareHeart, UserCog, Settings, FolderHeart, Dumbbell, UserCircle, CalendarCheck, Globe, MessageCircle, BarChart3, FileSignature } from "lucide-react";
+import { ReceiptText, Hourglass, LayoutDashboard, Users, UserPlus, CalendarDays, ClipboardList, Activity, TrendingUp, NotebookPen, Wallet, MessageSquareText, Cake, Newspaper, MessageSquareHeart, UserCog, Settings, FolderHeart, Dumbbell, UserCircle, CalendarCheck, Globe, MessageCircle, BarChart3, FileSignature } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -24,6 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/panel/schedule", label: "برنامه روزانه", icon: CalendarDays, roles: ["ADMIN", "SECRETARY", "THERAPIST"], group: "کلینیک" },
   { href: "/panel/patients", label: "مراجعین", icon: Users, roles: ["ADMIN", "SECRETARY", "THERAPIST"], group: "کلینیک" },
   { href: "/panel/bookings", label: "نوبت‌های آنلاین", icon: Globe, roles: ["ADMIN", "SECRETARY"], group: "کلینیک" },
+  { href: "/panel/waitlist", label: "لیست انتظار", icon: Hourglass, roles: ["ADMIN", "SECRETARY", "THERAPIST"], group: "کلینیک" },
   { href: "/panel/messages", label: "پیام‌ها", icon: MessageCircle, roles: ["ADMIN", "SECRETARY", "THERAPIST"], group: "کلینیک" },
   { href: "/panel/leads", label: "لیدها (CRM)", icon: UserPlus, roles: ["ADMIN", "SECRETARY"], group: "کلینیک" },
   { href: "/panel/crm/birthdays", label: "تولدها", icon: Cake, roles: ["ADMIN", "SECRETARY"], group: "کلینیک" },

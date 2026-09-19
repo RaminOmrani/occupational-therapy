@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Pencil, Phone, Cake, CalendarPlus, MessageSquareText, KeyRound, UserCheck, FileText, Upload, Trash2, Wallet, FolderHeart, CalendarDays, MessageSquareHeart, MessageCircle, FileSignature } from "lucide-react";
+import { Pencil, Phone, Cake, CalendarPlus, Hourglass, MessageSquareText, KeyRound, UserCheck, FileText, Upload, Trash2, Wallet, FolderHeart, CalendarDays, MessageSquareHeart, MessageCircle, FileSignature } from "lucide-react";
 import { formatJalali, formatJalaliLong, formatTime, formatMoney, toPersianDigits, ageFromBirthDate, GENDER_LABELS, FEEDBACK_TYPE_LABELS } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -48,6 +48,7 @@ function Inner() {
           {canEdit && <Button variant="secondary" onClick={() => setEdit(true)} icon={<Pencil className="h-4 w-4" />}>ویرایش</Button>}
           {canFinance && <Button variant="secondary" onClick={() => setSms(true)} icon={<MessageSquareText className="h-4 w-4" />}>پیامک</Button>}
           <Link href={`/panel/messages/${id}`} className="btn-secondary"><MessageCircle className="h-4 w-4" />پیام</Link>
+          <Button variant="secondary" onClick={async () => { try { const r = await api.post<{ duplicate?: boolean }>("/waitlist", { patientId: id, therapistId: p.primaryTherapistId || undefined }); toast[r.duplicate ? "message" : "success"](r.duplicate ? "این مراجع از قبل در لیست انتظار است" : "به لیست انتظار اضافه شد"); } catch (e: any) { toast.error(e.message); } }} icon={<Hourglass className="h-4 w-4" />}>لیست انتظار</Button>
           <Button onClick={() => setAppt(true)} icon={<CalendarPlus className="h-4 w-4" />}>نوبت جدید</Button>
         </>}
       />

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { PAYMENT_METHODS, WALLET_TX_TYPES, formatMoney, startOfDay, endOfDay } from "@toranj/shared";
+import { PAYMENT_METHODS, WALLET_TX_TYPES, formatMoney, formatJalaliLong, startOfDay, endOfDay } from "@toranj/shared";
 import { prisma, parseJson } from "../lib/prisma.js";
 import { validate, zDate, zOptionalDate, zOptionalString, zInt, zOptionalInt } from "../lib/validate.js";
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
@@ -16,6 +16,13 @@ export const financeRouter = Router();
 financeRouter.use(requireAuth);
 
 const patientSel = { patient: { select: { id: true, firstName: true, lastName: true, fileNumber: true, phone: true, userId: true } } } as const;
+
+/** پیامک صدور صورت‌حساب (اختیاری از تنظیمات) */
+async function smsInvoiceIssued(inv: { number: string; total: number; dueDate: Date | null; patient: { firstName: string; lastName: string; phone: string; id: string } }) {
+  if (!(await getSettingBool("sms.autoInvoice", false)) || inv.total <= 0) return;
+  const currency = await getSetting("finance.currency", "تومان");
+  await sendTemplateSms("invoice_issued", inv.patient.phone, { name: `${inv.patient.firstName} ${inv.patient.lastName}`, number: inv.number, amount: formatMoney(inv.total, ""), currency, due: inv.dueDate ? formatJalaliLong(inv.dueDate) : "-" }, { related: { type: "patient", id: inv.patient.id } });
+}
 const withName = (r: any) => ({ ...r, patientName: r.patient ? `${r.patient.firstName} ${r.patient.lastName}` : null });
 
 /** پروفایل مالی کامل یک مراجع: خلاصه، صورت‌حساب‌ها، پرداخت‌ها، کیف پول، تخفیف‌ها */
@@ -112,6 +119,7 @@ financeRouter.post("/invoices", requireAdminOrSecretary, async (req, res) => {
   });
   if (body.appointmentIds?.length) await prisma.appointment.updateMany({ where: { id: { in: body.appointmentIds } }, data: { invoiceId: inv.id } });
   await notifyUser(inv.patient.userId, "صورت‌حساب جدید", `صورت‌حساب ${inv.number} به مبلغ ${formatMoney(inv.total)} صادر شد`, "/panel/my/finance");
+  smsInvoiceIssued(inv).catch(console.error);
   await audit(req.user!.id, "create", "invoice", inv.id);
   res.status(201).json({ invoice: withName({ ...inv, items: body.items }) });
 });
@@ -131,6 +139,7 @@ financeRouter.post("/invoices/from-sessions", requireAdminOrSecretary, async (re
     include: patientSel,
   });
   await prisma.appointment.updateMany({ where: { id: { in: sessions.map((s) => s.id) } }, data: { invoiceId: inv.id } });
+  smsInvoiceIssued(inv).catch(console.error);
   res.status(201).json({ invoice: withName({ ...inv, items }) });
 });
 

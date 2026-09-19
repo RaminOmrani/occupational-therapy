@@ -1,7 +1,8 @@
 import cron from "node-cron";
-import { formatTime, formatJalaliLong, startOfDay, endOfDay, addDays } from "@toranj/shared";
+import { formatTime, formatJalaliLong, formatMoney, startOfDay, endOfDay, addDays } from "@toranj/shared";
 import { prisma } from "../lib/prisma.js";
-import { getSettingBool, getSettingNumber } from "../lib/settings.js";
+import { getSetting, getSettingBool, getSettingNumber } from "../lib/settings.js";
+import { patientFinancialSummary } from "../lib/finance.js";
 import { sendTemplateSms } from "../lib/sms/service.js";
 import { notifyRole, notifyUser } from "../lib/notify.js";
 import { scheduledBackup } from "../lib/backup.js";
@@ -70,7 +71,29 @@ async function morningJob() {
 }
 
 /** علامت‌گذاری خودکار نوبت‌های گذشته‌ی بدون تعیین وضعیت به «غیبت» بعد از ۲۴ ساعت غیرفعال است؛ فقط اعلان می‌دهد */
+/** یادآوری خودکار بدهی: صورت‌حساب‌های باز که سررسیدشان تا N روز آینده است (هر صورت‌حساب یک بار) */
+async function debtReminderJob() {
+  const days = await getSettingNumber("finance.autoDebtReminderDays", 0);
+  if (!days || days < 1) return;
+  const until = new Date(Date.now() + days * 86400000);
+  const invoices = await prisma.invoice.findMany({ where: { status: { in: ["ISSUED", "PARTIAL"] }, reminderSentAt: null, dueDate: { lte: until } }, include: { patient: true } });
+  const currency = await getSetting("finance.currency", "تومان");
+  const seen = new Set<string>();
+  for (const inv of invoices) {
+    if (seen.has(inv.patientId)) { await prisma.invoice.update({ where: { id: inv.id }, data: { reminderSentAt: new Date() } }); continue; }
+    seen.add(inv.patientId);
+    try {
+      const summary = await patientFinancialSummary(inv.patientId);
+      if (summary.balance <= 0) { await prisma.invoice.update({ where: { id: inv.id }, data: { reminderSentAt: new Date() } }); continue; }
+      await sendTemplateSms("debt_reminder", inv.patient.phone, { name: `${inv.patient.firstName} ${inv.patient.lastName}`, balance: formatMoney(summary.balance, ""), currency }, { related: { type: "patient", id: inv.patientId } });
+      await prisma.invoice.updateMany({ where: { patientId: inv.patientId, status: { in: ["ISSUED", "PARTIAL"] }, reminderSentAt: null }, data: { reminderSentAt: new Date() } });
+      await notifyUser(inv.patient.userId, "یادآوری پرداخت", `مانده بدهی شما ${formatMoney(summary.balance, currency)} است`, "/panel/my/finance");
+    } catch (e) { console.error("debt reminder failed", inv.id, e); }
+  }
+}
+
 export function startScheduler() {
+  cron.schedule("0 10 * * *", () => debtReminderJob().catch(console.error));
   cron.schedule("* * * * *", () => sendReminders().catch(console.error));
   cron.schedule("0 8 * * *", () => birthdayJob().catch(console.error));
   cron.schedule("30 8 * * *", () => morningJob().catch(console.error));

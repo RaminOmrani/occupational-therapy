@@ -52,6 +52,7 @@ model OtpCode {
 }
 
 model Therapist {
+  waitlist    WaitlistEntry[]
   id          String  @id @default(cuid())
   userId      String  @unique
   user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -76,6 +77,7 @@ model Therapist {
 
 // ---------- بیماران ----------
 model Patient {
+  waitlist           WaitlistEntry[]
   id                 String    @id @default(cuid())
   fileNumber         String    @unique
   userId             String?   @unique
@@ -336,6 +338,7 @@ model Invoice {
   discountNote String?
   total     Int       @default(0)
   paid      Int       @default(0)
+  reminderSentAt DateTime?
   status    String    @default("ISSUED") // DRAFT | ISSUED | PARTIAL | PAID | CANCELLED
   notes     String?
   appointments Appointment[]
@@ -617,4 +620,23 @@ model PaymentIntent {
   paidAt    DateTime?
 
   @@index([patientId, status])
+}
+
+/** لیست انتظار: مراجعینی که منتظر خالی‌شدن نوبت هستند */
+model WaitlistEntry {
+  id           String    @id @default(cuid())
+  patientId    String
+  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId  String?
+  therapist    Therapist? @relation(fields: [therapistId], references: [id], onDelete: SetNull)
+  preferredDays String   @default("[]") // JSON [0..6] شنبه=6 ... جمعه=5 (getDay)
+  preferredTime String? // "صبح" | "عصر" | متن آزاد
+  note         String?
+  status       String    @default("ACTIVE") // ACTIVE | FULFILLED | CANCELLED
+  notifiedAt   DateTime?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status, therapistId])
 }

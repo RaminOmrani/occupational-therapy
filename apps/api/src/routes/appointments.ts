@@ -7,7 +7,7 @@ import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { requireAuth, requireStaff, requireAdminOrSecretary } from "../middleware/auth.js";
 import { sendTemplateSms } from "../lib/sms/service.js";
 import { getSetting, getSettingBool, getSettingNumber } from "../lib/settings.js";
-import { notifyUser } from "../lib/notify.js";
+import { notifyUser, notifyRole } from "../lib/notify.js";
 import { audit } from "../lib/audit.js";
 import { maybeSendSurvey } from "../lib/survey.js";
 
@@ -118,9 +118,65 @@ appointmentsRouter.patch("/:id", requireStaff, async (req, res) => {
   }
   if (status === "CANCELLED" && cur.status !== "CANCELLED") {
     sendTemplateSms("appointment_cancelled", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), time: formatTime(a.startAt) }, { related: { type: "appointment", id: a.id } }).catch(console.error);
+    offerSlotToWaitlist(a).catch(console.error);
+  }
+  // جابه‌جایی نوبت قطعی‌شده: زمان یا درمانگر تغییر کرده و هنوز لغو/انجام نشده
+  const moved = cur.status === "CONFIRMED" && (status === "CONFIRMED" || status === "SCHEDULED") && (startAt.getTime() !== cur.startAt.getTime() || therapistId !== cur.therapistId) && patientId === cur.patientId;
+  if (moved && (await getSettingBool("sms.autoReschedule", true))) {
+    sendTemplateSms("appointment_rescheduled", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), time: formatTime(a.startAt), therapist: `${a.therapist.user.firstName} ${a.therapist.user.lastName}` }, { related: { type: "appointment", id: a.id } }).catch(console.error);
+    await notifyUser(a.patient.userId, "نوبت شما جابه‌جا شد", `${formatJalaliLong(a.startAt, true)} ساعت ${formatTime(a.startAt)} با ${a.therapist.user.firstName} ${a.therapist.user.lastName}`, "/panel/my/schedule");
   }
   await audit(req.user!.id, "update", "appointment", a.id, body);
   res.json({ appointment: shape(a) });
+});
+
+/**
+ * وقتی نوبتی لغو می‌شود: به کارکنان اطلاع می‌دهد چند نفر در لیست انتظار این درمانگر هستند
+ * و (در صورت فعال‌بودن) به نفر اول لیست پیامک می‌فرستد.
+ */
+async function offerSlotToWaitlist(a: any) {
+  const entries = await prisma.waitlistEntry.findMany({ where: { status: "ACTIVE", OR: [{ therapistId: a.therapistId }, { therapistId: null }] }, include: { patient: true }, orderBy: { createdAt: "asc" } });
+  const day = a.startAt.getDay();
+  const fits = entries.filter((e) => { const days: number[] = JSON.parse(e.preferredDays || "[]"); return !days.length || days.includes(day); });
+  if (!fits.length) return;
+  const therapist = `${a.therapist.user.firstName} ${a.therapist.user.lastName}`;
+  const when = `${formatJalaliLong(a.startAt, true)} ساعت ${formatTime(a.startAt)}`;
+  const first = fits[0];
+  await notifyRole("SECRETARY", "نوبت خالی شد؛ لیست انتظار", `${when} با ${therapist} لغو شد. ${fits.length} نفر در لیست انتظار: ${first.patient.firstName} ${first.patient.lastName}${fits.length > 1 ? " و دیگران" : ""}`, "/panel/waitlist");
+  await notifyRole("ADMIN", "نوبت خالی شد؛ لیست انتظار", `${when} با ${therapist} لغو شد. ${fits.length} نفر در لیست انتظار`, "/panel/waitlist");
+  if (await getSettingBool("sms.autoWaitlist", true)) {
+    const phone = await getSetting("clinic.phone", "");
+    await sendTemplateSms("waitlist_slot", first.patient.phone, { name: `${first.patient.firstName} ${first.patient.lastName}`, date: formatJalaliLong(a.startAt), time: formatTime(a.startAt), therapist, phone }, { related: { type: "patient", id: first.patientId } });
+    await prisma.waitlistEntry.update({ where: { id: first.id }, data: { notifiedAt: new Date() } });
+  }
+}
+
+/** ساخت نوبت‌های تکرارشونده هفتگی: روزهای هفته انتخابی × تعداد هفته */
+appointmentsRouter.post("/recurring", requireAdminOrSecretary, async (req, res) => {
+  const body = validate(z.object({
+    patientId: z.string().min(1), therapistId: z.string().min(1), startAt: zDate, durationMin: z.number().int().min(10).max(240).default(45),
+    weekdays: z.array(z.number().int().min(0).max(6)).min(1), weeks: z.number().int().min(1).max(26), room: zOptionalString, price: zOptionalInt, notes: zOptionalString,
+  }), req.body);
+  const base = new Date(body.startAt);
+  const h = base.getHours(), m = base.getMinutes();
+  const day0 = startOfDay(base);
+  const created: Date[] = []; const skipped: Date[] = [];
+  for (let w = 0; w < body.weeks; w++) {
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(day0.getTime() + (w * 7 + d) * 86400000);
+      if (!body.weekdays.includes(day.getDay())) continue;
+      if (day < day0) continue;
+      const s = new Date(day); s.setHours(h, m, 0, 0);
+      const e = new Date(s.getTime() + body.durationMin * 60000);
+      try {
+        await assertNoConflict(body.therapistId, body.patientId, s, e);
+        await prisma.appointment.create({ data: { patientId: body.patientId, therapistId: body.therapistId, startAt: s, endAt: e, room: body.room ?? null, price: body.price ?? null, notes: body.notes ?? null, createdById: req.user!.id } });
+        created.push(s);
+      } catch { skipped.push(s); }
+    }
+  }
+  await audit(req.user!.id, "create-recurring", "appointment", null, { patientId: body.patientId, created: created.length, skipped: skipped.length });
+  res.status(201).json({ ok: true, created: created.length, skipped: skipped.length, skippedDates: skipped.map((d) => `${formatJalaliLong(d, true)} ${formatTime(d)}`) });
 });
 
 appointmentsRouter.delete("/:id", requireAdminOrSecretary, async (req, res) => {
