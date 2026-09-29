@@ -91,7 +91,7 @@ function Inner() {
                 const { top, height } = pos(a);
                 return (
                   <button key={a.id} type="button" onClick={() => setActions(a)} className={cn("absolute inset-x-0.5 overflow-hidden rounded-lg border-r-4 text-right shadow-soft transition hover:shadow-card", compact ? "px-1 py-0.5 text-[10px] leading-tight" : "inset-x-1 rounded-xl px-2 py-1 text-xs", blockClass(a))} style={{ top, height, borderColor: t.color }}>
-                    <p className="truncate font-bold">{a.patientName}</p>
+                    <p className="truncate font-bold">{a.kind === "ASSESSMENT" && <span className="ml-1 rounded bg-violet-100 px-1 text-[9px] font-bold text-violet-700">ارزیابی</span>}{a.patientName}</p>
                     {(!compact || height > 26) && <p className="num truncate">{formatTime(a.startAt)}{compact ? "" : ` - ${formatTime(a.endAt)}`}{a.room && !compact ? ` · ${a.room}` : ""}</p>}
                     {!compact && height > 50 && <p className="mt-0.5"><StatusBadge status={a.status} /></p>}
                   </button>
@@ -159,6 +159,7 @@ function Inner() {
                         <button onClick={() => setActions(a)} className="min-w-0 flex-1 text-right text-sm font-medium hover:text-brand-700">{a.patientName}<span className="mr-2 text-xs text-slate-400 num">{a.patient.fileNumber}</span></button>
                         <a href={`tel:${a.patient.phone}`} className="num text-xs text-slate-400" dir="ltr"><Phone className="inline h-3 w-3" /> {toPersianDigits(a.patient.phone)}</a>
                         <StatusBadge status={a.status} />
+                        {a.kind === "ASSESSMENT" && <Badge tone="violet">ارزیابی</Badge>}
                         <div className="flex gap-1">
                           {canManage && a.status !== "CANCELLED" && <button onClick={() => setSettle(a.id)} className="flex items-center gap-1 rounded-lg bg-brand-600 px-2 py-1 text-xs font-bold text-white hover:bg-brand-700"><Banknote className="h-3.5 w-3.5" />تسویه</button>}
                           <button onClick={() => openEdit(a)} className="flex items-center gap-1 rounded-lg bg-sand-200 px-2 py-1 text-xs text-slate-700 hover:bg-sand-300"><Pencil className="h-3.5 w-3.5" />ویرایش</button>
@@ -181,7 +182,7 @@ function Inner() {
 
       {/* اقدامات روی یک نوبت: تسویه / ویرایش / انجام شد / غیبت */}
       {actions && (
-        <Modal open onClose={() => setActions(null)} title={<span className="flex items-center gap-2">{actions.patientName}<StatusBadge status={actions.status} /></span>} size="sm">
+        <Modal open onClose={() => setActions(null)} title={<span className="flex items-center gap-2">{actions.patientName}<StatusBadge status={actions.status} />{actions.kind === "ASSESSMENT" && <Badge tone="violet">ارزیابی</Badge>}</span>} size="sm">
           <p className="text-sm text-slate-500">{formatJalaliLong(actions.startAt, true)} ساعت <span className="num">{formatTime(actions.startAt)} - {formatTime(actions.endAt)}</span> · {actions.therapistName}</p>
           <p className="num mt-1 text-xs text-slate-400" dir="ltr">{toPersianDigits(actions.patient.phone)} · {actions.patient.fileNumber}</p>
           <div className="mt-4 grid grid-cols-2 gap-2">

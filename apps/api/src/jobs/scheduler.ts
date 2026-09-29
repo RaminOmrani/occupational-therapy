@@ -29,8 +29,14 @@ async function sendReminders() {
     const times = list.map((x) => formatTime(x.startAt)).join(" و ");
     const therapistNames = [...new Set(list.map((x) => `${x.therapist.user.firstName} ${x.therapist.user.lastName}`))].join(" و ");
     try {
+      // جلسه ارزیابی: اگر الگوی مخصوص کد الگو دارد از آن استفاده می‌شود
+      let key = "appointment_reminder";
+      if (list.length === 1 && a.kind === "ASSESSMENT") {
+        const t = await prisma.smsTemplate.findUnique({ where: { key: "appointment_reminder_assessment" } });
+        if (t?.patternCode && t.isActive) key = "appointment_reminder_assessment";
+      }
       await sendTemplateSms(
-        "appointment_reminder",
+        key,
         a.patient.phone,
         { name: `${a.patient.firstName} ${a.patient.lastName}`, therapist: therapistNames, time: times, date: formatJalaliLong(a.startAt) },
         { related: { type: "appointment", id: a.id } },

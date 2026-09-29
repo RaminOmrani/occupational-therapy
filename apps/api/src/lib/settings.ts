@@ -21,14 +21,21 @@ export async function ensureDefaultSettings() {
 }
 
 /** به‌روزرسانی یک‌باره‌ی مقادیر قدیمی که هنوز دست نخورده‌اند (تغییر برند و ساعت کاری) */
-const VALUE_MIGRATIONS: { key: string; from: string; to: string }[] = [
-  { key: "schedule.endHour", from: "20", to: "22" },
-  { key: "clinic.name", from: "کلینیک کاردرمانی ذهن سبز", to: DEFAULT_SETTINGS["clinic.name"].value },
+const VALUE_MIGRATIONS: { id: string; key: string; from: string; to: string }[] = [
+  { id: "endHour22", key: "schedule.endHour", from: "20", to: "22" },
+  { id: "brand", key: "clinic.name", from: "کلینیک کاردرمانی ذهن سبز", to: DEFAULT_SETTINGS["clinic.name"].value },
+  { id: "fixSmsOff", key: "sms.autoOnFix", from: "true", to: "false" },
 ];
 async function migrateSettings() {
+  // هر مهاجرت فقط یک بار اجرا می‌شود تا تغییرات بعدی کاربر دوباره بازنویسی نشود
+  const row = await prisma.setting.findUnique({ where: { key: "system.migrations" } });
+  const applied = new Set<string>(row ? (JSON.parse(row.value || "[]") as string[]) : []);
   for (const m of VALUE_MIGRATIONS) {
+    if (applied.has(m.id)) continue;
     await prisma.setting.updateMany({ where: { key: m.key, value: m.from }, data: { value: m.to } });
+    applied.add(m.id);
   }
+  await prisma.setting.upsert({ where: { key: "system.migrations" }, create: { key: "system.migrations", value: JSON.stringify([...applied]), group: "general", label: "system", type: "json", secret: true }, update: { value: JSON.stringify([...applied]) } });
   const rows = await prisma.setting.findMany({ where: { OR: [{ group: "clinic" }, { group: "public" }, { group: "consent" }, { group: "booking" }, { group: "sms" }] } });
   for (const r of rows) {
     const v = r.value.replace(/کاردرمانی/g, "توان‌بخشی").replace(/بیماران/g, "مراجعین").replace(/بیمار(?!ی)/g, "مراجع");

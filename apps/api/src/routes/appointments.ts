@@ -10,6 +10,7 @@ import { getSetting, getSettingBool, getSettingNumber } from "../lib/settings.js
 import { notifyUser, notifyRole } from "../lib/notify.js";
 import { audit } from "../lib/audit.js";
 import { maybeSendSurvey } from "../lib/survey.js";
+import { defaultKind, defaultPrice } from "../lib/appointmentKind.js";
 
 export const appointmentsRouter = Router();
 appointmentsRouter.use(requireAuth);
@@ -53,6 +54,8 @@ const apptSchema = z.object({
   room: zOptionalString,
   notes: zOptionalString,
   price: zOptionalInt,
+  therapistAmount: zOptionalInt,
+  kind: z.enum(["SESSION", "ASSESSMENT"]).optional(),
   status: z.enum(APPOINTMENT_STATUSES).optional(),
 });
 
@@ -85,9 +88,10 @@ appointmentsRouter.post("/", requireStaff, async (req, res) => {
   const endAt = new Date(body.startAt.getTime() + duration * 60000);
   await assertNoConflict(body.therapistId, body.patientId, body.startAt, endAt);
   const therapist = await prisma.therapist.findUnique({ where: { id: body.therapistId } });
-  const price = body.price ?? therapist?.sessionPrice ?? (await getSettingNumber("schedule.defaultSessionPrice", 0));
+  const kind = body.kind ?? (await defaultKind(body.patientId));
+  const price = body.price ?? (await defaultPrice(kind, therapist?.sessionPrice)) ?? (await getSettingNumber("schedule.defaultSessionPrice", 0));
   const a = await prisma.appointment.create({
-    data: { patientId: body.patientId, therapistId: body.therapistId, startAt: body.startAt, endAt, room: body.room ?? null, notes: body.notes ?? null, price, status: body.status ?? "SCHEDULED", createdById: req.user!.id },
+    data: { patientId: body.patientId, therapistId: body.therapistId, startAt: body.startAt, endAt, room: body.room ?? null, notes: body.notes ?? null, price, therapistAmount: body.therapistAmount ?? null, kind, status: body.status ?? "SCHEDULED", createdById: req.user!.id },
     include,
   });
   await audit(req.user!.id, "create", "appointment", a.id);
@@ -108,7 +112,7 @@ appointmentsRouter.patch("/:id", requireStaff, async (req, res) => {
   if (status === "SCHEDULED" || status === "CONFIRMED") await assertNoConflict(therapistId, patientId, startAt, endAt, cur.id);
   const a = await prisma.appointment.update({
     where: { id: cur.id },
-    data: { patientId, therapistId, startAt, endAt, status, room: body.room === undefined ? cur.room : body.room, notes: body.notes === undefined ? cur.notes : body.notes, price: body.price === undefined ? cur.price : body.price },
+    data: { patientId, therapistId, startAt, endAt, status, room: body.room === undefined ? cur.room : body.room, notes: body.notes === undefined ? cur.notes : body.notes, price: body.price === undefined ? cur.price : body.price, therapistAmount: body.therapistAmount === undefined ? cur.therapistAmount : body.therapistAmount, kind: body.kind ?? cur.kind },
     include,
   });
   if (status === "DONE" && cur.status !== "DONE") maybeSendSurvey(a.patientId);
@@ -117,7 +121,7 @@ appointmentsRouter.patch("/:id", requireStaff, async (req, res) => {
     sendTemplateSms("no_show", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), phone }, { related: { type: "appointment", id: a.id } }).catch(console.error);
   }
   if (status === "CANCELLED" && cur.status !== "CANCELLED") {
-    sendTemplateSms("appointment_cancelled", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), time: formatTime(a.startAt) }, { related: { type: "appointment", id: a.id } }).catch(console.error);
+    if (await getSettingBool("sms.autoCancelled", true)) sendTemplateSms("appointment_cancelled", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, date: formatJalaliLong(a.startAt), time: formatTime(a.startAt) }, { related: { type: "appointment", id: a.id } }).catch(console.error);
     offerSlotToWaitlist(a).catch(console.error);
   }
   // جابه‌جایی نوبت قطعی‌شده: زمان یا درمانگر تغییر کرده و هنوز لغو/انجام نشده
@@ -170,7 +174,8 @@ appointmentsRouter.post("/recurring", requireAdminOrSecretary, async (req, res) 
       const e = new Date(s.getTime() + body.durationMin * 60000);
       try {
         await assertNoConflict(body.therapistId, body.patientId, s, e);
-        await prisma.appointment.create({ data: { patientId: body.patientId, therapistId: body.therapistId, startAt: s, endAt: e, room: body.room ?? null, price: body.price ?? null, notes: body.notes ?? null, createdById: req.user!.id } });
+        const kind = created.length === 0 ? await defaultKind(body.patientId) : "SESSION";
+        await prisma.appointment.create({ data: { patientId: body.patientId, therapistId: body.therapistId, startAt: s, endAt: e, room: body.room ?? null, price: body.price ?? null, notes: body.notes ?? null, kind, createdById: req.user!.id } });
         created.push(s);
       } catch { skipped.push(s); }
     }
@@ -195,7 +200,7 @@ appointmentsRouter.post("/fix-day", requireAdminOrSecretary, async (req, res) =>
   if (body.therapistId) where.therapistId = body.therapistId;
   const rows = await prisma.appointment.findMany({ where, include, orderBy: { startAt: "asc" } });
   const now = new Date();
-  const autoSms = await getSettingBool("sms.autoOnFix", true);
+  const autoSms = await getSettingBool("sms.autoOnFix", false);
   let smsCount = 0;
   const byTherapist = new Map<string, typeof rows>();
   const byPatient = new Map<string, typeof rows>();

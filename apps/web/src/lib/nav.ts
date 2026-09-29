@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ReceiptText, Hourglass, LayoutDashboard, Users, UserPlus, CalendarDays, ClipboardList, Activity, TrendingUp, NotebookPen, Wallet, MessageSquareText, Cake, Newspaper, MessageSquareHeart, UserCog, Settings, FolderHeart, Dumbbell, UserCircle, CalendarCheck, Globe, MessageCircle, BarChart3, FileSignature } from "lucide-react";
+import { ReceiptText, Hourglass, HandCoins, LayoutDashboard, Users, UserPlus, CalendarDays, ClipboardList, Activity, TrendingUp, NotebookPen, Wallet, MessageSquareText, Cake, Newspaper, MessageSquareHeart, UserCog, Settings, FolderHeart, Dumbbell, UserCircle, CalendarCheck, Globe, MessageCircle, BarChart3, FileSignature } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -33,6 +33,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/panel/forms/progress", label: "گزارش پیشرفت", icon: TrendingUp, roles: ["ADMIN", "THERAPIST", "SECRETARY"], group: "فرم‌های بالینی" },
   { href: "/panel/forms/daily", label: "عملکرد روزانه", icon: NotebookPen, roles: ["ADMIN", "THERAPIST"], group: "فرم‌های بالینی" },
   { href: "/panel/finance/daily", label: "پایان کار (صندوق روز)", icon: ReceiptText, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },
+  { href: "/panel/finance/therapists", label: "کارکرد و تسویه درمانگران", icon: HandCoins, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },
+  { href: "/panel/finance/therapists", label: "کارکرد من", icon: HandCoins, roles: ["THERAPIST"], group: "مدیریت" },
   { href: "/panel/finance", label: "مالی", icon: Wallet, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },
   { href: "/panel/reports", label: "گزارش‌های مدیریتی", icon: BarChart3, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },
   { href: "/panel/sms", label: "پیامک", icon: MessageSquareText, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },

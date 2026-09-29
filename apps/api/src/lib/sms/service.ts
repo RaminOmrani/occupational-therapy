@@ -70,7 +70,11 @@ export async function sendTemplateSms(templateKey: string, to: string, vars: Rec
   const clinic = await getSetting("sms.signature", await getSetting("clinic.name"));
   const siteHost = (await getSetting("site.baseUrl", "")).replace(/^https?:\/\//, "").replace(/\/$/, "");
   const allVars: Record<string, string | number | null | undefined> = { clinic, currency: await getSetting("finance.currency", "تومان"), siteHost, ...vars };
-  if (!tpl || !tpl.isActive) {
+  if (tpl && !tpl.isActive) {
+    // الگو در پنل غیرفعال شده: ارسال نمی‌شود، فقط برای پیگیری ثبت می‌گردد
+    return prisma.smsLog.create({ data: { to: normalizePhone(to), body: renderTemplate(tpl.body, allVars), templateKey, relatedType: opts.related?.type ?? null, relatedId: opts.related?.id ?? null, campaignId: opts.campaignId ?? null, status: "SKIPPED", provider: "off", error: "این الگو در پنل غیرفعال است" } });
+  }
+  if (!tpl) {
     const def = SMS_TEMPLATE_DEFAULTS.find((t) => t.key === templateKey);
     if (!def) throw new Error(`الگوی پیامک «${templateKey}» یافت نشد`);
     return sendRawSms(to, renderTemplate(def.body, allVars), { ...opts, templateKey });

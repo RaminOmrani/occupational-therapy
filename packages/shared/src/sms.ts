@@ -39,6 +39,14 @@ export const SMS_TEMPLATE_DEFAULTS: SmsTemplateDef[] = [
     description: "به‌محض قطعی‌شدن برنامه توسط منشی به مراجع ارسال می‌شود.",
   },
   {
+    key: "appointment_reminder_assessment",
+    name: "یادآوری جلسه ارزیابی (اولین جلسه)",
+    body: "{{name}} عزیز، یادآوری: جلسه ارزیابی اولیه شما امروز ساعت {{time}} با {{therapist}} است. لطفاً ۱۰ دقیقه زودتر و با مدارک پزشکی مراجعه کنید.\n{{clinic}}",
+    variables: ["name", "time", "therapist", "clinic"],
+    patternArgs: ["name", "time", "therapist"],
+    description: "برای نوبت‌هایی که «جلسه ارزیابی» هستند به‌جای یادآوری معمولی ارسال می‌شود (اگر کد الگو داشته باشد).",
+  },
+  {
     key: "appointment_fixed_multi",
     name: "قطعی‌شدن چند نوبت در یک روز",
     body: "{{name}} عزیز، نوبت‌های شما در تاریخ {{date}} قطعی شد:\n{{list}}\n{{clinic}}",

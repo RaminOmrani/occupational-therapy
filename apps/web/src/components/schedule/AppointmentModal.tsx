@@ -22,6 +22,8 @@ interface Initial {
   room?: string | null;
   notes?: string | null;
   price?: number | null;
+  therapistAmount?: number | null;
+  kind?: string;
   status?: string;
 }
 
@@ -29,7 +31,7 @@ export function AppointmentModal({ open, onClose, initial, onSaved, onSettle }: 
   const { user } = useAuth();
   const { data: therapists } = useTherapists();
   const { confirm, dialog } = useConfirm();
-  const [v, setV] = useState({ patientId: "", patientLabel: "", therapistId: "", startAt: new Date() as Date | null, durationMin: 45, room: "", notes: "", price: "", status: "SCHEDULED" });
+  const [v, setV] = useState({ patientId: "", patientLabel: "", therapistId: "", startAt: new Date() as Date | null, durationMin: 45, room: "", notes: "", price: "", therapistAmount: "", kind: "", status: "SCHEDULED" });
   const [loading, setLoading] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>([]);
@@ -50,6 +52,8 @@ export function AppointmentModal({ open, onClose, initial, onSaved, onSettle }: 
       room: initial?.room ?? "",
       notes: initial?.notes ?? "",
       price: initial?.price != null ? String(initial.price) : "",
+      therapistAmount: initial?.therapistAmount != null ? String(initial.therapistAmount) : "",
+      kind: initial?.kind ?? "",
       status: initial?.status ?? "SCHEDULED",
     });
   }, [open, initial, user]);
@@ -60,7 +64,7 @@ export function AppointmentModal({ open, onClose, initial, onSaved, onSettle }: 
     if (!v.startAt) return toast.error("زمان را مشخص کنید");
     setLoading(true);
     try {
-      const payload = { patientId: v.patientId, therapistId: v.therapistId, startAt: v.startAt.toISOString(), durationMin: Number(v.durationMin), room: v.room || null, notes: v.notes || null, price: v.price ? Number(v.price) : null, status: v.status };
+      const payload = { patientId: v.patientId, therapistId: v.therapistId, startAt: v.startAt.toISOString(), durationMin: Number(v.durationMin), room: v.room || null, notes: v.notes || null, price: v.price ? Number(v.price) : null, therapistAmount: v.therapistAmount ? Number(v.therapistAmount) : null, kind: v.kind || undefined, status: v.status };
       if (!isEdit && repeat) {
         if (!weekdays.length) { setLoading(false); return toast.error("حداقل یک روز هفته را انتخاب کنید"); }
         const r = await api.post<{ created: number; skipped: number; skippedDates: string[] }>("/appointments/recurring", { ...payload, weekdays, weeks, status: undefined });
@@ -93,7 +97,15 @@ export function AppointmentModal({ open, onClose, initial, onSaved, onSettle }: 
         <Field label="ساعت شروع" required><Input type="time" value={timeStr} onChange={(e) => { const [h, m] = e.target.value.split(":").map(Number); const d = new Date(v.startAt ?? new Date()); d.setHours(h || 0, m || 0, 0, 0); setV({ ...v, startAt: d }); }} className="num" dir="ltr" step={300} /></Field>
         <Field label="مدت (دقیقه)"><Select value={v.durationMin} onChange={(e) => setV({ ...v, durationMin: Number(e.target.value) })}>{[30, 45, 60, 90].map((m) => <option key={m} value={m}>{m} دقیقه</option>)}</Select></Field>
         <Field label="اتاق"><Input value={v.room} onChange={(e) => setV({ ...v, room: e.target.value })} placeholder="مثلاً: اتاق ۲" /></Field>
+        <Field label="نوع جلسه" hint={!isEdit && !v.kind ? "خودکار: اولین نوبت مراجع جدید = ارزیابی" : undefined}>
+          <Select value={v.kind} onChange={(e) => setV({ ...v, kind: e.target.value })}>
+            {!isEdit && <option value="">خودکار</option>}
+            <option value="SESSION">جلسه درمانی</option>
+            <option value="ASSESSMENT">جلسه ارزیابی (اولین جلسه)</option>
+          </Select>
+        </Field>
         <Field label="قیمت جلسه (تومان)" hint={therapist?.sessionPrice ? `پیش‌فرض درمانگر: ${formatMoney(therapist.sessionPrice)}` : undefined}><MoneyInput value={v.price} onChange={(d) => setV({ ...v, price: d })} placeholder="پیش‌فرض" suffix="تومان" /></Field>
+        <Field label="کارکرد درمانگر (تومان)" hint="خالی = برابر قیمت جلسه؛ مثلاً اگر جلسه کوتاه‌تر برگزار شد"><MoneyInput value={v.therapistAmount} onChange={(d) => setV({ ...v, therapistAmount: d })} placeholder="= قیمت جلسه" suffix="تومان" /></Field>
         {isEdit && <Field label="وضعیت"><Select value={v.status} onChange={(e) => setV({ ...v, status: e.target.value })}>{APPOINTMENT_STATUSES.map((s) => <option key={s} value={s}>{APPOINTMENT_STATUS_LABELS[s]}</option>)}</Select></Field>}
         <Field label="یادداشت" className="sm:col-span-2"><Textarea value={v.notes} onChange={(e) => setV({ ...v, notes: e.target.value })} className="min-h-[60px]" /></Field>
         {!isEdit && canDelete && (

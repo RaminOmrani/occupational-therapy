@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Wallet, Receipt, ReceiptText, TrendingDown, Percent, Users, Eye, Check, X } from "lucide-react";
+import { Wallet, Receipt, ReceiptText, HandCoins, TrendingDown, Percent, Users, Eye, Check, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis } from "recharts";
 import { INVOICE_STATUSES, INVOICE_STATUS_LABELS, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, formatJalali, formatMoney, toPersianDigits, addDays } from "@toranj/shared";
 import { api } from "@/lib/api";
@@ -37,7 +37,7 @@ function FinanceInner() {
 
   return (
     <>
-      <PageHeader title="مالی" subtitle="درآمد، صورت‌حساب‌ها، پرداخت‌ها و بدهکاران" icon={<Wallet className="h-5 w-5" />} actions={<><Link href="/panel/finance/daily" className="btn-secondary"><ReceiptText className="h-4 w-4" />صورت مالی روزانه</Link><JalaliDatePicker value={from} onChange={setFrom} placeholder="از تاریخ" className="w-36" /><JalaliDatePicker value={to} onChange={setTo} placeholder="تا تاریخ" className="w-36" /></>} />
+      <PageHeader title="مالی" subtitle="درآمد، صورت‌حساب‌ها، پرداخت‌ها و بدهکاران" icon={<Wallet className="h-5 w-5" />} actions={<><Link href="/panel/finance/therapists" className="btn-secondary"><HandCoins className="h-4 w-4" />کارکرد درمانگران</Link><Link href="/panel/finance/daily" className="btn-secondary"><ReceiptText className="h-4 w-4" />صورت مالی روزانه</Link><JalaliDatePicker value={from} onChange={setFrom} placeholder="از تاریخ" className="w-36" /><JalaliDatePicker value={to} onChange={setTo} placeholder="تا تاریخ" className="w-36" /></>} />
       {r && (
         <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="درآمد (بازه)" value={formatMoney(r.totalIncome)} icon={<Wallet className="h-6 w-6" />} tone="sage" />

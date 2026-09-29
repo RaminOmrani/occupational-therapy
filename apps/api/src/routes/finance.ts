@@ -222,6 +222,18 @@ financeRouter.post("/payments", requireAdminOrSecretary, async (req, res) => {
   res.status(201).json({ payment: withName(p), summary });
 });
 
+/** ویرایش پرداخت (اشتباه در روش/مبلغ/تاریخ) */
+financeRouter.patch("/payments/:id", requireAdminOrSecretary, async (req, res) => {
+  const body = validate(z.object({ amount: zInt.refine((v) => v > 0, "مبلغ باید بزرگ‌تر از صفر باشد").optional(), method: z.enum(PAYMENT_METHODS).optional(), reference: zOptionalString, note: zOptionalString, date: zDate.optional() }), req.body);
+  const cur = await prisma.payment.findUnique({ where: { id: String(req.params.id) } });
+  if (!cur) throw notFound("پرداخت یافت نشد");
+  if (cur.method === "WALLET" || body.method === "WALLET") throw badRequest("پرداخت از کیف پول قابل ویرایش نیست؛ حذف و دوباره ثبت کنید");
+  const p = await prisma.payment.update({ where: { id: cur.id }, data: { amount: body.amount ?? cur.amount, method: body.method ?? cur.method, reference: body.reference === undefined ? cur.reference : body.reference, note: body.note === undefined ? cur.note : body.note, date: body.date ?? cur.date }, include: patientSel });
+  if (p.invoiceId) await recomputeInvoice(p.invoiceId);
+  await audit(req.user!.id, "update", "payment", p.id, body);
+  res.json({ payment: withName(p), summary: await patientFinancialSummary(p.patientId) });
+});
+
 financeRouter.delete("/payments/:id", requireRole("ADMIN"), async (req, res) => {
   const p = await prisma.payment.findUnique({ where: { id: String(req.params.id) } });
   if (!p) throw notFound();
@@ -330,6 +342,8 @@ financeRouter.get("/settle-preview/:appointmentId", requireAdminOrSecretary, asy
   res.json({
     appointment: { id: a.id, startAt: a.startAt, status: a.status, patientId: a.patientId, patientName: `${a.patient.firstName} ${a.patient.lastName}`, fileNumber: a.patient.fileNumber, therapistName: `${a.therapist.user.firstName} ${a.therapist.user.lastName}` },
     sessionPrice,
+    therapistAmount: a.therapistAmount ?? sessionPrice,
+    kind: a.kind,
     alreadyInvoiced,
     invoice: a.invoice,
     previousBalance,
@@ -351,6 +365,7 @@ financeRouter.post("/settle-appointment", requireAdminOrSecretary, async (req, r
     reference: zOptionalString,
     note: zOptionalString,
     sendSms: z.boolean().optional(),
+    therapistAmount: zOptionalInt,
   }), req.body);
   const a = await prisma.appointment.findUnique({ where: { id: body.appointmentId }, include: settleInclude });
   if (!a) throw notFound("نوبت یافت نشد");
@@ -358,7 +373,7 @@ financeRouter.post("/settle-appointment", requireAdminOrSecretary, async (req, r
   const sessionPrice = await effectivePrice(a);
   const therapistName = `${a.therapist.user.firstName} ${a.therapist.user.lastName}`;
 
-  if (a.status !== "DONE") await prisma.appointment.update({ where: { id: a.id }, data: { status: "DONE", price: a.price ?? sessionPrice } });
+  await prisma.appointment.update({ where: { id: a.id }, data: { status: "DONE", price: a.price ?? sessionPrice, therapistAmount: body.therapistAmount ?? a.therapistAmount ?? null } });
   let invoiceId = a.invoiceId && a.invoice?.status !== "CANCELLED" ? a.invoiceId : null;
   if (!invoiceId && sessionPrice > 0) {
     const items = [{ title: `جلسه توان‌بخشی - ${therapistName}`, qty: 1, unitPrice: sessionPrice }];
@@ -407,14 +422,21 @@ financeRouter.get("/daily", requireAdminOrSecretary, async (req, res) => {
   const from = startOfDay(day);
   const to = endOfDay(day);
   const defaultPrice = await getSettingNumber("schedule.defaultSessionPrice", 0);
-  const [payments, appointments, invoices, walletDeposits] = await Promise.all([
+  const [payments, appointments, invoices, walletDeposits, cashEntries] = await Promise.all([
     prisma.payment.findMany({ where: { date: { gte: from, lte: to } }, include: { ...patientSel, invoice: { select: { number: true } }, receivedBy: { select: { firstName: true, lastName: true } } }, orderBy: { date: "asc" } }),
     prisma.appointment.findMany({ where: { startAt: { gte: from, lte: to } }, include: settleInclude, orderBy: { startAt: "asc" } }),
     prisma.invoice.findMany({ where: { date: { gte: from, lte: to }, status: { notIn: ["CANCELLED", "DRAFT"] } }, select: { total: true, discount: true } }),
     prisma.walletTransaction.findMany({ where: { createdAt: { gte: from, lte: to }, amount: { gt: 0 }, type: { in: ["DEPOSIT", "GIFT", "ADJUST"] } }, include: patientSel, orderBy: { createdAt: "asc" } }),
+    prisma.cashEntry.findMany({ where: { date: { gte: from, lte: to } }, orderBy: { date: "asc" } }),
   ]);
   const byMethod: Record<string, number> = {};
   for (const p of payments) byMethod[p.method] = (byMethod[p.method] ?? 0) + p.amount;
+  // تراکنش‌های متفرقه صندوق هم در تفکیک روش لحاظ می‌شوند (دریافت +، پرداخت −)
+  for (const c of cashEntries) byMethod[c.method] = (byMethod[c.method] ?? 0) + (c.direction === "OUT" ? -c.amount : c.amount);
+  const cashIn = cashEntries.filter((c) => c.direction === "IN").reduce((s, c) => s + c.amount, 0);
+  const cashOut = cashEntries.filter((c) => c.direction === "OUT").reduce((s, c) => s + c.amount, 0);
+  const therapistUsers = await prisma.therapist.findMany({ include: { user: { select: { firstName: true, lastName: true } } } });
+  const tName = (id: string | null) => { const t = therapistUsers.find((x) => x.id === id); return t ? `${t.user.firstName} ${t.user.lastName}` : null; };
   const patientIds = [...new Set(appointments.map((a) => a.patientId))];
   const balances = new Map<string, number>();
   for (const id of patientIds) balances.set(id, (await patientFinancialSummary(id)).balance);
@@ -423,7 +445,7 @@ financeRouter.get("/daily", requireAdminOrSecretary, async (req, res) => {
     const invoiced = !!a.invoiceId && a.invoice?.status !== "CANCELLED";
     const settled = a.status === "DONE" && (invoiced ? a.invoice!.status === "PAID" : price === 0);
     return {
-      id: a.id, startAt: a.startAt, endAt: a.endAt, status: a.status, price, invoiced, settled,
+      id: a.id, startAt: a.startAt, endAt: a.endAt, status: a.status, price, invoiced, settled, kind: a.kind, therapistAmount: a.therapistAmount ?? price, therapistId: a.therapistId,
       invoiceNumber: a.invoice?.number ?? null,
       patientId: a.patientId, patientName: `${a.patient.firstName} ${a.patient.lastName}`, fileNumber: a.patient.fileNumber, phone: a.patient.phone,
       therapistName: `${a.therapist.user.firstName} ${a.therapist.user.lastName}`,
@@ -431,10 +453,20 @@ financeRouter.get("/daily", requireAdminOrSecretary, async (req, res) => {
     };
   });
   const done = sessions.filter((s) => s.status === "DONE");
+  // تسویه روزانه به تفکیک درمانگر: تعداد مراجع، جلسات، کارکرد، وصول‌شده و معوق
+  const byTherapist = [...new Set(sessions.map((x) => x.therapistId))].map((tid) => {
+    const list = done.filter((x) => x.therapistId === tid);
+    const karkard = list.reduce((s, x) => s + x.therapistAmount, 0);
+    const collected = list.filter((x) => x.settled).reduce((s, x) => s + x.therapistAmount, 0);
+    return { therapistId: tid, therapistName: tName(tid), cases: new Set(list.map((x) => x.patientId)).size, sessions: list.length, assessments: list.filter((x) => x.kind === "ASSESSMENT").length, karkard, collected, pending: karkard - collected, noShow: sessions.filter((x) => x.therapistId === tid && x.status === "NO_SHOW").length };
+  });
   res.json({
     date: from,
     totals: {
-      received: payments.reduce((s, p) => s + p.amount, 0),
+      received: payments.reduce((s, p) => s + p.amount, 0) + cashIn - cashOut,
+      patientPayments: payments.reduce((s, p) => s + p.amount, 0),
+      cashIn, cashOut,
+      karkard: done.reduce((s, x) => s + x.therapistAmount, 0),
       byMethod,
       walletDeposits: walletDeposits.reduce((s, w) => s + w.amount, 0),
       invoiced: invoices.reduce((s, i) => s + i.total, 0),
@@ -449,6 +481,73 @@ financeRouter.get("/daily", requireAdminOrSecretary, async (req, res) => {
     },
     payments: payments.map((p) => ({ ...withName(p), invoiceNumber: p.invoice?.number ?? null, receivedByName: p.receivedBy ? `${p.receivedBy.firstName} ${p.receivedBy.lastName}` : null })),
     walletDeposits: walletDeposits.map(withName),
+    cashEntries: cashEntries.map((c) => ({ ...c, therapistName: tName(c.therapistId) })),
+    byTherapist,
     sessions,
   });
+});
+
+/* ───────────── تراکنش‌های متفرقه صندوق ───────────── */
+const cashSchema = z.object({ date: zDate.optional(), direction: z.enum(["IN", "OUT"]).default("IN"), amount: zInt.refine((v) => v > 0, "مبلغ باید بزرگ‌تر از صفر باشد"), method: z.enum(["CASH", "CARD", "TRANSFER"]).default("CARD"), reason: z.string().min(1, "دلیل را بنویسید"), note: zOptionalString, therapistId: zOptionalString, patientId: zOptionalString });
+
+/** ثبت تراکنش: اگر به مراجع نسبت داده شود، به‌عنوان پرداخت در حساب او ثبت می‌شود (بستانکاری/تسویه) */
+financeRouter.post("/cash", requireAdminOrSecretary, async (req, res) => {
+  const body = validate(cashSchema, req.body);
+  if (body.patientId) {
+    if (body.direction === "OUT") throw badRequest("برای بازپرداخت به مراجع از پروفایل مالی او (کیف پول/بازپرداخت) استفاده کنید");
+    const open = await prisma.invoice.findFirst({ where: { patientId: body.patientId, status: { in: ["ISSUED", "PARTIAL"] } }, orderBy: { date: "asc" } });
+    const p = await prisma.payment.create({ data: { patientId: body.patientId, invoiceId: open?.id ?? null, amount: body.amount, method: body.method, note: body.reason + (body.note ? ` — ${body.note}` : ""), date: body.date ?? new Date(), receivedById: req.user!.id }, include: patientSel });
+    if (open) await recomputeInvoice(open.id);
+    await audit(req.user!.id, "create", "payment", p.id, { via: "cash", reason: body.reason });
+    return res.status(201).json({ payment: withName(p), summary: await patientFinancialSummary(body.patientId) });
+  }
+  const c = await prisma.cashEntry.create({ data: { date: body.date ?? new Date(), direction: body.direction, amount: body.amount, method: body.method, reason: body.reason, note: body.note ?? null, therapistId: body.therapistId ?? null, createdById: req.user!.id } });
+  await audit(req.user!.id, "create", "cash", c.id, body);
+  res.status(201).json({ entry: c });
+});
+
+financeRouter.patch("/cash/:id", requireAdminOrSecretary, async (req, res) => {
+  const body = validate(cashSchema.partial(), req.body);
+  const c = await prisma.cashEntry.update({ where: { id: String(req.params.id) }, data: { ...body, patientId: undefined } as any });
+  res.json({ entry: c });
+});
+
+financeRouter.delete("/cash/:id", requireAdminOrSecretary, async (req, res) => {
+  await prisma.cashEntry.delete({ where: { id: String(req.params.id) } });
+  await audit(req.user!.id, "delete", "cash", String(req.params.id));
+  res.json({ ok: true });
+});
+
+/* ───────────── پروفایل مالی درمانگران (کارکرد و تسویه) ───────────── */
+async function therapistStats(therapistId: string, from: Date, to: Date) {
+  const defaultPrice = await getSettingNumber("schedule.defaultSessionPrice", 0);
+  const rows = await prisma.appointment.findMany({ where: { therapistId, startAt: { gte: from, lte: to }, status: { in: ["DONE", "NO_SHOW"] } }, include: { patient: { select: { id: true, firstName: true, lastName: true, fileNumber: true } }, therapist: { select: { sessionPrice: true } }, invoice: { select: { status: true, number: true } } }, orderBy: { startAt: "asc" } });
+  const items = rows.map((a) => { const price = a.price ?? a.therapist.sessionPrice ?? defaultPrice; const amount = a.therapistAmount ?? price; const settled = a.status === "DONE" && (a.invoice ? a.invoice.status === "PAID" : price === 0); return { id: a.id, startAt: a.startAt, status: a.status, kind: a.kind, patientId: a.patientId, patientName: `${a.patient.firstName} ${a.patient.lastName}`, fileNumber: a.patient.fileNumber, price, therapistAmount: amount, settled, invoiceNumber: a.invoice?.number ?? null }; });
+  const done = items.filter((x) => x.status === "DONE");
+  const byDay = new Map<string, { date: string; sessions: number; karkard: number; collected: number }>();
+  for (const x of done) { const k = startOfDay(x.startAt).toISOString(); const v = byDay.get(k) ?? { date: k, sessions: 0, karkard: 0, collected: 0 }; v.sessions += 1; v.karkard += x.therapistAmount; if (x.settled) v.collected += x.therapistAmount; byDay.set(k, v); }
+  const karkard = done.reduce((s, x) => s + x.therapistAmount, 0);
+  const collected = done.filter((x) => x.settled).reduce((s, x) => s + x.therapistAmount, 0);
+  return { cases: new Set(done.map((x) => x.patientId)).size, sessions: done.length, assessments: done.filter((x) => x.kind === "ASSESSMENT").length, noShow: items.filter((x) => x.status === "NO_SHOW").length, karkard, collected, pending: karkard - collected, byDay: [...byDay.values()], items };
+}
+
+financeRouter.get("/therapists", requireStaff, async (req, res) => {
+  const from = req.query.from ? startOfDay(new Date(String(req.query.from))) : startOfDay(new Date(Date.now() - 29 * 86400000));
+  const to = req.query.to ? endOfDay(new Date(String(req.query.to))) : endOfDay(new Date());
+  let therapists = await prisma.therapist.findMany({ include: { user: { select: { firstName: true, lastName: true, avatar: true, isActive: true } } }, orderBy: { sortOrder: "asc" } });
+  if (req.user!.role === "THERAPIST") therapists = therapists.filter((t) => t.id === req.user!.therapistId);
+  const items = [];
+  for (const t of therapists) { const st = await therapistStats(t.id, from, to); items.push({ therapistId: t.id, fullName: `${t.user.firstName} ${t.user.lastName}`, avatar: t.user.avatar, color: t.color, isActive: t.user.isActive, ...st, items: undefined }); }
+  res.json({ from, to, items });
+});
+
+financeRouter.get("/therapists/:id", requireStaff, async (req, res) => {
+  const id = String(req.params.id);
+  if (req.user!.role === "THERAPIST" && req.user!.therapistId !== id) throw forbidden();
+  const t = await prisma.therapist.findUnique({ where: { id }, include: { user: { select: { firstName: true, lastName: true, avatar: true } } } });
+  if (!t) throw notFound("درمانگر یافت نشد");
+  const from = req.query.from ? startOfDay(new Date(String(req.query.from))) : startOfDay(new Date(Date.now() - 29 * 86400000));
+  const to = req.query.to ? endOfDay(new Date(String(req.query.to))) : endOfDay(new Date());
+  const st = await therapistStats(id, from, to);
+  res.json({ therapist: { id: t.id, fullName: `${t.user.firstName} ${t.user.lastName}`, avatar: t.user.avatar, color: t.color, sessionPrice: t.sessionPrice }, from, to, ...st });
 });

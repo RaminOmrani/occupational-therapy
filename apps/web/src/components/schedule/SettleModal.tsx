@@ -18,6 +18,8 @@ export const SETTLE_METHODS = [
 interface Preview {
   appointment: { id: string; startAt: string; status: string; patientId: string; patientName: string; fileNumber: string; therapistName: string };
   sessionPrice: number;
+  therapistAmount: number;
+  kind: string;
   alreadyInvoiced: boolean;
   previousBalance: number;
   walletBalance: number;
@@ -33,8 +35,9 @@ export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId:
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [sendSms, setSendSms] = useState(false);
+  const [therapistAmount, setTherapistAmount] = useState("");
   const [loading, setLoading] = useState(false);
-  useEffect(() => { if (data) setAmount(String(data.totalDue || data.sessionPrice || "")); }, [data]);
+  useEffect(() => { if (data) { setAmount(String(data.totalDue || data.sessionPrice || "")); setTherapistAmount(String(data.therapistAmount ?? data.sessionPrice ?? "")); } }, [data]);
 
   const submit = async () => {
     if (!data) return;
@@ -45,7 +48,7 @@ export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId:
     }
     setLoading(true);
     try {
-      const r = await api.post<{ paid: number; summary: { balance: number } }>("/finance/settle-appointment", { appointmentId, method, full: mode === "full", amount: mode === "custom" ? custom : undefined, reference: reference || undefined, sendSms });
+      const r = await api.post<{ paid: number; summary: { balance: number } }>("/finance/settle-appointment", { appointmentId, method, full: mode === "full", amount: mode === "custom" ? custom : undefined, reference: reference || undefined, sendSms, therapistAmount: therapistAmount ? Number(therapistAmount) : undefined });
       toast.success(r.paid > 0 ? `${formatMoney(r.paid)} ثبت شد${r.summary.balance > 0 ? `؛ مانده بدهی ${formatMoney(r.summary.balance)}` : r.summary.balance < 0 ? `؛ بستانکار ${formatMoney(-r.summary.balance)}` : "؛ تسویه کامل ✅"}` : "جلسه انجام‌شده ثبت شد");
       qc.invalidateQueries({ queryKey: ["appointments"] }); qc.invalidateQueries({ queryKey: ["finance"] }); qc.invalidateQueries({ queryKey: ["daily"] }); qc.invalidateQueries({ queryKey: ["dashboard"] });
       onDone?.();
@@ -58,7 +61,7 @@ export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId:
       {isLoading || !data ? <Spinner /> : (
         <div className="space-y-4">
           <div className="rounded-2xl bg-sand-100 p-3 text-sm">
-            <p className="font-bold">{data.appointment.patientName} <span className="num text-xs font-normal text-slate-400">{data.appointment.fileNumber}</span></p>
+            <p className="font-bold">{data.appointment.patientName} <span className="num text-xs font-normal text-slate-400">{data.appointment.fileNumber}</span>{data.kind === "ASSESSMENT" && <span className="mr-2 rounded bg-violet-100 px-1.5 text-[10px] font-bold text-violet-700">جلسه ارزیابی</span>}</p>
             <p className="mt-0.5 text-xs text-slate-500">{formatJalaliLong(data.appointment.startAt, true)} ساعت {formatTime(data.appointment.startAt)} · {data.appointment.therapistName}</p>
             <dl className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
               <div className="rounded-xl bg-white p-2"><dt className="text-slate-400">این جلسه</dt><dd className="num mt-0.5 font-bold text-slate-800">{formatMoney(data.sessionPrice)}</dd></div>
@@ -86,6 +89,7 @@ export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId:
             </div>
             {mode === "custom" && <div className="mt-2"><MoneyInput value={amount} onChange={setAmount} suffix="تومان" autoFocus /></div>}
           </Field>
+          <Field label="کارکرد درمانگر برای این جلسه" hint="پیش‌فرض = مبلغ جلسه؛ اگر جلسه کوتاه‌تر یا با قیمت دیگری برگزار شد تغییر دهید"><MoneyInput value={therapistAmount} onChange={setTherapistAmount} suffix="تومان" /></Field>
           {method !== "CASH" && <Field label="شماره پیگیری / ۴ رقم آخر کارت" hint="اختیاری"><Input value={reference} onChange={(e) => setReference(e.target.value)} className="num" dir="ltr" /></Field>}
           <Toggle checked={sendSms} onChange={setSendSms} label="پیامک رسید پرداخت برای مراجع ارسال شود" />
         </div>

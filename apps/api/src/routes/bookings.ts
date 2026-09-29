@@ -10,6 +10,7 @@ import { requireAuth, requireAdminOrSecretary } from "../middleware/auth.js";
 import { nextNumber } from "../lib/numbering.js";
 import { notifyRole, notifyUser } from "../lib/notify.js";
 import { sendTemplateSms } from "../lib/sms/service.js";
+import { defaultKind } from "../lib/appointmentKind.js";
 import { ensurePatientAccount } from "./patients.js";
 import { audit } from "../lib/audit.js";
 
@@ -114,7 +115,8 @@ bookingsRouter.post("/:id/approve", async (req, res) => {
   const conflict = await prisma.appointment.findFirst({ where: { therapistId: b.therapistId, status: { in: ["SCHEDULED", "CONFIRMED"] }, startAt: { lt: b.endAt }, endAt: { gt: b.startAt } } });
   if (conflict) throw badRequest("در این زمان نوبت دیگری ثبت شده است؛ درخواست را رد کنید یا نوبت موجود را جابه‌جا کنید");
   const therapist = await prisma.therapist.findUnique({ where: { id: b.therapistId } });
-  const appt = await prisma.appointment.create({ data: { patientId: patient.id, therapistId: b.therapistId, startAt: b.startAt, endAt: b.endAt, status: "SCHEDULED", source: "WEB", price: therapist?.sessionPrice ?? (await getSettingNumber("schedule.defaultSessionPrice", 0)), notes: b.note, createdById: req.user!.id } });
+  const kind = await defaultKind(patient.id);
+  const appt = await prisma.appointment.create({ data: { patientId: patient.id, therapistId: b.therapistId, startAt: b.startAt, endAt: b.endAt, status: "SCHEDULED", source: "WEB", kind, price: therapist?.sessionPrice ?? (await getSettingNumber("schedule.defaultSessionPrice", 0)), notes: b.note, createdById: req.user!.id } });
   await prisma.bookingRequest.update({ where: { id: b.id }, data: { status: "APPROVED", patientId: patient.id, appointmentId: appt.id, handledById: req.user!.id, handledAt: new Date() } });
   if (await getSettingBool("booking.autoSms", true)) {
     sendTemplateSms("booking_approved", b.phone, { name: `${b.firstName} ${b.lastName}`, date: formatJalaliLong(b.startAt), time: formatTime(b.startAt), therapist: `${b.therapist.user.firstName} ${b.therapist.user.lastName}` }, { related: { type: "appointment", id: appt.id } }).catch(console.error);

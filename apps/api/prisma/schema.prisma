@@ -173,6 +173,8 @@ model Appointment {
   room              String?
   notes             String?
   price             Int?
+  therapistAmount   Int? // کارکرد درمانگر برای این جلسه (پیش‌فرض = قیمت جلسه)
+  kind              String    @default("SESSION") // SESSION | ASSESSMENT
   source            String    @default("STAFF") // STAFF | WEB
   createdById       String?
   createdBy         User?     @relation("AppointmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -639,4 +641,20 @@ model WaitlistEntry {
   updatedAt    DateTime  @updatedAt
 
   @@index([status, therapistId])
+}
+
+/** تراکنش‌های متفرقه صندوق: دریافت/پرداختی که به صورت‌حساب مراجع وصل نیست (بیمه، جابه‌جایی کارت مدیر و...) */
+model CashEntry {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  direction   String   @default("IN") // IN = دریافت | OUT = پرداخت/خروج
+  amount      Int
+  method      String   @default("CARD") // CASH | CARD | TRANSFER
+  reason      String
+  note        String?
+  therapistId String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([date])
 }
