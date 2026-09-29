@@ -70,7 +70,7 @@ export function toEmbedUrl(url: string | null | undefined): string | null {
 }
 
 const shape = (a: any) => ({ ...a, tags: parseJson<string[]>(a.tags, []), embedSrc: toEmbedUrl(a.embedUrl), authorName: a.authorLabel || (a.author ? `${a.author.firstName} ${a.author.lastName}` : null), isInternal: !a.authorLabel });
-const include = { author: { select: { firstName: true, lastName: true } } } as const;
+const include = { author: { select: { firstName: true, lastName: true } }, service: { select: { id: true, slug: true, title: true } } } as const;
 
 /** فهرست عمومی محتوای منتشرشده (مقاله/ویدیو/پادکست/کتاب) */
 articlesRouter.get("/public", async (req, res) => {
@@ -119,6 +119,7 @@ const articleSchema = z.object({
   duration: zOptionalString,
   authorLabel: zOptionalString,
   sourceName: zOptionalString,
+  serviceId: zOptionalString,
 });
 
 function prepare(body: Partial<z.infer<typeof articleSchema>>) {

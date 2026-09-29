@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Eye, CalendarDays, User, Clock, Download, ExternalLink, BookOpen } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/layout/PublicShell";
+import { publicContext, pageMeta, JsonLd, breadcrumbJsonLd, articleJsonLd } from "@/lib/seo";
 import { getClinic } from "@/lib/server";
 import { serverGet } from "@/lib/api";
 import { ArticleCard, CONTENT_TYPES } from "@/components/layout/ArticleCard";
@@ -12,8 +13,10 @@ import { formatJalaliLong, toPersianDigits } from "@toranj/shared";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const d = await serverGet<{ article: any }>(`/articles/public/${encodeURIComponent(slug)}`);
-  return { title: d?.article?.title ?? "محتوا", description: d?.article?.excerpt ?? undefined, openGraph: d?.article?.coverImage ? { images: [d.article.coverImage] } : undefined };
+  const [{ s }, d] = await Promise.all([publicContext(), serverGet<{ article: any }>(`/articles/public/${encodeURIComponent(slug)}`)]);
+  const a = d?.article;
+  if (!a) return { title: "محتوا" };
+  return pageMeta(s, { title: a.title, description: a.excerpt || a.title, path: `/media/${encodeURIComponent(a.slug)}`, image: a.coverImage, type: "article", keywords: a.tags, publishedTime: a.publishedAt ?? undefined, modifiedTime: a.updatedAt ?? undefined, authors: a.authorName ? [a.authorName] : undefined });
 }
 
 export default async function MediaDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -28,6 +31,7 @@ export default async function MediaDetailPage({ params }: { params: Promise<{ sl
   return (
     <div className="bg-sand-50">
       <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
+      <JsonLd data={[breadcrumbJsonLd(s, [{ name: s["public.mediaTitle"] ?? "رسانه", path: "/media" }, { name: a.title, path: `/media/${encodeURIComponent(a.slug)}` }]), articleJsonLd(s, a)]} />
       <article className={`mx-auto px-4 py-12 ${a.type === "VIDEO" ? "max-w-4xl" : "max-w-3xl"}`}>
         <div className="flex flex-wrap items-center gap-2 text-xs"><Link href={`/media?type=${a.type}`} className={`badge ${t.cls}`}><t.icon className="h-3 w-3" />{t.label}</Link>{a.category && <span className="badge bg-sand-200 text-slate-600">{a.category}</span>}</div>
         <h1 className="mt-3 text-3xl font-black leading-[1.5] text-brand-900">{a.title}</h1>
@@ -65,6 +69,7 @@ export default async function MediaDetailPage({ params }: { params: Promise<{ sl
 
         {a.content?.trim() && body}
         {a.externalUrl && !isBook && <p className="mt-6 text-sm"><a href={a.externalUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-brand-700 hover:underline"><ExternalLink className="h-4 w-4" />مشاهده منبع اصلی</a></p>}
+        {a.service && <p className="mt-6 rounded-2xl bg-brand-50 p-4 text-sm">این مطلب مرتبط با خدمت <Link href={`/services/${a.service.slug}`} className="font-bold text-brand-700 hover:underline">{a.service.title}</Link> است. برای اطلاعات بیشتر و رزرو نوبت، صفحه خدمت را ببینید.</p>}
         {a.tags?.length > 0 && <div className="mt-8 flex flex-wrap gap-2">{a.tags.map((tag: string) => <span key={tag} className="badge bg-sand-200 text-slate-600">#{tag}</span>)}</div>}
       </article>
       {d.related.length > 0 && (
@@ -73,7 +78,7 @@ export default async function MediaDetailPage({ params }: { params: Promise<{ sl
           <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">{d.related.map((r) => <ArticleCard key={r.id} a={r} />)}</div>
         </section>
       )}
-      <PublicFooter settings={s} />
+      <PublicFooter settings={s} services={clinic?.services ?? []} />
     </div>
   );
 }

@@ -19,6 +19,7 @@ publicRouter.get("/clinic", async (_req, res) => {
   const therapists = showTherapists
     ? await prisma.therapist.findMany({ where: { isPublic: true, user: { isActive: true } }, include: { user: { select: { firstName: true, lastName: true, avatar: true } } }, orderBy: { sortOrder: "asc" } })
     : [];
+  const services = await prisma.service.findMany({ where: { published: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { slug: true, title: true, shortDescription: true, icon: true, coverImage: true } });
   const [patientsCount, sessionsCount, articlesCount, therapistsCount, ratings] = await Promise.all([
     prisma.patient.count(),
     prisma.appointment.count({ where: { status: "DONE" } }),
@@ -39,8 +40,9 @@ publicRouter.get("/clinic", async (_req, res) => {
   ].filter(Boolean) : [];
   res.json({
     settings,
-    therapists: therapists.map((t) => ({ id: t.id, fullName: `${t.user.firstName} ${t.user.lastName}`, specialty: t.specialty, bio: t.bio, avatar: t.user.avatar, color: t.color })),
+    therapists: therapists.map((t) => ({ id: t.id, slug: t.slug ?? t.id, fullName: `${t.user.firstName} ${t.user.lastName}`, specialty: t.specialty, bio: t.bio, credentials: t.credentials, licenseNo: t.licenseNo, avatar: t.user.avatar, color: t.color })),
     stats: { patients: patientsCount, sessions: sessionsCount, articles: articlesCount },
+    services,
     showcase,
   });
 });

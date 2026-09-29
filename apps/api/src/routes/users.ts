@@ -8,6 +8,14 @@ import { hashPassword } from "../lib/auth.js";
 import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
 import { audit } from "../lib/audit.js";
 
+/** نامک صفحه عمومی درمانگر: فقط حروف انگلیسی کوچک، عدد و خط تیره؛ یکتا بین درمانگران */
+async function checkTherapistSlug(slug: string | null | undefined, excludeUserId?: string) {
+  if (!slug) return;
+  if (!/^[a-z0-9-]+$/.test(slug)) throw badRequest("نامک فقط حروف انگلیسی کوچک، عدد و خط تیره (مثلاً aghil-shojaei)");
+  const dup = await prisma.therapist.findFirst({ where: { slug, ...(excludeUserId ? { NOT: { userId: excludeUserId } } : {}) } });
+  if (dup) throw badRequest("این نامک قبلاً برای درمانگر دیگری استفاده شده است");
+}
+
 export const usersRouter = Router();
 usersRouter.use(requireAuth);
 
@@ -23,6 +31,8 @@ const therapistShape = (t: any) => ({
   specialty: t.specialty,
   bio: t.bio,
   licenseNo: t.licenseNo,
+  credentials: t.credentials,
+  slug: t.slug,
   color: t.color,
   isPublic: t.isPublic,
   sessionPrice: t.sessionPrice,
@@ -64,6 +74,8 @@ const userSchema = z.object({
       specialty: zOptionalString,
       bio: zOptionalString,
       licenseNo: zOptionalString,
+      credentials: zOptionalString,
+      slug: zOptionalString,
       color: zOptionalString,
       isPublic: z.boolean().optional(),
       sessionPrice: zOptionalInt,
@@ -75,6 +87,7 @@ const userSchema = z.object({
 
 usersRouter.post("/", async (req, res) => {
   const body = validate(userSchema, req.body);
+  await checkTherapistSlug(body.therapist?.slug);
   const phone = normalizePhone(body.phone);
   if (!isValidMobile(phone)) throw badRequest("شماره موبایل معتبر نیست");
   if (await prisma.user.findUnique({ where: { phone } })) throw badRequest("این شماره قبلاً ثبت شده است");
@@ -98,6 +111,7 @@ usersRouter.post("/", async (req, res) => {
 usersRouter.patch("/:id", async (req, res) => {
   const body = validate(userSchema.partial(), req.body);
   const cur = await prisma.user.findUnique({ where: { id: String(req.params.id) }, include: { therapist: true } });
+  await checkTherapistSlug(body.therapist?.slug, cur?.id);
   if (!cur) throw notFound("کاربر یافت نشد");
   const data: any = { firstName: body.firstName, lastName: body.lastName, isActive: body.isActive };
   if (body.phone) {

@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { Smartphone, Share, PlusSquare, MoreVertical, Download, Store } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/layout/PublicShell";
+import { publicContext, pageMeta, JsonLd, breadcrumbJsonLd, cityOf, cleanName } from "@/lib/seo";
 import { getClinic } from "@/lib/server";
 import { InstallCta } from "@/components/layout/InstallCta";
 
-export const metadata: Metadata = { title: "نصب اپلیکیشن" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { s } = await publicContext();
+  return pageMeta(s, { title: "نصب اپلیکیشن ذهن سبز", description: `اپلیکیشن مراجعین ${cleanName(s)}: نوبت‌ها، پرونده، پرداخت و پیام با درمانگر روی گوشی اندروید و آیفون.`, path: "/app" });
+}
 
 export default async function AppPage() {
   const clinic = await getClinic();
@@ -42,7 +46,7 @@ export default async function AppPage() {
           <p>مراجعین با شماره موبایل ثبت‌شده در کلینیک و کد پیامکی وارد می‌شوند. اگر پرونده ندارید، از <a href="/book" className="text-brand-600 hover:underline">رزرو نوبت آنلاین</a> شروع کنید.</p>
         </div>
       </div>
-      <PublicFooter settings={s} />
+      <PublicFooter settings={s} services={clinic?.services ?? []} />
     </div>
   );
 }

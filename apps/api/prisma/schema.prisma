@@ -59,6 +59,8 @@ model Therapist {
   specialty   String?
   bio         String?
   licenseNo   String?
+  credentials String? // مدارک و تحصیلات (نمایش در صفحه تیم درمان)
+  slug        String? // آدرس صفحه عمومی درمانگر (/team/slug)؛ یکتایی در کد بررسی می‌شود
   color       String  @default("#178a6e")
   isPublic    Boolean @default(true)
   sessionPrice Int?
@@ -73,6 +75,8 @@ model Therapist {
   goals         TreatmentGoal[]
   homePrograms  HomeProgram[]
   bookingRequests BookingRequest[]
+
+  @@index([slug])
 }
 
 // ---------- بیماران ----------
@@ -436,6 +440,8 @@ model Article {
   authorLabel String? // نویسنده/گوینده نمایشی (برای محتوای غیر درمانگران)
   sourceName  String? // نام منبع خارجی
   featured    Boolean   @default(false)
+  serviceId   String?
+  service     Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   published   Boolean   @default(false)
   publishedAt DateTime?
   views       Int       @default(0)
@@ -657,4 +663,28 @@ model CashEntry {
   createdAt   DateTime @default(now())
 
   @@index([date])
+}
+
+/** خدمات کلینیک: هر خدمت یک صفحه عمومی سئوشده دارد (/services/slug) */
+model Service {
+  id               String    @id @default(cuid())
+  slug             String    @unique
+  title            String
+  shortDescription String?
+  content          String    @default("") // HTML توضیح خدمت
+  audience         String? // برای چه کسانی مناسب است (HTML یا متن)
+  process          String? // روند جلسه‌ها
+  faq              String    @default("[]") // JSON [{q,a}]
+  icon             String?
+  coverImage       String?
+  seoTitle         String?
+  seoDescription   String?
+  keywords         String? // با ویرگول
+  sortOrder        Int       @default(0)
+  published        Boolean   @default(true)
+  articles         Article[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([published, sortOrder])
 }

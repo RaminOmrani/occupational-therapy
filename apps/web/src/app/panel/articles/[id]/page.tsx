@@ -7,6 +7,12 @@ import { api } from "@/lib/api";
 import { Button, Card, Field, Input, PageHeader, Select, Textarea, Toggle } from "@/components/ui";
 import { RichEditor, toEmbed } from "@/components/editor/RichEditor";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+
+function ServiceSelect({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const { data } = useQuery({ queryKey: ["services-admin-list"], queryFn: () => api.get<{ items: { id: string; title: string }[] }>("/services/public") });
+  return <Select value={value} onChange={(e) => onChange(e.target.value)}><option value="">— بدون خدمت مرتبط —</option>{data?.items.map((sv) => <option key={sv.id} value={sv.id}>{sv.title}</option>)}</Select>;
+}
 
 const CONTENT_TYPE_META: Record<string, { label: string; icon: any; hint: string }> = {
   ARTICLE: { label: "مقاله", icon: FileText, hint: "متن آموزشی با تصویر، جدول و لینک" },
@@ -15,7 +21,7 @@ const CONTENT_TYPE_META: Record<string, { label: string; icon: any; hint: string
   BOOK: { label: "کتاب", icon: BookOpen, hint: "معرفی کتاب با فایل PDF یا لینک تهیه" },
 };
 
-const EMPTY = { title: "", excerpt: "", content: "", coverImage: "", category: "", tags: "", published: false, featured: false, slug: "", type: "ARTICLE", format: "html", mediaUrl: "", embedUrl: "", fileUrl: "", externalUrl: "", duration: "", authorLabel: "", sourceName: "" };
+const EMPTY = { title: "", excerpt: "", content: "", coverImage: "", category: "", tags: "", published: false, featured: false, slug: "", type: "ARTICLE", format: "html", mediaUrl: "", embedUrl: "", fileUrl: "", externalUrl: "", duration: "", authorLabel: "", sourceName: "", serviceId: "" };
 
 export default function ContentEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,7 +36,7 @@ export default function ContentEditorPage() {
     api.get<{ article: any }>(`/articles/${id}`).then(({ article: a }) => {
       // مقالات قدیمی Markdown هستند؛ برای ویرایش در ویرایشگر جدید به پاراگراف HTML تبدیل می‌شوند
       const content = a.format === "markdown" ? a.content.split(/\n{2,}/).map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("") : a.content;
-      setV({ ...EMPTY, title: a.title, excerpt: a.excerpt ?? "", content, coverImage: a.coverImage ?? "", category: a.category ?? "", tags: a.tags.join("، "), published: a.published, featured: a.featured, slug: a.slug, type: a.type, format: "html", mediaUrl: a.mediaUrl ?? "", embedUrl: a.embedUrl ?? "", fileUrl: a.fileUrl ?? "", externalUrl: a.externalUrl ?? "", duration: a.duration ?? "", authorLabel: a.authorLabel ?? "", sourceName: a.sourceName ?? "" });
+      setV({ ...EMPTY, title: a.title, excerpt: a.excerpt ?? "", content, coverImage: a.coverImage ?? "", category: a.category ?? "", tags: a.tags.join("، "), published: a.published, featured: a.featured, slug: a.slug, type: a.type, format: "html", mediaUrl: a.mediaUrl ?? "", embedUrl: a.embedUrl ?? "", fileUrl: a.fileUrl ?? "", externalUrl: a.externalUrl ?? "", duration: a.duration ?? "", authorLabel: a.authorLabel ?? "", sourceName: a.sourceName ?? "", serviceId: a.serviceId ?? "" });
       setReady(true);
     }).catch((e) => toast.error(e.message));
   }, [id, isNew]);
@@ -138,7 +144,8 @@ export default function ContentEditorPage() {
             {v.type !== "BOOK" && <Field label="لینک منبع اصلی" className="mt-3"><Input value={v.externalUrl} onChange={(e) => setV({ ...v, externalUrl: e.target.value })} dir="ltr" placeholder="https://" /></Field>}
           </Card>
           <Card title="دسته‌بندی">
-            <Field label="دسته"><Input value={v.category} onChange={(e) => setV({ ...v, category: e.target.value })} placeholder="کودکان، بزرگسالان، اوتیسم، سکته مغزی..." /></Field>
+            <Field label="خدمت مرتبط" hint="لینک داخلی به صفحه خدمت (برای سئو)"><ServiceSelect value={v.serviceId} onChange={(id) => setV({ ...v, serviceId: id })} /></Field>
+            <Field label="دسته" className="mt-3"><Input value={v.category} onChange={(e) => setV({ ...v, category: e.target.value })} placeholder="کودکان، بزرگسالان، اوتیسم، سکته مغزی..." /></Field>
             <Field label="برچسب‌ها" hint="با ویرگول جدا کنید" className="mt-3"><Input value={v.tags} onChange={(e) => setV({ ...v, tags: e.target.value })} /></Field>
           </Card>
         </div>

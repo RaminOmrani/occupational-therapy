@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { PublicNav, PublicFooter } from "@/components/layout/PublicShell";
+import { publicContext, pageMeta, JsonLd, breadcrumbJsonLd, cityOf, cleanName } from "@/lib/seo";
 import { getClinic } from "@/lib/server";
 import { BookingWizard } from "@/components/layout/BookingWizard";
 
-export const metadata: Metadata = { title: "رزرو نوبت آنلاین" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { s } = await publicContext();
+  return pageMeta(s, { title: `رزرو نوبت آنلاین کاردرمانی در ${cityOf(s)} | ${cleanName(s)}`, description: `رزرو نوبت ارزیابی و جلسات کاردرمانی و توان‌بخشی در ${cityOf(s)}؛ انتخاب درمانگر و زمان، تأیید با پیامک.`, path: "/book", noTitleSuffix: true });
+}
 
 export default async function BookPage() {
   const clinic = await getClinic();
@@ -11,12 +15,13 @@ export default async function BookPage() {
   return (
     <div className="bg-sand-50">
       <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
+      <JsonLd data={breadcrumbJsonLd(s, [{ name: "رزرو نوبت", path: "/book" }])} />
       <div className="mx-auto max-w-4xl px-4 py-12">
-        <h1 className="text-3xl font-black text-brand-900">رزرو نوبت آنلاین</h1>
+        <h1 className="text-3xl font-black leading-[1.5] text-brand-900">رزرو نوبت آنلاین کاردرمانی در {cityOf(s)}</h1>
         <p className="mt-2 text-slate-500">درمانگر و زمان دلخواه را انتخاب کنید؛ پس از تأیید کلینیک، پیامک تأیید دریافت می‌کنید.</p>
         <div className="mt-8"><BookingWizard phone={s["clinic.phone"] ?? ""} /></div>
       </div>
-      <PublicFooter settings={s} />
+      <PublicFooter settings={s} services={clinic?.services ?? []} />
     </div>
   );
 }

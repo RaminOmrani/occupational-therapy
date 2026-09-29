@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { PublicNav, PublicFooter } from "@/components/layout/PublicShell";
+import { publicContext, pageMeta, JsonLd, breadcrumbJsonLd, cityOf, cleanName } from "@/lib/seo";
 import { getClinic } from "@/lib/server";
 
-export const metadata: Metadata = { title: "حریم خصوصی" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { s } = await publicContext();
+  return pageMeta(s, { title: "سیاست حریم خصوصی", description: `نحوه جمع‌آوری، استفاده و نگهداری اطلاعات مراجعین در ${cleanName(s)}.`, path: "/privacy" });
+}
 
 /** سیاست حریم خصوصی؛ فروشگاه‌های اپ (بازار، مایکت، گوگل‌پلی) لینک این صفحه را می‌خواهند */
 export default async function PrivacyPage() {
@@ -32,7 +36,7 @@ export default async function PrivacyPage() {
         </div>
         <p className="mt-8 text-xs text-slate-400">آخرین به‌روزرسانی: شهریور ۱۴۰۵</p>
       </div>
-      <PublicFooter settings={s} />
+      <PublicFooter settings={s} services={clinic?.services ?? []} />
     </div>
   );
 }

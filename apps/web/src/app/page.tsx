@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Activity, Brain, Sparkles, HeartPulse, Home, ClipboardCheck, ArrowLeft, CalendarCheck, LineChart, MessageSquareHeart, Smartphone, ShieldCheck } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/layout/PublicShell";
+import { publicContext, pageMeta, JsonLd, breadcrumbJsonLd, cityOf, cleanName } from "@/lib/seo";
 import { ContactForm } from "@/components/layout/ContactForm";
 import { getClinic } from "@/lib/server";
 import { serverGet } from "@/lib/api";
@@ -8,14 +10,21 @@ import { toPersianDigits, formatJalaliLong } from "@toranj/shared";
 import { Avatar } from "@/components/ui";
 import { ArticleCard } from "@/components/layout/ArticleCard";
 
+export async function generateMetadata(): Promise<Metadata> {
+  const { s } = await publicContext();
+  return pageMeta(s, { title: s["seo.homeTitle"] || `${cleanName(s)} | ${cityOf(s)}`, description: s["seo.homeDescription"] || s["clinic.about"] || "", path: "", noTitleSuffix: true });
+}
+
 const ICONS: Record<string, any> = { activity: Activity, brain: Brain, sparkles: Sparkles, "heart-pulse": HeartPulse, home: Home, "clipboard-check": ClipboardCheck };
 
 export default async function HomePage() {
   const clinic = await getClinic();
   const s = clinic?.settings ?? {};
   const name = s["clinic.name"] ?? "کلینیک توان‌بخشی";
-  let services: { title: string; description: string; icon: string }[] = [];
-  try { services = JSON.parse(s["clinic.services"] ?? "[]"); } catch {}
+  // خدمات از جدول خدمات (صفحه اختصاصی دارند)؛ اگر خالی بود از تنظیمات قدیمی
+  let services: { title: string; description: string | null; icon: string | null; slug?: string }[] = (clinic?.services ?? []).map((sv) => ({ title: sv.title, description: sv.shortDescription, icon: sv.icon, slug: sv.slug }));
+  if (!services.length) { try { services = JSON.parse(s["clinic.services"] ?? "[]"); } catch {} }
+  const city = s["clinic.city"] || "مشهد";
   const articles = (await serverGet<{ items: any[] }>("/articles/public", 60))?.items?.slice(0, 3) ?? [];
 
   return (
@@ -29,7 +38,7 @@ export default async function HomePage() {
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 md:grid-cols-2 md:py-24">
           <div className="animate-fade-up">
             <span className="badge bg-brand-100 text-brand-800">توان‌بخشی کودکان و بزرگسالان</span>
-            <h1 className="mt-5 text-3xl font-black leading-[1.35] text-brand-900 md:text-5xl md:leading-[1.3]">{s["public.heroTitle"]}</h1>
+            <h1 className="mt-5 text-3xl font-black leading-[1.35] text-brand-900 md:text-5xl md:leading-[1.3]">{s["public.heroTitle"]}<span className="mt-3 block text-lg font-bold leading-8 text-brand-700 md:text-2xl">کلینیک کاردرمانی و توان‌بخشی ذهن سبز در {city}</span></h1>
             <p className="mt-5 max-w-xl text-base leading-8 text-slate-600">{s["public.heroSubtitle"]}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/book" className="btn-primary px-6 py-3 text-base">رزرو نوبت آنلاین<ArrowLeft className="h-4 w-4" /></Link>
@@ -53,19 +62,18 @@ export default async function HomePage() {
       {/* Services */}
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div className="mb-10 text-center">
-          <h2 className="text-2xl font-black text-brand-900 md:text-3xl">خدمات ما</h2>
-          <p className="mt-2 text-slate-500">رویکرد جامع و مبتنی بر شواهد برای هر مراجع</p>
+          <h2 className="text-2xl font-black text-brand-900 md:text-3xl">{s["seo.servicesTitle"] || "خدمات ما"}</h2>
+          <p className="mt-2 text-slate-500">رویکرد جامع و مبتنی بر شواهد برای هر مراجع · <Link href="/services" className="text-brand-700 hover:underline">همه خدمات</Link></p>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((sv, i) => {
-            const Icon = ICONS[sv.icon] ?? Sparkles;
-            return (
-              <div key={i} className="group card p-6 transition hover:-translate-y-1 hover:shadow-card">
+            const Icon = ICONS[sv.icon ?? ""] ?? Sparkles;
+            const inner = <>
                 <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-brand-100 text-brand-700 transition group-hover:bg-brand-600 group-hover:text-white"><Icon className="h-6 w-6" /></div>
-                <h3 className="text-lg font-bold text-slate-800">{sv.title}</h3>
+                <h3 className="text-lg font-bold text-slate-800 group-hover:text-brand-700">{sv.title}</h3>
                 <p className="mt-2 text-sm leading-7 text-slate-500">{sv.description}</p>
-              </div>
-            );
+              </>;
+            return sv.slug ? <Link key={i} href={`/services/${sv.slug}`} className="group card p-6 transition hover:-translate-y-1 hover:shadow-card">{inner}</Link> : <div key={i} className="group card p-6 transition hover:-translate-y-1 hover:shadow-card">{inner}</div>;
           })}
         </div>
       </section>
@@ -150,7 +158,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <PublicFooter settings={s} />
+      <PublicFooter settings={s} services={clinic?.services ?? []} />
     </div>
   );
 }

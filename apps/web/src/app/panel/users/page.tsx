@@ -54,7 +54,7 @@ export default function UsersPage() {
 }
 
 function UserModal({ initial, onClose, onDone }: { initial: any; onClose: () => void; onDone: () => void }) {
-  const [v, setV] = useState({ firstName: initial.firstName ?? "", lastName: initial.lastName ?? "", phone: initial.phone ?? "", role: initial.role ?? "THERAPIST", password: "", isActive: initial.isActive ?? true, therapist: { specialty: initial.therapist?.specialty ?? "", bio: initial.therapist?.bio ?? "", licenseNo: initial.therapist?.licenseNo ?? "", color: initial.therapist?.color ?? COLORS[0], isPublic: initial.therapist?.isPublic ?? true, sessionPrice: initial.therapist?.sessionPrice ?? "", workDays: initial.therapist?.workDays ?? [6, 0, 1, 2, 3], sortOrder: initial.therapist?.sortOrder ?? 0 } });
+  const [v, setV] = useState({ firstName: initial.firstName ?? "", lastName: initial.lastName ?? "", phone: initial.phone ?? "", role: initial.role ?? "THERAPIST", password: "", isActive: initial.isActive ?? true, therapist: { specialty: initial.therapist?.specialty ?? "", bio: initial.therapist?.bio ?? "", licenseNo: initial.therapist?.licenseNo ?? "", credentials: initial.therapist?.credentials ?? "", slug: initial.therapist?.slug ?? "", color: initial.therapist?.color ?? COLORS[0], isPublic: initial.therapist?.isPublic ?? true, sessionPrice: initial.therapist?.sessionPrice ?? "", workDays: initial.therapist?.workDays ?? [6, 0, 1, 2, 3], sortOrder: initial.therapist?.sortOrder ?? 0 } });
   const [loading, setLoading] = useState(false);
   const t = v.therapist;
   const setT = (k: string, val: any) => setV({ ...v, therapist: { ...t, [k]: val } });
@@ -80,6 +80,8 @@ function UserModal({ initial, onClose, onDone }: { initial: any; onClose: () => 
             <div className="sm:col-span-2 mt-2 border-t border-sand-200 pt-4 text-sm font-bold text-brand-800">اطلاعات درمانگر</div>
             <Field label="تخصص"><Input value={t.specialty} onChange={(e) => setT("specialty", e.target.value)} /></Field>
             <Field label="شماره نظام / پروانه"><Input value={t.licenseNo} onChange={(e) => setT("licenseNo", e.target.value)} /></Field>
+            <Field label="مدارک و تحصیلات" hint="نمایش در صفحه تیم درمان؛ مثلاً کارشناسی ارشد کاردرمانی دانشگاه علوم پزشکی مشهد"><Input value={t.credentials} onChange={(e) => setT("credentials", e.target.value)} /></Field>
+            <Field label="نامک صفحه عمومی (انگلیسی)" hint="آدرس صفحه درمانگر در سایت: /team/نامک — مثلاً aghil-shojaei"><Input value={t.slug} onChange={(e) => setT("slug", e.target.value.toLowerCase())} dir="ltr" placeholder="aghil-shojaei" /></Field>
             <Field label="قیمت پیش‌فرض جلسه (تومان)"><MoneyInput value={t.sessionPrice} onChange={(d) => setT("sessionPrice", d)} suffix="تومان" /></Field>
             <Field label="ترتیب نمایش"><Input type="number" value={t.sortOrder} onChange={(e) => setT("sortOrder", e.target.value)} className="num" dir="ltr" /></Field>
             <Field label="رنگ در تقویم"><div className="flex flex-wrap gap-2">{COLORS.map((c) => <button key={c} type="button" onClick={() => setT("color", c)} className={cn("h-8 w-8 rounded-full ring-offset-2 transition", t.color === c && "ring-2 ring-slate-500")} style={{ background: c }} />)}</div></Field>

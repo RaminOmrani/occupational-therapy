@@ -2,15 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Video, Mic, BookOpen, FileText, LayoutGrid } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/layout/PublicShell";
+import { publicContext, pageMeta, JsonLd, breadcrumbJsonLd, cityOf, cleanName } from "@/lib/seo";
 import { getClinic } from "@/lib/server";
 import { serverGet } from "@/lib/api";
 import { ArticleCard } from "@/components/layout/ArticleCard";
 import { EmptyState } from "@/components/ui";
 import { toPersianDigits } from "@toranj/shared";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const clinic = await getClinic();
-  return { title: clinic?.settings?.["public.mediaTitle"] ?? "رسانه" };
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ type?: string }> }): Promise<Metadata> {
+  const [{ s }, sp] = await Promise.all([publicContext(), searchParams]);
+  const type = (sp.type ?? "").toUpperCase();
+  const label = type === "VIDEO" ? "ویدیوهای" : type === "PODCAST" ? "پادکست‌های" : type === "BOOK" ? "کتاب‌های" : type === "ARTICLE" ? "مقالات" : "";
+  const title = label ? `${label} کاردرمانی و توان‌بخشی` : s["public.mediaTitle"] ?? "رسانه";
+  return pageMeta(s, { title, description: `${s["public.mediaSubtitle"] ?? ""} ${cleanName(s)} ${cityOf(s)}`.trim(), path: type ? `/media?type=${type}` : "/media" });
 }
 
 const TABS = [{ key: "", label: "همه", icon: LayoutGrid }, { key: "ARTICLE", label: "مقالات", icon: FileText }, { key: "VIDEO", label: "ویدیوها", icon: Video }, { key: "PODCAST", label: "پادکست‌ها", icon: Mic }, { key: "BOOK", label: "کتاب‌ها", icon: BookOpen }];
@@ -29,6 +33,7 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
   return (
     <div className="bg-sand-50">
       <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
+      <JsonLd data={breadcrumbJsonLd(s, [{ name: s["public.mediaTitle"] ?? "رسانه", path: "/media" }])} />
       <div className="mx-auto max-w-6xl px-4 py-12">
         <h1 className="text-3xl font-black text-brand-900">{s["public.mediaTitle"] ?? "رسانه"}</h1>
         <p className="mt-2 text-slate-500">{s["public.mediaSubtitle"]}</p>
@@ -46,7 +51,7 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
         </div>
         {!data?.items.length && <EmptyState title="محتوایی یافت نشد" />}
       </div>
-      <PublicFooter settings={s} />
+      <PublicFooter settings={s} services={clinic?.services ?? []} />
     </div>
   );
 }

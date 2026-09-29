@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Phone, MapPin, Clock, AtSign } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/layout/PublicShell";
+import { publicContext, pageMeta, JsonLd, breadcrumbJsonLd, cityOf, cleanName } from "@/lib/seo";
 import { ContactForm } from "@/components/layout/ContactForm";
 import { getClinic } from "@/lib/server";
 import { toPersianDigits } from "@toranj/shared";
 
-export const metadata: Metadata = { title: "تماس و رزرو نوبت" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { s } = await publicContext();
+  return pageMeta(s, { title: `تماس با کلینیک کاردرمانی ذهن سبز ${cityOf(s)} | آدرس، تلفن و رزرو`, description: `آدرس: ${s["clinic.address"] ?? ""} · تلفن: ${s["clinic.phone"] ?? ""} · ${s["clinic.workingHours"] ?? ""}. فرم تماس و رزرو ارزیابی ${cleanName(s)}.`, path: "/contact", noTitleSuffix: true });
+}
 
 export default async function ContactPage() {
   const clinic = await getClinic();
@@ -13,8 +18,10 @@ export default async function ContactPage() {
   return (
     <div className="bg-sand-50">
       <PublicNav clinicName={s["clinic.name"] ?? ""} logo={s["clinic.logo"]} />
+      <JsonLd data={breadcrumbJsonLd(s, [{ name: "تماس با ما", path: "/contact" }])} />
       <div className="mx-auto max-w-6xl px-4 py-12">
-        <h1 className="text-3xl font-black text-brand-900">تماس با ما و رزرو ارزیابی</h1>
+        <nav aria-label="مسیر" className="mb-4 text-xs text-slate-400"><Link href="/" className="hover:text-brand-700">خانه</Link> › <span>تماس با ما</span></nav>
+        <h1 className="text-3xl font-black leading-[1.5] text-brand-900">تماس با ما و رزرو ارزیابی؛ کلینیک کاردرمانی ذهن سبز {cityOf(s)}</h1>
         <p className="mt-2 text-slate-500">فرم زیر را پر کنید تا همکاران ما با شما تماس بگیرند.</p>
         <div className="mt-8 grid gap-6 md:grid-cols-5">
           <div className="card p-6 md:col-span-3"><ContactForm /></div>
@@ -35,7 +42,7 @@ export default async function ContactPage() {
           </div>
         </div>
       </div>
-      <PublicFooter settings={s} />
+      <PublicFooter settings={s} services={clinic?.services ?? []} />
     </div>
   );
 }

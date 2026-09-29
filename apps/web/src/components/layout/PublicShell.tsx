@@ -10,6 +10,8 @@ import { toPersianDigits, toJalali } from "@toranj/shared";
 
 const NAV = [
   { href: "/", label: "خانه" },
+  { href: "/services", label: "خدمات" },
+  { href: "/team", label: "تیم درمان" },
   { href: "/about", label: "درباره ما" },
   { href: "/media", label: "رسانه" },
   { href: "/book", label: "رزرو آنلاین" },
@@ -49,14 +51,23 @@ export function PublicNav({ clinicName, logo }: { clinicName: string; logo?: str
   );
 }
 
-export function PublicFooter({ settings }: { settings: Record<string, string> }) {
+export function PublicFooter({ settings, services = [] }: { settings: Record<string, string>; services?: { slug: string; title: string }[] }) {
   return (
     <footer className="mt-20 bg-brand-900 text-brand-100">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-3">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-4">
         <div>
-          <div className="flex items-center gap-2.5">{settings["clinic.logo"] ? <img src={settings["clinic.logo"]} alt="" className="h-10 w-10 rounded-xl bg-white object-cover" /> : <LogoMark />}<span className="text-lg font-extrabold text-white">{settings["clinic.name"]}</span></div>
+          <div className="flex items-center gap-2.5">{settings["clinic.logo"] ? <img src={settings["clinic.logo"]} alt={`لوگوی ${settings["clinic.name"] ?? "کلینیک"}`} className="h-10 w-10 rounded-xl bg-[#f8f2e1] object-contain p-0.5" loading="lazy" /> : <LogoMark />}<span className="text-lg font-extrabold text-white">{settings["clinic.name"]}</span></div>
           <p className="mt-4 text-sm leading-7 text-brand-200">{settings["clinic.tagline"]}</p>
         </div>
+        {services.length > 0 && (
+          <div>
+            <h4 className="mb-4 font-bold text-white">خدمات کاردرمانی و توان‌بخشی</h4>
+            <ul className="space-y-2 text-sm">
+              {services.map((sv) => <li key={sv.slug}><Link href={`/services/${sv.slug}`} className="hover:text-white">{sv.title}</Link></li>)}
+              <li><Link href="/services" className="text-brand-300 hover:text-white">همه خدمات</Link></li>
+            </ul>
+          </div>
+        )}
         <div>
           <h4 className="mb-4 font-bold text-white">دسترسی سریع</h4>
           <ul className="space-y-2 text-sm">
@@ -73,6 +84,7 @@ export function PublicFooter({ settings }: { settings: Record<string, string> })
             {settings["clinic.instagram"] && <li className="flex items-center gap-2"><AtSign className="h-4 w-4" /><span dir="ltr">{settings["clinic.instagram"]}</span></li>}
             {settings["clinic.workingHours"] && <li className="text-brand-300">{settings["clinic.workingHours"]}</li>}
             {settings["clinic.licenseNo"] && <li className="text-brand-300">شماره نظام: <span className="num">{settings["clinic.licenseNo"]}</span></li>}
+            <li className="pt-2 text-xs text-brand-300">کلینیک کاردرمانی و توان‌بخشی ذهن سبز در {settings["clinic.city"] || "مشهد"}</li>
           </ul>
         </div>
       </div>
