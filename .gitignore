@@ -16,3 +16,4 @@ apps/api/prisma/*.db-journal
 coverage/
 apps/api/backups/*
 !apps/api/backups/.gitkeep
+*.tsbuildinfo
