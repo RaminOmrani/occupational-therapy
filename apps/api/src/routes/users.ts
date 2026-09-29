@@ -9,6 +9,11 @@ import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
 import { audit } from "../lib/audit.js";
 
 /** نامک صفحه عمومی درمانگر: فقط حروف انگلیسی کوچک، عدد و خط تیره؛ یکتا بین درمانگران */
+// درمانگر همیشه پروفایل درمانگر دارد؛ مدیر هم می‌تواند همزمان درمانگر باشد (وقتی اطلاعات درمانگر ارسال شود)
+function hasTherapistProfile(role: string, therapist: unknown) {
+  return role === "THERAPIST" || (role === "ADMIN" && therapist != null);
+}
+
 async function checkTherapistSlug(slug: string | null | undefined, excludeUserId?: string) {
   if (!slug) return;
   if (!/^[a-z0-9-]+$/.test(slug)) throw badRequest("نامک فقط حروف انگلیسی کوچک، عدد و خط تیره (مثلاً aghil-shojaei)");
@@ -82,6 +87,7 @@ const userSchema = z.object({
       workDays: z.array(z.number().int()).optional(),
       sortOrder: zOptionalInt,
     })
+    .nullable()
     .optional(),
 });
 
@@ -100,7 +106,7 @@ usersRouter.post("/", async (req, res) => {
       role: body.role,
       isActive: body.isActive ?? true,
       passwordHash: body.password ? await hashPassword(body.password) : null,
-      therapist: body.role === "THERAPIST" ? { create: { ...(body.therapist ?? {}), workDays: JSON.stringify(body.therapist?.workDays ?? [0, 1, 2, 3, 4, 6]), color: body.therapist?.color ?? "#178a6e", sortOrder: body.therapist?.sortOrder ?? 0 } } : undefined,
+      therapist: hasTherapistProfile(body.role, body.therapist) ? { create: { ...(body.therapist ?? {}), workDays: JSON.stringify(body.therapist?.workDays ?? [0, 1, 2, 3, 4, 6]), color: body.therapist?.color ?? "#178a6e", sortOrder: body.therapist?.sortOrder ?? 0 } } : undefined,
     },
     include: { therapist: true },
   });
@@ -122,7 +128,10 @@ usersRouter.patch("/:id", async (req, res) => {
   if (body.role && body.role !== cur.role) data.role = body.role;
   Object.keys(data).forEach((k) => data[k] === undefined && delete data[k]);
   const role = body.role ?? cur.role;
-  if (role === "THERAPIST") {
+  if (role === "ADMIN" && body.therapist === null && cur.therapist) {
+    // مدیر دیگر درمانگر نیست: پروفایل (به خاطر سوابق نوبت‌ها) حذف نمی‌شود، فقط از سایت و رزرو آنلاین پنهان می‌شود
+    data.therapist = { update: { isPublic: false } };
+  } else if (hasTherapistProfile(role, body.therapist === null ? undefined : body.therapist)) {
     const t = body.therapist ?? {};
     const tData: any = { ...t };
     if (t.workDays) tData.workDays = JSON.stringify(t.workDays);
