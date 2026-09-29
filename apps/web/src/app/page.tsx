@@ -159,7 +159,7 @@ function HeroIllustration() {
   return (
     <svg viewBox="0 0 400 360" className="w-full drop-shadow-xl" aria-hidden>
       <defs>
-        <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#178a6e" /><stop offset="1" stopColor="#13494b" /></linearGradient>
+        <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#0b5e2e" /><stop offset="1" stopColor="#13494b" /></linearGradient>
         <linearGradient id="g2" x1="0" x2="1"><stop offset="0" stopColor="#f4a261" /><stop offset="1" stopColor="#e76f51" /></linearGradient>
       </defs>
       <rect x="20" y="20" width="360" height="320" rx="40" fill="#fff" />

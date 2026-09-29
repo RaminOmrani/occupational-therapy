@@ -4,17 +4,18 @@ import { cn } from "@/lib/utils";
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 512 512" className={cn("h-10 w-10 shrink-0", className)} aria-hidden>
-      <rect width="512" height="512" rx="112" fill="#178a6e" />
-      <g transform="translate(256 250)">
-        <path d="M-10,-124 C-40,-138 -78,-128 -96,-104 C-128,-108 -156,-84 -152,-50 C-172,-30 -172,6 -152,26 C-160,58 -140,90 -106,96 C-92,124 -50,132 -24,112 C-18,118 -12,120 -10,120 Z" fill="#ffffff" />
-        <path d="M10,-124 C40,-138 78,-128 96,-104 C128,-108 156,-84 152,-50 C172,-30 172,6 152,26 C160,58 140,90 106,96 C92,124 50,132 24,112 C18,118 12,120 10,120 Z" fill="#ffffff" />
-        <g fill="none" stroke="#178a6e" strokeWidth="11" strokeLinecap="round"><path d="M-26,-100 C-80,-60 -100,10 -44,100" /><path d="M26,-100 C80,-60 100,10 44,100" /></g>
-        <g fill="none" stroke="#178a6e" strokeWidth="8" strokeLinecap="round" opacity="0.9">
-          <path d="M-62,-64 C-92,-58 -114,-40 -126,-16" /><path d="M-78,-8 C-108,2 -128,22 -134,48" /><path d="M-62,44 C-90,56 -106,74 -108,92" />
-          <path d="M62,-64 C92,-58 114,-40 126,-16" /><path d="M78,-8 C108,2 128,22 134,48" /><path d="M62,44 C90,56 106,74 108,92" />
-        </g>
-        <path d="M0,120 C2,150 -10,172 -30,188" fill="none" stroke="#ffffff" strokeWidth="14" strokeLinecap="round" />
+      <rect width="512" height="512" rx="112" fill="#f8f2e1" />
+      <g fill="none" stroke="#0b5e2e" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" transform="translate(256 292)">
+        <path d="M-8,-118 C-40,-140 -92,-128 -104,-92 C-146,-92 -168,-50 -150,-14 C-176,14 -166,60 -128,74 C-124,112 -80,132 -46,116 C-30,128 -12,128 -8,120 Z" />
+        <path d="M8,-118 C40,-140 92,-128 104,-92 C146,-92 168,-50 150,-14 C176,14 166,60 128,74 C124,112 80,132 46,116 C30,128 12,128 8,120 Z" />
+        <path d="M-104,-92 C-92,-60 -110,-40 -120,-30" /><path d="M-150,-14 C-118,-10 -100,20 -112,50" /><path d="M-46,116 C-48,80 -20,60 -8,40" />
+        <path d="M104,-92 C92,-60 110,-40 120,-30" /><path d="M150,-14 C118,-10 100,20 112,50" /><path d="M46,116 C48,80 20,60 8,40" />
+        <path d="M-8,120 C-8,150 -22,168 -36,180" />
       </g>
+      <path d="M256,260 L256,120" stroke="#c18a26" strokeWidth="16" strokeLinecap="round" fill="none" />
+      <circle cx="256" cy="262" r="14" fill="#c18a26" />
+      <path d="M256,128 C252,72 200,44 150,52 C154,104 200,136 256,128 Z" fill="#4e8b2b" />
+      <path d="M256,112 C260,56 312,28 362,36 C358,88 312,120 256,112 Z" fill="#5fa235" />
     </svg>
   );
 }
@@ -22,7 +23,7 @@ export function LogoMark({ className }: { className?: string }) {
 export function Logo({ name = "کلینیک توان‌بخشی ذهن سبز 💚", className, light, src }: { name?: string; className?: string; light?: boolean; src?: string | null }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      {src ? <img src={src} alt={name} className="h-10 w-10 rounded-xl object-cover" /> : <LogoMark />}
+      {src ? <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-[#f8f2e1] p-0.5"><img src={src} alt={name} className="h-full w-full object-contain" /></span> : <LogoMark />}
       <span className={cn("text-base font-extrabold leading-tight", light ? "text-white" : "text-brand-800")}>{name}</span>
     </span>
   );

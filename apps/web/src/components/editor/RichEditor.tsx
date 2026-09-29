@@ -56,7 +56,7 @@ const FONTS = [
   { label: "Courier (تک‌عرض)", value: "'Courier New', monospace" },
 ];
 const SIZES = ["12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "40px", "48px"];
-const COLORS = ["#0f172a", "#178a6e", "#0c5443", "#e76f51", "#f4a261", "#8b5cf6", "#2563eb", "#dc2626", "#64748b", "#ffffff"];
+const COLORS = ["#0f172a", "#0b5e2e", "#093d21", "#e76f51", "#f4a261", "#8b5cf6", "#2563eb", "#dc2626", "#64748b", "#ffffff"];
 
 export function toEmbed(url: string): string | null {
   const u = url.trim();

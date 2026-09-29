@@ -13,7 +13,7 @@ import { Button, Card, EmptyState, PageHeader, SearchInput, Select, Spinner, Sta
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker";
 
-const COLORS = ["#178a6e", "#e76f51", "#f4a261", "#8b5cf6", "#7ba874"];
+const COLORS = ["#0b5e2e", "#e76f51", "#f4a261", "#8b5cf6", "#7ba874"];
 
 function FinanceInner() {
   const sp = useSearchParams();
@@ -66,7 +66,7 @@ function FinanceInner() {
                 <AreaChart data={r.series.map((s: any) => ({ ...s, label: formatJalali(s.date).slice(5) }))}>
                   <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: "Vazirmatn" }} /><YAxis tick={{ fontSize: 10 }} width={44} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
                   <Tooltip contentStyle={{ fontFamily: "Vazirmatn", borderRadius: 12, direction: "rtl" }} formatter={(v: any, n: any) => [formatMoney(v), n === "income" ? "درآمد" : "صورت‌حساب"]} />
-                  <Area dataKey="invoiced" stroke="#f4a261" fill="#f4a26133" strokeWidth={2} /><Area dataKey="income" stroke="#178a6e" fill="#178a6e33" strokeWidth={2} />
+                  <Area dataKey="invoiced" stroke="#f4a261" fill="#f4a26133" strokeWidth={2} /><Area dataKey="income" stroke="#0b5e2e" fill="#0b5e2e33" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

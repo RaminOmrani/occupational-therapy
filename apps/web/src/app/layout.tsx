@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   applicationName: "ذهن سبز",
 };
 
-export const viewport: Viewport = { themeColor: "#178a6e", width: "device-width", initialScale: 1, viewportFit: "cover" };
+export const viewport: Viewport = { themeColor: "#0b5e2e", width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getServerUser();

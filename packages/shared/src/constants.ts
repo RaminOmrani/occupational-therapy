@@ -99,7 +99,7 @@ export const GOAL_STATUS_LABELS: Record<(typeof GOAL_STATUSES)[number], string> 
 /** پیش‌فرض‌های تنظیمات؛ همه از پنل مدیریت قابل تغییرند و در دیتابیس ذخیره می‌شوند */
 export const DEFAULT_SETTINGS: Record<string, { value: string; group: string; label: string; description?: string; type: "text" | "number" | "boolean" | "json" | "password" | "textarea" | "select" | "image"; options?: string[]; secret?: boolean }> = {
   "clinic.name": { value: "کلینیک توان‌بخشی ذهن سبز 💚", group: "clinic", label: "نام کلینیک", type: "text" },
-  "clinic.logo": { value: "", group: "clinic", label: "لوگوی کلینیک", type: "image", description: "در سایت، پنل و فاکتور نمایش داده می‌شود (ترجیحاً مربع، PNG)" },
+  "clinic.logo": { value: "/brand/logo-mark.png", group: "clinic", label: "لوگوی کلینیک", type: "image", description: "در سایت، پنل و فاکتور نمایش داده می‌شود (ترجیحاً مربع، PNG)" },
   "clinic.licenseNo": { value: "ک.د ۲۴۳۰", group: "clinic", label: "شماره نظام پزشکی / مجوز", type: "text" },
   "clinic.tagline": { value: "همراه شما در مسیر استقلال و توانمندی", group: "clinic", label: "شعار کلینیک", type: "text" },
   "clinic.phone": { value: "05138667661", group: "clinic", label: "تلفن کلینیک", type: "text" },

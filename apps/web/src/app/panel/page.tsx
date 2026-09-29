@@ -96,7 +96,7 @@ function AdminDashboard({ d, isAdmin }: { d: any; isAdmin: boolean }) {
                 <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: "Vazirmatn" }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 10 }} width={24} />
                 <Tooltip contentStyle={{ fontFamily: "Vazirmatn", borderRadius: 12, direction: "rtl" }} formatter={(v: any) => [toPersianDigits(v), "جلسه"]} />
-                <Bar dataKey="sessions" fill="#178a6e" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="sessions" fill="#0b5e2e" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

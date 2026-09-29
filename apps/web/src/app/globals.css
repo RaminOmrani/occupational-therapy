@@ -45,10 +45,10 @@ body {
     @apply btn text-slate-600 hover:bg-sand-200;
   }
   .btn-danger {
-    @apply btn bg-coral-500 text-white hover:bg-coral-600;
+    @apply btn bg-gold-500 text-white hover:bg-gold-600;
   }
   .btn-accent {
-    @apply btn bg-coral-500 text-white hover:bg-coral-600;
+    @apply btn bg-gold-500 text-white hover:bg-gold-600;
   }
   .table {
     @apply w-full text-sm;
@@ -111,8 +111,8 @@ body {
 .rich-editor td, .rich-editor th, .prose-fa td, .prose-fa th { border: 1px solid #e2ded3; padding: 6px 10px; vertical-align: top; min-width: 3em; position: relative; }
 .rich-editor th, .prose-fa th { background: #f3f0e8; font-weight: 700; }
 .rich-editor .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(23, 138, 110, 0.12); pointer-events: none; }
-.rich-editor .column-resize-handle { position: absolute; left: -2px; top: 0; bottom: 0; width: 4px; background: #178a6e; pointer-events: none; }
-.rich-editor img.ProseMirror-selectednode, .rich-editor .ProseMirror-selectednode { outline: 3px solid #178a6e; border-radius: 12px; }
+.rich-editor .column-resize-handle { position: absolute; left: -2px; top: 0; bottom: 0; width: 4px; background: #0b5e2e; pointer-events: none; }
+.rich-editor img.ProseMirror-selectednode, .rich-editor .ProseMirror-selectednode { outline: 3px solid #0b5e2e; border-radius: 12px; }
 .media-embed, .prose-fa .media-embed, .prose-fa div[data-youtube-video] { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 1.25rem 0; border-radius: 16px; overflow: hidden; background: #0f172a; }
 .media-embed iframe, .prose-fa .media-embed iframe, .prose-fa div[data-youtube-video] iframe { position: absolute; inset: 0; width: 100% !important; height: 100% !important; border: 0; }
 .prose-fa video, .prose-fa audio { width: 100%; margin: 1rem 0; }

@@ -25,6 +25,7 @@ const VALUE_MIGRATIONS: { id: string; key: string; from: string; to: string }[] 
   { id: "endHour22", key: "schedule.endHour", from: "20", to: "22" },
   { id: "brand", key: "clinic.name", from: "کلینیک کاردرمانی ذهن سبز", to: DEFAULT_SETTINGS["clinic.name"].value },
   { id: "fixSmsOff", key: "sms.autoOnFix", from: "true", to: "false" },
+  { id: "brandLogo", key: "clinic.logo", from: "", to: "/brand/logo-mark.png" },
 ];
 async function migrateSettings() {
   // هر مهاجرت فقط یک بار اجرا می‌شود تا تغییرات بعدی کاربر دوباره بازنویسی نشود
