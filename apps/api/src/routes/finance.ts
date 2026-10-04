@@ -6,7 +6,7 @@ import { validate, zDate, zOptionalDate, zOptionalString, zInt, zOptionalInt } f
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { requireAuth, requireStaff, requireAdminOrSecretary, requireRole, canAccessPatient } from "../middleware/auth.js";
 import { nextNumber } from "../lib/numbering.js";
-import { patientFinancialSummary, recomputeInvoice } from "../lib/finance.js";
+import { patientFinancialSummary, recomputeInvoice, patientDebtItems, checkDebtAlert } from "../lib/finance.js";
 import { getSetting, getSettingBool, getSettingNumber } from "../lib/settings.js";
 import { sendTemplateSms } from "../lib/sms/service.js";
 import { notifyUser } from "../lib/notify.js";
@@ -29,8 +29,9 @@ const withName = (r: any) => ({ ...r, patientName: r.patient ? `${r.patient.firs
 financeRouter.get("/patients/:patientId", async (req, res) => {
   const patientId = String(req.params.patientId);
   if (!canAccessPatient(req, patientId)) throw forbidden();
-  const [summary, invoices, payments, walletTxs, discounts] = await Promise.all([
+  const [summary, debts, invoices, payments, walletTxs, discounts] = await Promise.all([
     patientFinancialSummary(patientId),
+    patientDebtItems(patientId),
     prisma.invoice.findMany({ where: { patientId }, orderBy: { date: "desc" }, include: { payments: true } }),
     prisma.payment.findMany({ where: { patientId }, orderBy: { date: "desc" }, include: { invoice: { select: { number: true } }, receivedBy: { select: { firstName: true, lastName: true } } } }),
     prisma.walletTransaction.findMany({ where: { patientId }, orderBy: { createdAt: "desc" } }),
@@ -39,6 +40,8 @@ financeRouter.get("/patients/:patientId", async (req, res) => {
   res.json({
     summary,
     currency: await getSetting("finance.currency", "تومان"),
+    debts,
+    debtAlertThreshold: await getSettingNumber("finance.debtAlertThreshold", 6000000),
     invoices: invoices.map((i) => ({ ...i, items: parseJson(i.items, []) })),
     payments,
     walletTxs,
@@ -55,7 +58,7 @@ financeRouter.get("/patients/:patientId/statement", async (req, res) => {
     prisma.payment.findMany({ where: { patientId }, orderBy: { date: "asc" } }),
   ]);
   const lines = [
-    ...invoices.map((i) => ({ date: i.date, type: "invoice" as const, ref: i.number, description: `صورت‌حساب ${i.number}`, debit: i.total, credit: 0 })),
+    ...invoices.map((i) => ({ date: i.date, type: "invoice" as const, ref: i.number, description: i.kind === "DEBT" ? `بدهی: ${parseJson<{ title: string }[]>(i.items, [])[0]?.title ?? ""}` : `صورت‌حساب ${i.number}`, debit: i.total, credit: 0 })),
     ...payments.map((p) => ({ date: p.date, type: "payment" as const, ref: p.reference ?? "", description: `پرداخت (${p.method})`, debit: 0, credit: p.amount })),
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
   let running = 0;
@@ -120,6 +123,7 @@ financeRouter.post("/invoices", requireAdminOrSecretary, async (req, res) => {
   if (body.appointmentIds?.length) await prisma.appointment.updateMany({ where: { id: { in: body.appointmentIds } }, data: { invoiceId: inv.id } });
   await notifyUser(inv.patient.userId, "صورت‌حساب جدید", `صورت‌حساب ${inv.number} به مبلغ ${formatMoney(inv.total)} صادر شد`, "/panel/my/finance");
   smsInvoiceIssued(inv).catch(console.error);
+  await checkDebtAlert(inv.patientId);
   await audit(req.user!.id, "create", "invoice", inv.id);
   res.status(201).json({ invoice: withName({ ...inv, items: body.items }) });
 });
@@ -140,6 +144,7 @@ financeRouter.post("/invoices/from-sessions", requireAdminOrSecretary, async (re
   });
   await prisma.appointment.updateMany({ where: { id: { in: sessions.map((s) => s.id) } }, data: { invoiceId: inv.id } });
   smsInvoiceIssued(inv).catch(console.error);
+  await checkDebtAlert(inv.patientId);
   res.status(201).json({ invoice: withName({ ...inv, items }) });
 });
 
@@ -162,6 +167,7 @@ financeRouter.patch("/invoices/:id", requireAdminOrSecretary, async (req, res) =
     include: patientSel,
   });
   await recomputeInvoice(inv.id);
+  await checkDebtAlert(inv.patientId);
   res.json({ invoice: withName({ ...inv, items }) });
 });
 
@@ -212,6 +218,7 @@ financeRouter.post("/payments", requireAdminOrSecretary, async (req, res) => {
     await prisma.walletTransaction.create({ data: { patientId: body.patientId, amount: -body.amount, type: "CHARGE", description: `پرداخت صورت‌حساب${invoiceId ? "" : " (بدون صورت‌حساب)"}`, createdById: req.user!.id } });
   }
   if (invoiceId) await recomputeInvoice(invoiceId);
+  await checkDebtAlert(body.patientId);
   const summary = await patientFinancialSummary(body.patientId);
   const currency = await getSetting("finance.currency", "تومان");
   if (body.sendSms) {
@@ -230,6 +237,7 @@ financeRouter.patch("/payments/:id", requireAdminOrSecretary, async (req, res) =
   if (cur.method === "WALLET" || body.method === "WALLET") throw badRequest("پرداخت از کیف پول قابل ویرایش نیست؛ حذف و دوباره ثبت کنید");
   const p = await prisma.payment.update({ where: { id: cur.id }, data: { amount: body.amount ?? cur.amount, method: body.method ?? cur.method, reference: body.reference === undefined ? cur.reference : body.reference, note: body.note === undefined ? cur.note : body.note, date: body.date ?? cur.date }, include: patientSel });
   if (p.invoiceId) await recomputeInvoice(p.invoiceId);
+  await checkDebtAlert(p.patientId);
   await audit(req.user!.id, "update", "payment", p.id, body);
   res.json({ payment: withName(p), summary: await patientFinancialSummary(p.patientId) });
 });
@@ -240,6 +248,7 @@ financeRouter.delete("/payments/:id", requireRole("ADMIN"), async (req, res) => 
   await prisma.payment.delete({ where: { id: p.id } });
   if (p.method === "WALLET") await prisma.walletTransaction.create({ data: { patientId: p.patientId, amount: p.amount, type: "REFUND", description: "حذف پرداخت از کیف پول", createdById: req.user!.id } });
   if (p.invoiceId) await recomputeInvoice(p.invoiceId);
+  await checkDebtAlert(p.patientId);
   await audit(req.user!.id, "delete", "payment", p.id);
   res.json({ ok: true });
 });
@@ -280,6 +289,54 @@ financeRouter.post("/patients/:patientId/debt-reminder", requireAdminOrSecretary
   if (summary.balance <= 0) throw badRequest("این مراجع بدهی ندارد");
   const log = await sendTemplateSms("debt_reminder", p.phone, { name: `${p.firstName} ${p.lastName}`, balance: formatMoney(summary.balance, ""), currency: await getSetting("finance.currency", "تومان") }, { related: { type: "patient", id: p.id } });
   res.json({ log });
+});
+
+// ---------- بدهی دستی (مبلغ دلخواه) ----------
+const debtSchema = z.object({
+  amount: zInt.refine((v) => v > 0, "مبلغ بدهی باید بزرگ‌تر از صفر باشد"),
+  title: z.string().trim().min(1, "بابت چه چیزی؟ شرح بدهی را بنویسید").max(200),
+  date: zDate.optional(),
+  note: zOptionalString,
+});
+
+/** ثبت بدهی با مبلغ دلخواه برای مراجع (مثلاً بدهی قبلی، جلسه‌ای که پرداخت نشده، هزینه وسیله) */
+financeRouter.post("/patients/:patientId/debts", requireAdminOrSecretary, async (req, res) => {
+  const body = validate(debtSchema, req.body);
+  const patient = await prisma.patient.findUnique({ where: { id: String(req.params.patientId) }, select: { id: true } });
+  if (!patient) throw notFound("مراجع یافت نشد");
+  const date = body.date ?? new Date();
+  const inv = await prisma.invoice.create({
+    data: { number: await nextNumber("debt", "DBT-"), kind: "DEBT", patientId: patient.id, date, dueDate: date, items: JSON.stringify([{ title: body.title, qty: 1, unitPrice: body.amount }]), subtotal: body.amount, discount: 0, total: body.amount, notes: body.note ?? null, status: "ISSUED" },
+  });
+  // اگر مراجع پیش‌پرداخت/بستانکاری داشته باشد، در محاسبه مانده خودکار لحاظ می‌شود
+  await checkDebtAlert(patient.id);
+  await audit(req.user!.id, "create", "debt", inv.id, { amount: body.amount, title: body.title });
+  res.status(201).json({ debt: inv, summary: await patientFinancialSummary(patient.id) });
+});
+
+financeRouter.patch("/debts/:id", requireAdminOrSecretary, async (req, res) => {
+  const body = validate(debtSchema.partial(), req.body);
+  const cur = await prisma.invoice.findUnique({ where: { id: String(req.params.id) } });
+  if (!cur || cur.kind !== "DEBT" || cur.status === "CANCELLED") throw notFound("بدهی یافت نشد");
+  const amount = body.amount ?? cur.total;
+  if (amount < cur.paid) throw badRequest(`مبلغ بدهی نمی‌تواند کمتر از مبلغ پرداخت‌شده آن (${formatMoney(cur.paid)}) باشد`);
+  const title = body.title ?? parseJson<{ title: string }[]>(cur.items, [])[0]?.title ?? "بدهی";
+  await prisma.invoice.update({ where: { id: cur.id }, data: { items: JSON.stringify([{ title, qty: 1, unitPrice: amount }]), subtotal: amount, total: amount, notes: body.note === undefined ? cur.notes : body.note, ...(body.date ? { date: body.date, dueDate: body.date } : {}) } });
+  await recomputeInvoice(cur.id);
+  await checkDebtAlert(cur.patientId);
+  await audit(req.user!.id, "update", "debt", cur.id, body);
+  res.json({ ok: true, summary: await patientFinancialSummary(cur.patientId) });
+});
+
+/** حذف بدهی دستی (فقط اگر پرداختی به آن وصل نباشد) */
+financeRouter.delete("/debts/:id", requireAdminOrSecretary, async (req, res) => {
+  const cur = await prisma.invoice.findUnique({ where: { id: String(req.params.id) }, include: { _count: { select: { payments: true } } } });
+  if (!cur || cur.kind !== "DEBT" || cur.status === "CANCELLED") throw notFound("بدهی یافت نشد");
+  if (cur._count.payments > 0) throw badRequest("برای این بدهی پرداخت ثبت شده؛ اول آن پرداخت را حذف کنید یا مبلغ بدهی را ویرایش کنید");
+  await prisma.invoice.update({ where: { id: cur.id }, data: { status: "CANCELLED" } });
+  await checkDebtAlert(cur.patientId);
+  await audit(req.user!.id, "delete", "debt", cur.id, { amount: cur.total });
+  res.json({ ok: true, summary: await patientFinancialSummary(cur.patientId) });
 });
 
 /** گزارش مالی کلی (داشبورد مدیریت) */
@@ -366,6 +423,7 @@ financeRouter.post("/settle-appointment", requireAdminOrSecretary, async (req, r
     note: zOptionalString,
     sendSms: z.boolean().optional(),
     therapistAmount: zOptionalInt,
+    noPayment: z.boolean().optional(), // مراجع این جلسه پرداخت نکرد: کل مبلغ به بدهی او اضافه می‌شود
   }), req.body);
   const a = await prisma.appointment.findUnique({ where: { id: body.appointmentId }, include: settleInclude });
   if (!a) throw notFound("نوبت یافت نشد");
@@ -377,14 +435,14 @@ financeRouter.post("/settle-appointment", requireAdminOrSecretary, async (req, r
   let invoiceId = a.invoiceId && a.invoice?.status !== "CANCELLED" ? a.invoiceId : null;
   if (!invoiceId && sessionPrice > 0) {
     const items = [{ title: `جلسه توان‌بخشی - ${therapistName}`, qty: 1, unitPrice: sessionPrice }];
-    const inv = await prisma.invoice.create({ data: { number: await nextNumber("invoice", "INV-"), patientId: a.patientId, dueDate: new Date(), items: JSON.stringify(items), subtotal: sessionPrice, discount: 0, total: sessionPrice } });
+    const inv = await prisma.invoice.create({ data: { number: await nextNumber("invoice", "INV-"), kind: "SESSION", patientId: a.patientId, dueDate: new Date(), items: JSON.stringify(items), subtotal: sessionPrice, discount: 0, total: sessionPrice } });
     await prisma.appointment.update({ where: { id: a.id }, data: { invoiceId: inv.id } });
     invoiceId = inv.id;
   }
 
   const before = await patientFinancialSummary(a.patientId);
-  const amount = body.full ? Math.max(0, before.balance) : (body.amount ?? 0);
-  if (amount <= 0 && !body.full) throw badRequest("مبلغ را وارد کنید");
+  const amount = body.noPayment ? 0 : body.full ? Math.max(0, before.balance) : (body.amount ?? 0);
+  if (amount <= 0 && !body.full && !body.noPayment) throw badRequest("مبلغ را وارد کنید");
   const paymentIds: string[] = [];
   if (amount > 0) {
     let remaining = amount;
@@ -406,13 +464,14 @@ financeRouter.post("/settle-appointment", requireAdminOrSecretary, async (req, r
       paymentIds.push(p.id);
     }
   }
+  await checkDebtAlert(a.patientId);
   const summary = await patientFinancialSummary(a.patientId);
   const currency = await getSetting("finance.currency", "تومان");
   if (amount > 0 && body.sendSms) {
     sendTemplateSms("payment_received", a.patient.phone, { name: `${a.patient.firstName} ${a.patient.lastName}`, amount: formatMoney(amount, ""), currency, balance: formatMoney(Math.max(0, summary.balance), "") }, { related: { type: "patient", id: a.patientId } }).catch(console.error);
   }
   if (amount > 0) await notifyUser(a.patient.userId, "پرداخت ثبت شد", `مبلغ ${formatMoney(amount, currency)} در حساب شما ثبت شد`, "/panel/my/finance");
-  await audit(req.user!.id, "settle", "appointment", a.id, { amount, method: body.method, full: !!body.full, paymentIds });
+  await audit(req.user!.id, "settle", "appointment", a.id, { amount, method: body.method, full: !!body.full, noPayment: !!body.noPayment, paymentIds });
   res.status(201).json({ ok: true, paid: amount, summary, invoiceId });
 });
 
@@ -498,6 +557,7 @@ financeRouter.post("/cash", requireAdminOrSecretary, async (req, res) => {
     const open = await prisma.invoice.findFirst({ where: { patientId: body.patientId, status: { in: ["ISSUED", "PARTIAL"] } }, orderBy: { date: "asc" } });
     const p = await prisma.payment.create({ data: { patientId: body.patientId, invoiceId: open?.id ?? null, amount: body.amount, method: body.method, note: body.reason + (body.note ? ` — ${body.note}` : ""), date: body.date ?? new Date(), receivedById: req.user!.id }, include: patientSel });
     if (open) await recomputeInvoice(open.id);
+    await checkDebtAlert(body.patientId);
     await audit(req.user!.id, "create", "payment", p.id, { via: "cash", reason: body.reason });
     return res.status(201).json({ payment: withName(p), summary: await patientFinancialSummary(body.patientId) });
   }
@@ -528,7 +588,11 @@ async function therapistStats(therapistId: string, from: Date, to: Date) {
   for (const x of done) { const k = startOfDay(x.startAt).toISOString(); const v = byDay.get(k) ?? { date: k, sessions: 0, karkard: 0, collected: 0 }; v.sessions += 1; v.karkard += x.therapistAmount; if (x.settled) v.collected += x.therapistAmount; byDay.set(k, v); }
   const karkard = done.reduce((s, x) => s + x.therapistAmount, 0);
   const collected = done.filter((x) => x.settled).reduce((s, x) => s + x.therapistAmount, 0);
-  return { cases: new Set(done.map((x) => x.patientId)).size, sessions: done.length, assessments: done.filter((x) => x.kind === "ASSESSMENT").length, noShow: items.filter((x) => x.status === "NO_SHOW").length, karkard, collected, pending: karkard - collected, byDay: [...byDay.values()], items };
+  // ریز کیس‌ها: هر مراجع با تعداد جلسات و مبلغ کارکرد درمانگر (مستقل از بدهی یا پرداخت مراجع)
+  const byCase = new Map<string, { patientId: string; patientName: string; fileNumber: string; sessions: number; assessments: number; amount: number; lastAt: Date }>();
+  for (const x of done) { const v = byCase.get(x.patientId) ?? { patientId: x.patientId, patientName: x.patientName, fileNumber: x.fileNumber, sessions: 0, assessments: 0, amount: 0, lastAt: x.startAt }; v.sessions += 1; if (x.kind === "ASSESSMENT") v.assessments += 1; v.amount += x.therapistAmount; if (x.startAt > v.lastAt) v.lastAt = x.startAt; byCase.set(x.patientId, v); }
+  const activeCases = await prisma.patient.count({ where: { primaryTherapistId: therapistId, status: "ACTIVE" } });
+  return { activeCases, caseList: [...byCase.values()].sort((a, b) => b.amount - a.amount), cases: new Set(done.map((x) => x.patientId)).size, sessions: done.length, assessments: done.filter((x) => x.kind === "ASSESSMENT").length, noShow: items.filter((x) => x.status === "NO_SHOW").length, karkard, collected, pending: karkard - collected, byDay: [...byDay.values()], items };
 }
 
 financeRouter.get("/therapists", requireStaff, async (req, res) => {
@@ -537,7 +601,7 @@ financeRouter.get("/therapists", requireStaff, async (req, res) => {
   let therapists = await prisma.therapist.findMany({ include: { user: { select: { firstName: true, lastName: true, avatar: true, isActive: true } } }, orderBy: { sortOrder: "asc" } });
   if (req.user!.role === "THERAPIST") therapists = therapists.filter((t) => t.id === req.user!.therapistId);
   const items = [];
-  for (const t of therapists) { const st = await therapistStats(t.id, from, to); items.push({ therapistId: t.id, fullName: `${t.user.firstName} ${t.user.lastName}`, avatar: t.user.avatar, color: t.color, isActive: t.user.isActive, ...st, items: undefined }); }
+  for (const t of therapists) { const st = await therapistStats(t.id, from, to); items.push({ therapistId: t.id, fullName: `${t.user.firstName} ${t.user.lastName}`, avatar: t.user.avatar, color: t.color, isActive: t.user.isActive, ...st, items: undefined, caseList: undefined, byDay: undefined }); }
   res.json({ from, to, items });
 });
 

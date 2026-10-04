@@ -147,6 +147,8 @@ export const DEFAULT_SETTINGS: Record<string, { value: string; group: string; la
   "sms.autoInvoice": { value: "false", group: "sms", label: "پیامک صدور صورت‌حساب (مبلغ و مهلت پرداخت)", type: "boolean" },
   "sms.autoWaitlist": { value: "true", group: "sms", label: "پیامک به نفر اول لیست انتظار وقتی نوبتی لغو می‌شود", type: "boolean" },
   "finance.autoDebtReminderDays": { value: "0", group: "finance", label: "یادآوری خودکار بدهی چند روز قبل از سررسید (۰ = خاموش)", type: "number", description: "هر روز ساعت ۱۰ صبح بررسی می‌شود؛ برای هر صورت‌حساب فقط یک بار ارسال می‌شود." },
+  "finance.debtAlertThreshold": { value: "6000000", group: "finance", label: "سقف بدهی برای پیامک هشدار (تومان)", type: "number", description: "وقتی مانده بدهی مراجع از این مبلغ بیشتر شود، یک بار پیامک «بدهی از سقف گذشت» برایش ارسال می‌شود و به مدیر اعلان می‌رسد. ۰ = خاموش" },
+  "sms.autoDebtAlert": { value: "true", group: "sms", label: "پیامک خودکار وقتی بدهی مراجع از سقف تعیین‌شده بیشتر شود", type: "boolean", description: "سقف در تنظیمات مالی تعیین می‌شود (پیش‌فرض ۶ میلیون تومان)" },
   "sms.autoNoShow": { value: "false", group: "sms", label: "پیامک پیگیری غیبت (وقتی نوبتی «غیبت» ثبت شود)", type: "boolean" },
   "sms.autoBookingReceived": { value: "true", group: "sms", label: "پیامک «درخواست شما ثبت شد» برای رزرو آنلاین", type: "boolean" },
   "sms.usePatterns": { value: "true", group: "sms", label: "ارسال با الگوهای تأییدشده (خدماتی)", type: "boolean", description: "الگوهایی که «کد الگو» دارند از طریق سرویس الگوی ملی‌پیامک ارسال می‌شوند." },

@@ -105,6 +105,7 @@ model Patient {
   leadId             String?    @unique
   lead               Lead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
   tags               String     @default("[]") // JSON string[]
+  debtAlertSentAt    DateTime? // آخرین پیامک «بدهی از سقف گذشت»؛ وقتی بدهی زیر سقف برگردد پاک می‌شود
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -334,6 +335,7 @@ model Document {
 model Invoice {
   id        String    @id @default(cuid())
   number    String    @unique
+  kind      String    @default("INVOICE") // INVOICE | SESSION (ساخته‌شده در تسویه جلسه) | DEBT (بدهی دستی با مبلغ دلخواه)
   patientId String
   patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
   date      DateTime  @default(now())

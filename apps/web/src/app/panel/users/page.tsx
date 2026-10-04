@@ -2,8 +2,9 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { UserCog, Plus, Pencil, ShieldCheck, History } from "lucide-react";
-import { ROLES, ROLE_LABELS, WEEKDAYS_FA, formatJalali, formatJalaliDateTime, toPersianDigits } from "@toranj/shared";
+import Link from "next/link";
+import { UserCog, Plus, Pencil, ShieldCheck, History, HandCoins } from "lucide-react";
+import { ROLES, ROLE_LABELS, WEEKDAYS_FA, JALALI_MONTHS, formatJalali, formatJalaliDateTime, formatMoney, jalaliToDate, toJalali, toPersianDigits } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Tabs, Textarea, Toggle } from "@/components/ui";
@@ -20,6 +21,11 @@ export default function UsersPage() {
   const [tab, setTab] = useState<"users" | "audit">("users");
   const [edit, setEdit] = useState<any | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ["users"], queryFn: () => api.get<{ items: any[] }>("/users") });
+  // کیس‌ها و مبلغ کارکرد هر درمانگر در ماه جاری شمسی (مستقل از بدهی مراجع)
+  const jNow = toJalali(new Date());
+  const monthStart = jalaliToDate(jNow.jy, jNow.jm, 1);
+  const stats = useQuery({ queryKey: ["therapists-finance", "users-month", jNow.jy, jNow.jm], queryFn: () => api.get<{ items: any[] }>("/finance/therapists", { from: monthStart.toISOString(), to: new Date().toISOString() }) });
+  const statOf = (therapistId?: string) => stats.data?.items.find((x) => x.therapistId === therapistId);
   const audit = useQuery({ queryKey: ["audit"], queryFn: () => api.get<{ items: any[] }>("/users/audit"), enabled: tab === "audit" });
   const refresh = () => { qc.invalidateQueries({ queryKey: ["users"] }); qc.invalidateQueries({ queryKey: ["therapists"] }); };
   return (
@@ -37,6 +43,12 @@ export default function UsersPage() {
                 <p className="num mt-2 text-xs text-slate-500" dir="ltr">{toPersianDigits(u.phone)}</p>
                 {u.therapist && <p className="mt-1 text-xs text-slate-500">{u.therapist.specialty}</p>}
                 {u.therapist && <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-400"><span className="h-2.5 w-2.5 rounded-full" style={{ background: u.therapist.color }} />{WEEK_ORDER.filter((d) => u.therapist.workDays.includes(d)).map((d) => WEEKDAYS_FA[d].slice(0, 1)).join(" ")}</p>}
+                {u.therapist && statOf(u.therapist.id) && (() => { const st = statOf(u.therapist.id); return (
+                  <Link href={`/panel/finance/therapists?id=${u.therapist.id}`} className="mt-2 block rounded-xl bg-sand-100 px-2.5 py-2 text-[11px] text-slate-600 transition hover:bg-brand-50">
+                    <span className="flex items-center justify-between gap-2"><span>کیس فعال: <b className="num text-slate-800">{toPersianDigits(st.activeCases)}</b></span><span>مراجعین {JALALI_MONTHS[jNow.jm - 1]}: <b className="num text-slate-800">{toPersianDigits(st.cases)}</b></span></span>
+                    <span className="mt-1 flex items-center justify-between gap-2"><span>جلسات: <b className="num text-slate-800">{toPersianDigits(st.sessions)}</b></span><span className="flex items-center gap-1"><HandCoins className="h-3 w-3 text-brand-600" /><b className="num text-brand-800">{formatMoney(st.karkard)}</b></span></span>
+                  </Link>
+                ); })()}
                 <p className="mt-1 text-[11px] text-slate-400">{u.lastLoginAt ? `آخرین ورود: ${formatJalali(u.lastLoginAt)}` : "هنوز وارد نشده"}</p>
               </div>
             </Card>

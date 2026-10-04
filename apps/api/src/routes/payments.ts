@@ -6,7 +6,7 @@ import { validate, zInt, zOptionalInt, zOptionalString } from "../lib/validate.j
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { getSetting, getSettingBool, getSettingNumber } from "../lib/settings.js";
 import { requireAuth, canAccessPatient, requireAdminOrSecretary } from "../middleware/auth.js";
-import { recomputeInvoice, patientFinancialSummary } from "../lib/finance.js";
+import { recomputeInvoice, patientFinancialSummary, checkDebtAlert } from "../lib/finance.js";
 import { zpRequest, zpVerify, startPayUrl } from "../lib/payment/zarinpal.js";
 import { notifyRole, notifyUser } from "../lib/notify.js";
 import { audit } from "../lib/audit.js";
@@ -70,6 +70,7 @@ paymentsRouter.get("/callback/:intentId", async (req, res) => {
     if (!invoiceId) invoiceId = (await prisma.invoice.findFirst({ where: { patientId: intent.patientId, status: { in: ["ISSUED", "PARTIAL"] } }, orderBy: { date: "asc" } }))?.id ?? null;
     await prisma.payment.create({ data: { patientId: intent.patientId, invoiceId, amount: intent.amount, method: "ONLINE", reference: v.refId ?? null, note: "پرداخت آنلاین زرین‌پال" } });
     if (invoiceId) await recomputeInvoice(invoiceId);
+    await checkDebtAlert(intent.patientId);
   }
   await notifyUser(intent.patient.userId, "پرداخت آنلاین موفق", `مبلغ ${formatMoney(intent.amount)} ثبت شد. کد پیگیری: ${v.refId}`, "/panel/my/finance");
   await notifyRole("SECRETARY", "پرداخت آنلاین جدید", `${intent.patient.firstName} ${intent.patient.lastName}: ${formatMoney(intent.amount)}`, `/panel/patients/${intent.patientId}?tab=finance`);
@@ -119,6 +120,7 @@ paymentsRouter.post("/claims/:id/approve", requireAuth, requireAdminOrSecretary,
     const inv = await prisma.invoice.findFirst({ where: { patientId: c.patientId, status: { in: ["ISSUED", "PARTIAL"] } }, orderBy: { date: "asc" } });
     await prisma.payment.create({ data: { patientId: c.patientId, invoiceId: inv?.id ?? null, amount, method: "TRANSFER", reference: c.refId ?? null, note: c.note ?? "اعلام پرداخت مراجع", receivedById: req.user!.id } });
     if (inv) await recomputeInvoice(inv.id);
+    await checkDebtAlert(c.patientId);
   }
   await prisma.paymentIntent.update({ where: { id: c.id }, data: { status: "PAID", amount, paidAt: new Date(), handledById: req.user!.id } });
   await notifyUser(c.patient.userId, "پرداخت شما تأیید شد", `مبلغ ${formatMoney(amount)} در حساب شما ثبت شد`, "/panel/my/finance");

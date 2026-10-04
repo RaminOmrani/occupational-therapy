@@ -135,6 +135,14 @@ export const SMS_TEMPLATE_DEFAULTS: SmsTemplateDef[] = [
     description: "به‌صورت دستی از پروفایل مالی مراجع ارسال می‌شود.",
   },
   {
+    key: "debt_threshold",
+    name: "هشدار بدهی بالا",
+    body: "{{name}} عزیز، مانده بدهی شما در کلینیک به {{balance}} {{currency}} رسیده است. لطفاً برای تسویه یا هماهنگی با پذیرش تماس بگیرید: {{phone}}\n{{clinic}}",
+    variables: ["name", "balance", "currency", "phone", "clinic"],
+    patternArgs: ["name", "balance", "phone"],
+    description: "وقتی مانده بدهی مراجع از سقف تعیین‌شده در تنظیمات مالی (پیش‌فرض ۶ میلیون تومان) بیشتر شود، یک بار ارسال می‌شود.",
+  },
+  {
     key: "birthday",
     name: "تبریک تولد",
     body: "{{name}} عزیز، تولدتان مبارک! آرزوی سلامتی و شادی برای شما داریم.\n{{clinic}}",

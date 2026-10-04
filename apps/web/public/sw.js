@@ -1,5 +1,5 @@
 /* سرویس‌ورکر اپلیکیشن ذهن سبز: کش پوسته و صفحه آفلاین؛ داده‌ها همیشه از شبکه */
-const VERSION = "v4";
+const VERSION = "v5";
 const SHELL = ["/offline", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {

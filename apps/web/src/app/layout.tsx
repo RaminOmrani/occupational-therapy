@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
     verification: { google: s["seo.googleVerification"] || undefined, other: s["seo.bingVerification"] ? { "msvalidate.01": s["seo.bingVerification"] } : undefined },
     manifest: "/manifest.json",
-    icons: { icon: [{ url: "/icons/favicon-32.png", sizes: "32x32" }, { url: "/icon.svg", type: "image/svg+xml" }], apple: "/icons/apple-touch-icon.png" },
+    icons: { icon: [{ url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" }, { url: "/icons/favicon-48.png", sizes: "48x48", type: "image/png" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/icons/apple-touch-icon.png" },
     appleWebApp: { capable: true, title: "ذهن سبز", statusBarStyle: "default" },
   };
 }

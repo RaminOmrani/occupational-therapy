@@ -26,12 +26,12 @@ interface Preview {
   totalDue: number;
 }
 
-/** تسویه یک نوبت: انتخاب روش پرداخت و مبلغ (کامل یا دلخواه) */
+/** تسویه یک نوبت: انتخاب روش پرداخت و مبلغ (کامل، دلخواه، یا پرداخت‌نشده که به بدهی مراجع اضافه می‌شود) */
 export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId: string; onClose: () => void; onDone?: () => void }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["settle-preview", appointmentId], queryFn: () => api.get<Preview>(`/finance/settle-preview/${appointmentId}`) });
   const [method, setMethod] = useState<(typeof SETTLE_METHODS)[number]["key"]>("TRANSFER");
-  const [mode, setMode] = useState<"full" | "custom">("full");
+  const [mode, setMode] = useState<"full" | "custom" | "none">("full");
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [sendSms, setSendSms] = useState(false);
@@ -48,8 +48,8 @@ export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId:
     }
     setLoading(true);
     try {
-      const r = await api.post<{ paid: number; summary: { balance: number } }>("/finance/settle-appointment", { appointmentId, method, full: mode === "full", amount: mode === "custom" ? custom : undefined, reference: reference || undefined, sendSms, therapistAmount: therapistAmount ? Number(therapistAmount) : undefined });
-      toast.success(r.paid > 0 ? `${formatMoney(r.paid)} ثبت شد${r.summary.balance > 0 ? `؛ مانده بدهی ${formatMoney(r.summary.balance)}` : r.summary.balance < 0 ? `؛ بستانکار ${formatMoney(-r.summary.balance)}` : "؛ تسویه کامل ✅"}` : "جلسه انجام‌شده ثبت شد");
+      const r = await api.post<{ paid: number; summary: { balance: number } }>("/finance/settle-appointment", { appointmentId, method, full: mode === "full", noPayment: mode === "none", amount: mode === "custom" ? custom : undefined, reference: reference || undefined, sendSms, therapistAmount: therapistAmount ? Number(therapistAmount) : undefined });
+      toast.success(r.paid > 0 ? `${formatMoney(r.paid)} ثبت شد${r.summary.balance > 0 ? `؛ مانده بدهی ${formatMoney(r.summary.balance)}` : r.summary.balance < 0 ? `؛ بستانکار ${formatMoney(-r.summary.balance)}` : "؛ تسویه کامل ✅"}` : mode === "none" ? `جلسه ثبت شد؛ مانده بدهی مراجع: ${formatMoney(Math.max(0, r.summary.balance))}` : "جلسه انجام‌شده ثبت شد");
       qc.invalidateQueries({ queryKey: ["appointments"] }); qc.invalidateQueries({ queryKey: ["finance"] }); qc.invalidateQueries({ queryKey: ["daily"] }); qc.invalidateQueries({ queryKey: ["dashboard"] });
       onDone?.();
       onClose();
@@ -57,7 +57,7 @@ export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId:
   };
 
   return (
-    <Modal open onClose={onClose} title="تسویه جلسه" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} disabled={!data} onClick={submit} icon={<CheckCircle2 className="h-4 w-4" />}>{mode === "full" ? `تسویه کامل${data ? ` (${formatMoney(data.totalDue)})` : ""}` : "ثبت پرداخت"}</Button></>}>
+    <Modal open onClose={onClose} title="تسویه جلسه" size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} disabled={!data} onClick={submit} icon={<CheckCircle2 className="h-4 w-4" />}>{mode === "full" ? `تسویه کامل${data ? ` (${formatMoney(data.totalDue)})` : ""}` : mode === "none" ? "ثبت جلسه به‌صورت بدهی" : "ثبت پرداخت"}</Button></>}>
       {isLoading || !data ? <Spinner /> : (
         <div className="space-y-4">
           <div className="rounded-2xl bg-sand-100 p-3 text-sm">
@@ -71,7 +71,7 @@ export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId:
             {data.walletBalance > 0 && <p className="mt-2 text-[11px] text-slate-500">کیف پول مراجع: {formatMoney(data.walletBalance)} (برای استفاده از کیف پول، از پروفایل مالی مراجع اقدام کنید)</p>}
           </div>
 
-          <Field label="روش پرداخت" required>
+          {mode !== "none" && <Field label="روش پرداخت" required>
             <div className="grid grid-cols-3 gap-2">
               {SETTLE_METHODS.map((m) => (
                 <button key={m.key} type="button" onClick={() => setMethod(m.key)} className={cn("flex flex-col items-center gap-1 rounded-2xl border-2 p-3 text-xs font-medium transition", method === m.key ? "border-brand-600 bg-brand-50 text-brand-800" : "border-sand-200 bg-white text-slate-600 hover:border-brand-300")}>
@@ -80,18 +80,20 @@ export function SettleModal({ appointmentId, onClose, onDone }: { appointmentId:
                 </button>
               ))}
             </div>
-          </Field>
+          </Field>}
 
-          <Field label="مبلغ" required>
-            <div className="grid grid-cols-2 gap-2">
+          <Field label="مبلغ پرداختی مراجع" required>
+            <div className="grid grid-cols-3 gap-2">
               <button type="button" onClick={() => setMode("full")} className={cn("rounded-2xl border-2 p-3 text-sm font-bold transition", mode === "full" ? "border-brand-600 bg-brand-50 text-brand-800" : "border-sand-200 bg-white text-slate-600 hover:border-brand-300")}>تسویه کامل<span className="num mt-1 block text-xs font-normal text-slate-500">{formatMoney(data.totalDue)}</span></button>
-              <button type="button" onClick={() => setMode("custom")} className={cn("rounded-2xl border-2 p-3 text-sm font-bold transition", mode === "custom" ? "border-brand-600 bg-brand-50 text-brand-800" : "border-sand-200 bg-white text-slate-600 hover:border-brand-300")}>مبلغ دلخواه<span className="mt-1 block text-xs font-normal text-slate-500">بخشی از بدهی</span></button>
+              <button type="button" onClick={() => setMode("custom")} className={cn("rounded-2xl border-2 p-3 text-sm font-bold transition", mode === "custom" ? "border-brand-600 bg-brand-50 text-brand-800" : "border-sand-200 bg-white text-slate-600 hover:border-brand-300")}>مبلغ دلخواه<span className="mt-1 block text-xs font-normal text-slate-500">نصف یا هر مبلغ</span></button>
+              <button type="button" onClick={() => setMode("none")} className={cn("rounded-2xl border-2 p-3 text-sm font-bold transition", mode === "none" ? "border-coral-500 bg-coral-500/10 text-coral-700" : "border-sand-200 bg-white text-slate-600 hover:border-coral-400")}>پرداخت نکرد<span className="mt-1 block text-xs font-normal text-slate-500">همه بدهی شود</span></button>
             </div>
             {mode === "custom" && <div className="mt-2"><MoneyInput value={amount} onChange={setAmount} suffix="تومان" autoFocus /></div>}
+            {mode !== "full" && (() => { const after = data.totalDue - (mode === "custom" ? Number(amount || 0) : 0); return <p className={cn("mt-2 rounded-xl px-3 py-2 text-xs", after > 0 ? "bg-coral-500/10 text-coral-700" : "bg-sage-100 text-sage-700")}>{after > 0 ? <>مانده بدهی مراجع پس از ثبت: <b className="num">{formatMoney(after)}</b> (در پروفایل مالی او به‌عنوان بدهی ثبت می‌شود)</> : after < 0 ? <>مازاد <b className="num">{formatMoney(-after)}</b> به‌عنوان پیش‌پرداخت (بستانکاری) ثبت می‌شود</> : "حساب مراجع کامل تسویه می‌شود ✅"}</p>; })()}
           </Field>
           <Field label="کارکرد درمانگر برای این جلسه" hint="پیش‌فرض = مبلغ جلسه؛ اگر جلسه کوتاه‌تر یا با قیمت دیگری برگزار شد تغییر دهید"><MoneyInput value={therapistAmount} onChange={setTherapistAmount} suffix="تومان" /></Field>
-          {method !== "CASH" && <Field label="شماره پیگیری / ۴ رقم آخر کارت" hint="اختیاری"><Input value={reference} onChange={(e) => setReference(e.target.value)} className="num" dir="ltr" /></Field>}
-          <Toggle checked={sendSms} onChange={setSendSms} label="پیامک رسید پرداخت برای مراجع ارسال شود" />
+          {mode !== "none" && method !== "CASH" && <Field label="شماره پیگیری / ۴ رقم آخر کارت" hint="اختیاری"><Input value={reference} onChange={(e) => setReference(e.target.value)} className="num" dir="ltr" /></Field>}
+          {mode !== "none" && <Toggle checked={sendSms} onChange={setSendSms} label="پیامک رسید پرداخت برای مراجع ارسال شود" />}
         </div>
       )}
     </Modal>

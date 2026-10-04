@@ -4,9 +4,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2, CreditCard, Copy, Check, X, Clock } from "lucide-react";
+import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2, CreditCard, Copy, Check, X, Clock, Pencil, AlertTriangle, FilePlus2 } from "lucide-react";
 import { usePublicSettings } from "@/lib/settings";
-import { formatJalali, formatMoney, toPersianDigits, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, WALLET_TX_TYPES, WALLET_TX_LABELS } from "@toranj/shared";
+import { formatJalali, formatJalaliLong, formatTime, formatMoney, toPersianDigits, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, WALLET_TX_TYPES, WALLET_TX_LABELS } from "@toranj/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button, Card, EmptyState, Field, Input, Modal, Select, Spinner, Stat, Tabs, Textarea, Toggle, useConfirm } from "@/components/ui";
@@ -20,8 +20,10 @@ export function FinancePanel({ patientId }: { patientId: string }) {
   const isAdmin = user?.role === "ADMIN";
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["finance", patientId], queryFn: () => api.get<any>(`/finance/patients/${patientId}`) });
-  const [tab, setTab] = useState<"invoices" | "payments" | "wallet" | "discounts">("invoices");
-  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | "online" | "claim" | null>(null);
+  const [tab, setTab] = useState<"debts" | "invoices" | "payments" | "wallet" | "discounts">("debts");
+  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | "online" | "claim" | "debt" | null>(null);
+  const [editDebt, setEditDebt] = useState<any | null>(null);
+  const [showSettled, setShowSettled] = useState(false);
   const settings = usePublicSettings();
   const claims = useQuery({ queryKey: ["claims", patientId], queryFn: () => api.get<{ items: any[] }>(user?.role === "PATIENT" ? "/payments/intents" : "/payments/claims", user?.role === "PATIENT" ? undefined : { patientId }) });
   const { confirm, dialog } = useConfirm();
@@ -50,6 +52,14 @@ export function FinancePanel({ patientId }: { patientId: string }) {
   const debtReminder = async () => {
     try { await api.post(`/finance/patients/${patientId}/debt-reminder`); toast.success("پیامک یادآوری بدهی ارسال شد"); } catch (e: any) { toast.error(e.message); }
   };
+  const deleteDebt = async (d: any) => {
+    if (!(await confirm(`بدهی «${d.title}» به مبلغ ${formatMoney(d.total)} حذف شود؟`))) return;
+    try { await api.delete(`/finance/debts/${d.id}`); toast.success("بدهی حذف شد"); refresh(); } catch (e: any) { toast.error(e.message); }
+  };
+  const debts: any[] = data.debts ?? [];
+  const openDebts = debts.filter((d) => d.remaining > 0);
+  const shownDebts = showSettled ? debts : openDebts;
+  const overThreshold = data.debtAlertThreshold > 0 && s.balance > data.debtAlertThreshold;
   const deletePayment = async (id: string) => {
     if (!(await confirm("این پرداخت حذف شود؟ مانده حساب مراجع تغییر می‌کند."))) return;
     try { await api.delete(`/finance/payments/${id}`); toast.success("حذف شد"); refresh(); } catch (e: any) { toast.error(e.message); }
@@ -58,6 +68,9 @@ export function FinancePanel({ patientId }: { patientId: string }) {
   return (
     <div className="space-y-5">
       {dialog}
+      {canEdit && overThreshold && (
+        <div className="flex items-center gap-2 rounded-2xl border border-coral-400/50 bg-coral-500/10 px-4 py-3 text-sm text-coral-700"><AlertTriangle className="h-5 w-5 shrink-0" />بدهی این مراجع از سقف {formatMoney(data.debtAlertThreshold, cur)} بیشتر است.</div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={s.balance > 0 ? "بدهکاری" : s.balance < 0 ? "بستانکاری" : "مانده حساب"} value={s.balance === 0 ? "تسویه ✅" : formatMoney(Math.abs(s.balance), cur)} tone={s.balance > 0 ? "coral" : "sage"} icon={<Receipt className="h-6 w-6" />} hint={s.overdueAmount > 0 ? `سررسید گذشته: ${formatMoney(s.overdueAmount, cur)}` : s.nextDueDate ? `مهلت بعدی: ${formatJalali(s.nextDueDate)}` : undefined} />
         <Stat label="کیف پول" value={formatMoney(s.walletBalance, cur)} tone="brand" icon={<Wallet className="h-6 w-6" />} />
@@ -112,6 +125,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
       {canEdit && (
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setModal("payment")} icon={<Plus className="h-4 w-4" />}>ثبت پرداخت</Button>
+          <Button variant="secondary" onClick={() => setModal("debt")} icon={<FilePlus2 className="h-4 w-4" />} className="!border-coral-400/60 !text-coral-700">ثبت بدهی</Button>
           <Button variant="secondary" onClick={() => setModal("invoice")} icon={<Receipt className="h-4 w-4" />}>صورت‌حساب جدید</Button>
           <Button variant="secondary" onClick={() => setModal("wallet")} icon={<Wallet className="h-4 w-4" />}>تراکنش کیف پول</Button>
           <Button variant="secondary" onClick={() => setModal("discount")} icon={<Percent className="h-4 w-4" />}>تخفیف</Button>
@@ -119,8 +133,32 @@ export function FinancePanel({ patientId }: { patientId: string }) {
           <Link href={`/panel/finance/statement/${patientId}`} className="btn-ghost"><Printer className="h-4 w-4" />صورت‌حساب کلی</Link>
         </div>
       )}
-      <Tabs value={tab} onChange={setTab} tabs={[{ key: "invoices", label: "صورت‌حساب‌ها", count: data.invoices.length }, { key: "payments", label: "پرداخت‌ها", count: data.payments.length }, { key: "wallet", label: "کیف پول", count: data.walletTxs.length }, { key: "discounts", label: "تخفیف‌ها", count: data.discounts.length }]} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ key: "debts", label: "بدهی‌ها", count: openDebts.length }, { key: "invoices", label: "صورت‌حساب‌ها", count: data.invoices.length }, { key: "payments", label: "پرداخت‌ها", count: data.payments.length }, { key: "wallet", label: "کیف پول", count: data.walletTxs.length }, { key: "discounts", label: "تخفیف‌ها", count: data.discounts.length }]} />
       <Card padded={false} className="overflow-x-auto">
+        {tab === "debts" && (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sand-200 px-4 py-3 text-sm">
+              <span>{openDebts.length ? <>جمع مانده بدهی: <b className="num text-coral-600">{formatMoney(openDebts.reduce((a, d) => a + d.remaining, 0), cur)}</b> در <span className="num">{toPersianDigits(openDebts.length)}</span> ردیف</> : <span className="text-sage-700">بدهی بازی ندارد ✅</span>}</span>
+              {debts.length > openDebts.length && <Toggle checked={showSettled} onChange={setShowSettled} label="نمایش موارد تسویه‌شده" />}
+            </div>
+            {shownDebts.length ? (
+              <table className="table">
+                <thead><tr><th>تاریخ</th><th>بابت</th><th>نوع</th><th>مبلغ</th><th>پرداخت‌شده</th><th>مانده</th><th>وضعیت</th>{canEdit && <th></th>}</tr></thead>
+                <tbody>{shownDebts.map((d) => (
+                  <tr key={d.id} className={d.remaining <= 0 ? "opacity-60" : undefined}>
+                    <td className="num text-xs">{formatJalali(d.date)}</td>
+                    <td className="max-w-xs"><span className="font-medium">{d.title}</span>{d.sessions.length > 0 && <span className="mt-0.5 block text-[11px] text-slate-400">{d.sessions.map((x: any) => `${formatJalaliLong(x.startAt)} ساعت ${formatTime(x.startAt)} · ${x.therapistName}`).join(" | ")}</span>}{d.note && <span className="mt-0.5 block text-[11px] text-slate-400">{d.note}</span>}</td>
+                    <td className="text-xs">{d.kind === "DEBT" ? <span className="rounded bg-coral-500/10 px-1.5 py-0.5 text-coral-700">بدهی دستی</span> : d.kind === "SESSION" ? <span className="rounded bg-brand-50 px-1.5 py-0.5 text-brand-700">جلسه</span> : <span className="text-slate-500">صورت‌حساب</span>}</td>
+                    <td className="num">{formatMoney(d.total, "")}</td>
+                    <td className="num text-sage-700">{d.paid ? formatMoney(d.paid, "") : "-"}</td>
+                    <td className="num font-bold text-coral-600">{d.remaining > 0 ? formatMoney(d.remaining, "") : "-"}</td>
+                    <td><StatusBadge status={d.status} /></td>
+                    {canEdit && <td className="whitespace-nowrap">{d.kind === "DEBT" ? <span className="flex gap-2"><button onClick={() => setEditDebt(d)} className="text-slate-400 hover:text-brand-600" title="ویرایش"><Pencil className="h-4 w-4" /></button>{d.paid === 0 && <button onClick={() => deleteDebt(d)} className="text-coral-500 hover:text-coral-700" title="حذف"><Trash2 className="h-4 w-4" /></button>}</span> : <Link href={`/panel/finance/invoices/${d.id}`} className="text-xs text-brand-600 hover:underline">مشاهده</Link>}</td>}
+                  </tr>))}</tbody>
+              </table>
+            ) : <EmptyState title={debts.length ? "همه بدهی‌ها تسویه شده‌اند" : "بدهی‌ای ثبت نشده"} description={canEdit ? "جلسات پرداخت‌نشده یا نیمه‌پرداخت در «تسویه جلسه» خودکار اینجا می‌آیند؛ برای مبلغ دلخواه دکمه «ثبت بدهی» را بزنید." : undefined} />}
+          </>
+        )}
         {tab === "invoices" && (data.invoices.length ? (
           <table className="table">
             <thead><tr><th>شماره</th><th>تاریخ</th><th>سررسید</th><th>مبلغ</th><th>تخفیف</th><th>پرداختی</th><th>مانده</th><th>وضعیت</th><th></th></tr></thead>
@@ -162,6 +200,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
         ) : <EmptyState title="تخفیفی ثبت نشده" />)}
       </Card>
 
+      {(modal === "debt" || editDebt) && <DebtModal patientId={patientId} initial={editDebt} onClose={() => { setModal(null); setEditDebt(null); }} onDone={refresh} />}
       {modal === "payment" && <PaymentModal patientId={patientId} invoices={data.invoices.filter((i: any) => ["ISSUED", "PARTIAL"].includes(i.status))} walletBalance={s.walletBalance} onClose={() => setModal(null)} onDone={refresh} />}
       {modal === "invoice" && <InvoiceModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
       {modal === "wallet" && <WalletModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
@@ -169,6 +208,36 @@ export function FinancePanel({ patientId }: { patientId: string }) {
       {modal === "claim" && <ClaimModal patientId={patientId} balance={s.balance} onClose={() => setModal(null)} onDone={refreshClaims} />}
       {modal === "online" && <OnlinePayModal patientId={patientId} balance={s.balance} minAmount={payCfg.data?.minAmount ?? 10000} onClose={() => setModal(null)} />}
     </div>
+  );
+}
+
+/** ثبت یا ویرایش بدهی با مبلغ دلخواه */
+function DebtModal({ patientId, initial, onClose, onDone }: { patientId: string; initial?: any; onClose: () => void; onDone: () => void }) {
+  const [v, setV] = useState({ amount: initial ? String(initial.total) : "", title: initial?.title ?? "", note: initial?.note ?? "", date: (initial ? new Date(initial.date) : new Date()) as Date | null });
+  const [loading, setLoading] = useState(false);
+  const submit = async () => {
+    const amount = Number(String(v.amount).replace(/[^\d]/g, ""));
+    if (!amount) return toast.error("مبلغ بدهی را وارد کنید");
+    if (!v.title.trim()) return toast.error("بابت چه چیزی؟ شرح بدهی را بنویسید");
+    setLoading(true);
+    try {
+      const payload = { amount, title: v.title.trim(), note: v.note || null, date: v.date?.toISOString() };
+      if (initial) await api.patch(`/finance/debts/${initial.id}`, payload); else await api.post(`/finance/patients/${patientId}/debts`, payload);
+      toast.success(initial ? "بدهی ویرایش شد" : "بدهی ثبت شد");
+      onDone();
+      onClose();
+    } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title={initial ? "ویرایش بدهی" : "ثبت بدهی برای مراجع"} size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>{initial ? "ذخیره" : "ثبت بدهی"}</Button></>}>
+      <div className="space-y-3">
+        <Field label="مبلغ بدهی (تومان)" required hint={initial?.paid ? `تاکنون ${formatMoney(initial.paid)} از این بدهی پرداخت شده؛ مبلغ نمی‌تواند کمتر از آن باشد` : undefined}><MoneyInput value={v.amount} onChange={(d) => setV({ ...v, amount: d })} suffix="تومان" autoFocus /></Field>
+        <Field label="بابت" required hint="مثلاً: بدهی جلسات قبل، باقی‌مانده جلسه ۱۲ مهر، هزینه وسیله توان‌بخشی"><Input value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} /></Field>
+        <Field label="تاریخ"><JalaliDatePicker value={v.date} onChange={(d) => setV({ ...v, date: d })} /></Field>
+        <Field label="توضیح (اختیاری)"><Input value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} /></Field>
+        <p className="rounded-xl bg-sand-100 px-3 py-2 text-[11px] leading-5 text-slate-500">این مبلغ به مانده حساب مراجع اضافه می‌شود و با «ثبت پرداخت» یا «تسویه جلسه» از قدیمی‌ترین بدهی کم می‌شود. کارکرد درمانگر به این بدهی ربطی ندارد.</p>
+      </div>
+    </Modal>
   );
 }
 
