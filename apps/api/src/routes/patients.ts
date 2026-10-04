@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { assignQuestionnaire, requestQuestionnaire, DEFAULT_QUESTIONNAIRE } from "../lib/questionnaires.js";
 import { z } from "zod";
 import { normalizePhone, isValidMobile, isPhoneLike, daysUntilBirthday, GENDERS, PATIENT_STATUSES } from "@toranj/shared";
 import { prisma, parseJson } from "../lib/prisma.js";
@@ -15,6 +16,7 @@ import { audit } from "../lib/audit.js";
 export const patientsRouter = Router();
 
 const patientSchema = z.object({
+  questionnaire: z.enum(["queue", "send", "none"]).optional(), // پرسشنامه پروفایل حسی: صف تأیید منشی / ارسال فوری / ارسال نشود
   firstName: z.string().min(1, "نام الزامی است"),
   lastName: z.string().min(1, "نام خانوادگی الزامی است"),
   phone: z.string().min(10, "شماره تماس الزامی است"),
@@ -146,7 +148,7 @@ patientsRouter.post("/", requireStaff, async (req, res) => {
   const phone = normalizePhone(body.phone);
   if (!isValidMobile(phone)) throw badRequest("شماره موبایل معتبر نیست (مثال: 09123456789)");
   const fileNumber = await nextNumber("patient", "OT-");
-  const { createAccount, tags, leadId, ...rest } = body;
+  const { createAccount, tags, leadId, questionnaire, ...rest } = body;
   const patient = await prisma.patient.create({
     data: { ...rest, phone, fileNumber, tags: JSON.stringify(tags ?? []), leadId: leadId ?? null, birthDate: body.birthDate ?? null },
     include: patientInclude,
@@ -164,6 +166,12 @@ patientsRouter.post("/", requireStaff, async (req, res) => {
   }
   if (await getSettingBool("sms.autoWelcome", true)) {
     sendTemplateSms("welcome", phone, { name: `${patient.firstName} ${patient.lastName}`, fileNumber }, { related: { type: "patient", id: patient.id } }).catch(console.error);
+  }
+  if (questionnaire === "send") {
+    const r = await prisma.questionnaireResponse.create({ data: { type: DEFAULT_QUESTIONNAIRE, patientId: patient.id, source: "NEW_PATIENT", requestedById: req.user!.id } });
+    await assignQuestionnaire(r.id, req.user!.id).catch((e) => console.error("questionnaire send failed", e));
+  } else if (questionnaire !== "none") {
+    await requestQuestionnaire(patient.id, "NEW_PATIENT", req.user!.id);
   }
   await audit(req.user!.id, "create", "patient", patient.id, { fileNumber });
   const fresh = await prisma.patient.findUnique({ where: { id: patient.id }, include: patientInclude });
@@ -199,6 +207,7 @@ patientsRouter.patch("/:id", requireStaff, async (req, res) => {
   const data: any = { ...body };
   delete data.createAccount;
   delete data.leadId;
+  delete data.questionnaire;
   if (body.phone) {
     data.phone = normalizePhone(body.phone);
     if (!isValidMobile(data.phone)) throw badRequest("شماره موبایل معتبر نیست");

@@ -38,6 +38,7 @@ function publicUser(u: any) {
     therapistId: u.therapist?.id ?? null,
     patientId: u.patient?.id ?? null,
     fileNumber: u.patient?.fileNumber ?? null,
+    testAnalyst: u.role === "ADMIN" || !!u.testAnalyst,
   };
 }
 

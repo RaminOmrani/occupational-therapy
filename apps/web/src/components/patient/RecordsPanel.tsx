@@ -52,16 +52,16 @@ export function RecordsPanel({ patientId, initialTab = "assessments" }: { patien
 
       {tab === "assessments" && (
         <div className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {(Object.keys(ASSESSMENT_TEMPLATES) as AssessmentType[]).map((type) => {
               const t = ASSESSMENT_TEMPLATES[type];
               const a = latestOf(type);
               const pct = a && a.maxScore ? Math.round((a.score / a.maxScore) * 100) : null;
-              const tone = type === "PHYSICAL" ? "brand" : type === "PERCEPTUAL_MOTOR" ? "amber" : "violet";
+              const tone = type === "PHYSICAL" ? "brand" : type === "PERCEPTUAL_MOTOR" ? "amber" : type === "SENSORY" ? "coral" : "violet";
               return (
                 <Card key={type} className="relative">
                   <div className="flex items-start justify-between">
-                    <div><h4 className="font-bold">{t.title}</h4><p className="mt-0.5 text-xs text-slate-400">{a ? `آخرین: ${formatJalali(a.date)}` : "هنوز ثبت نشده"}</p></div>
+                    <div><h4 className="font-bold">{t.title}</h4><p className="mt-0.5 text-xs text-slate-400">{a ? `آخرین: ${formatJalali(a.date)}` : "هنوز ثبت نشده"}</p>{t.higherIsBetter === false && a && <p className="mt-0.5 text-[10px] text-slate-400">نمره بالاتر = رفتار حسی بیشتر</p>}</div>
                     <span className={cn("num text-2xl font-black", pct === null ? "text-slate-300" : `text-${tone}-600`)}>{pct === null ? "—" : `${toPersianDigits(pct)}٪`}</span>
                   </div>
                   {pct !== null && <ProgressBar value={pct} tone={tone} className="mt-3" />}

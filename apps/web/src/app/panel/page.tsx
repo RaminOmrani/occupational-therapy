@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Users, UserPlus, CalendarDays, Wallet, AlertCircle, Cake, MessageSquareHeart, MessageSquareText, TrendingUp, CalendarCheck, Clock, Dumbbell, Target, ArrowLeft, ClipboardList, Globe, MessageCircle, FileSignature } from "lucide-react";
+import { Users, UserPlus, CalendarDays, Wallet, AlertCircle, Cake, MessageSquareHeart, MessageSquareText, TrendingUp, CalendarCheck, Clock, Dumbbell, Target, ArrowLeft, ClipboardList, Globe, MessageCircle, FileSignature, ClipboardCheck } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { formatJalali, formatJalaliLong, formatMoney, formatTime, toPersianDigits } from "@toranj/shared";
 import { api } from "@/lib/api";
@@ -166,10 +166,17 @@ function PatientDashboard({ d }: { d: any }) {
   const next = d.upcoming[0];
   const fin = d.finance;
   const consent = useQuery({ queryKey: ["consent-status", "me"], queryFn: () => api.get<any>("/consents/status/me") });
+  const myQ = useQuery({ queryKey: ["my-questionnaires"], queryFn: () => api.get<{ items: any[] }>("/questionnaires/my") });
+  const pendingQ = (myQ.data?.items ?? []).filter((q) => q.status === "ASSIGNED");
   return (
     <>
       <PageHeader title={<Greeting />} subtitle={`شماره پرونده: ${d.patient.fileNumber}${d.patient.primaryTherapist ? ` · درمانگر: ${d.patient.primaryTherapist.user.firstName} ${d.patient.primaryTherapist.user.lastName}` : ""}`} />
       <InstallBanner />
+      {pendingQ.map((q) => (
+        <Link key={q.id} href={`/panel/my/questionnaires/${q.id}`} className="mb-5 flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 hover:bg-brand-100">
+          <ClipboardCheck className="h-5 w-5 shrink-0" /><span>کلینیک برای شما <b>{q.title}</b> فرستاده است؛ لطفاً تکمیل کنید.</span>
+        </Link>
+      ))}
       {consent.data?.pending && (
         <Link href="/panel/my/consent" className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-700 hover:bg-amber-400/20">
           <FileSignature className="h-5 w-5 shrink-0" /><span>لطفاً <b>رضایت‌نامه درمان</b> را مطالعه و امضا کنید.</span>

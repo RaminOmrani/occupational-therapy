@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requestQuestionnaire } from "../lib/questionnaires.js";
 import { z } from "zod";
 import { APPOINTMENT_STATUSES, formatJalaliLong, formatTime, startOfDay, endOfDay } from "@toranj/shared";
 import { prisma } from "../lib/prisma.js";
@@ -95,6 +96,7 @@ appointmentsRouter.post("/", requireStaff, async (req, res) => {
     include,
   });
   await audit(req.user!.id, "create", "appointment", a.id);
+  if (kind === "ASSESSMENT") await requestQuestionnaire(body.patientId, "ASSESSMENT", req.user!.id);
   res.status(201).json({ appointment: shape(a) });
 });
 

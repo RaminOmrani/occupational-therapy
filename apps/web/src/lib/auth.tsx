@@ -14,6 +14,7 @@ export interface SessionUser {
   therapistId: string | null;
   patientId: string | null;
   fileNumber?: string | null;
+  testAnalyst?: boolean;
 }
 
 interface AuthCtx {

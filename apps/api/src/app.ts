@@ -20,6 +20,7 @@ import { notificationsRouter } from "./routes/notifications.js";
 import { publicRouter } from "./routes/public.js";
 import { uploadsRouter, documentsRouter, avatarRouter, apkRouter, mediaRouter, UPLOAD_DIR } from "./routes/uploads.js";
 import { bookingsRouter, publicBookingRouter } from "./routes/bookings.js";
+import { questionnairesRouter } from "./routes/questionnaires.js";
 import { messagesRouter } from "./routes/messages.js";
 import { waitlistRouter } from "./routes/waitlist.js";
 import { servicesRouter } from "./routes/services.js";
@@ -65,6 +66,7 @@ export function createApp() {
   app.use("/api/public/booking", publicBookingRouter);
   app.use("/api/public/survey", publicSurveyRouter);
   app.use("/api/bookings", bookingsRouter);
+  app.use("/api/questionnaires", questionnairesRouter);
   app.use("/api/messages", messagesRouter);
   app.use("/api/surveys", surveysRouter);
   app.use("/api/consents", consentsRouter);

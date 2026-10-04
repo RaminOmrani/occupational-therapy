@@ -2,7 +2,9 @@
  * سه فرم ارزیابی استاندارد توان‌بخشی که هر درمانگر برای هر مراجع تکمیل می‌کند.
  * هر آیتم امتیاز ۰ تا ۴ دارد (۰ = ناتوان / نیازمند کمک کامل، ۴ = مستقل و طبیعی).
  */
-export const ASSESSMENT_TYPES = ["PHYSICAL", "PERCEPTUAL_MOTOR", "COGNITIVE"] as const;
+import { SENSORY_PROFILE_2 } from "./questionnaires.js";
+
+export const ASSESSMENT_TYPES = ["PHYSICAL", "PERCEPTUAL_MOTOR", "COGNITIVE", "SENSORY"] as const;
 export type AssessmentType = (typeof ASSESSMENT_TYPES)[number];
 
 export interface AssessmentItemDef {
@@ -18,6 +20,14 @@ export interface AssessmentTemplate {
   description: string;
   color: string;
   sections: { title: string; items: AssessmentItemDef[] }[];
+  /** بیشترین نمره هر آیتم (پیش‌فرض ۴) */
+  maxPerItem?: number;
+  /** برچسب نمره‌ها برای این فرم (پیش‌فرض SCORE_LABELS) */
+  scaleLabels?: Record<number, string>;
+  /** نمره بالاتر = وضعیت بهتر؟ (برای نمودار روند؛ در پروفایل حسی نمره بالاتر یعنی رفتار حسی بیشتر) */
+  higherIsBetter?: boolean;
+  /** ربع‌های نمره‌گذاری (فقط پروفایل حسی) */
+  quadrants?: { key: string; title: string; items: string[] }[];
 }
 
 export const SCORE_LABELS: Record<number, string> = {
@@ -27,6 +37,8 @@ export const SCORE_LABELS: Record<number, string> = {
   3: "خوب / نیاز به نظارت",
   4: "طبیعی / مستقل",
 };
+
+const SENSORY_SCALE_LABELS: Record<number, string> = Object.fromEntries(SENSORY_PROFILE_2.scale.map((x) => [x.value, `${x.label} (${x.hint})`]));
 
 export const ASSESSMENT_TEMPLATES: Record<AssessmentType, AssessmentTemplate> = {
   PHYSICAL: {
@@ -169,12 +181,25 @@ export const ASSESSMENT_TEMPLATES: Record<AssessmentType, AssessmentTemplate> = 
       },
     ],
   },
+  SENSORY: {
+    type: "SENSORY",
+    title: "پروفایل حسی ۲",
+    shortTitle: "حسی",
+    description: "پرسشنامه ۸۶ سؤالی پروفایل حسی کودک (والد/مراقب)؛ نمره ۰ تا ۵ و جمع هر حوزه و هر ربع حسی. می‌تواند در کلینیک تکمیل شود یا برای مراجع ارسال شود.",
+    color: "amber",
+    maxPerItem: 5,
+    scaleLabels: SENSORY_SCALE_LABELS,
+    higherIsBetter: false,
+    sections: SENSORY_PROFILE_2.sections.map((sec) => ({ title: sec.title, items: sec.items.map((it) => ({ key: `q${it.no}`, label: `${it.no}. ${it.text}` })) })),
+    quadrants: SENSORY_PROFILE_2.quadrants.map((q) => ({ key: q.key, title: q.title, items: q.items.map((n) => `q${n}`) })),
+  },
 };
 
 export const ASSESSMENT_TYPE_LABELS: Record<AssessmentType, string> = {
   PHYSICAL: ASSESSMENT_TEMPLATES.PHYSICAL.title,
   PERCEPTUAL_MOTOR: ASSESSMENT_TEMPLATES.PERCEPTUAL_MOTOR.title,
   COGNITIVE: ASSESSMENT_TEMPLATES.COGNITIVE.title,
+  SENSORY: ASSESSMENT_TEMPLATES.SENSORY.title,
 };
 
 export interface AssessmentItemValue {
@@ -184,7 +209,8 @@ export interface AssessmentItemValue {
 }
 
 export function assessmentMaxScore(type: AssessmentType): number {
-  return ASSESSMENT_TEMPLATES[type].sections.reduce((s, sec) => s + sec.items.length * 4, 0);
+  const t = ASSESSMENT_TEMPLATES[type];
+  return t.sections.reduce((s, sec) => s + sec.items.length * (t.maxPerItem ?? 4), 0);
 }
 
 export function assessmentScore(type: AssessmentType, items: AssessmentItemValue[]): { score: number; max: number; percent: number } {

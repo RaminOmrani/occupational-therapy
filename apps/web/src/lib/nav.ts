@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ReceiptText, Hourglass, HandCoins, Stethoscope, LayoutDashboard, Users, UserPlus, CalendarDays, ClipboardList, Activity, TrendingUp, NotebookPen, Wallet, MessageSquareText, Cake, Newspaper, MessageSquareHeart, UserCog, Settings, FolderHeart, Dumbbell, UserCircle, CalendarCheck, Globe, MessageCircle, BarChart3, FileSignature } from "lucide-react";
+import { ClipboardCheck, ReceiptText, Hourglass, HandCoins, Stethoscope, LayoutDashboard, Users, UserPlus, CalendarDays, ClipboardList, Activity, TrendingUp, NotebookPen, Wallet, MessageSquareText, Cake, Newspaper, MessageSquareHeart, UserCog, Settings, FolderHeart, Dumbbell, UserCircle, CalendarCheck, Globe, MessageCircle, BarChart3, FileSignature } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -15,6 +15,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/panel/my/schedule", label: "برنامه جلسات", icon: CalendarCheck, roles: ["PATIENT"] },
   { href: "/panel/my/records", label: "پرونده درمانی", icon: FolderHeart, roles: ["PATIENT"] },
   { href: "/panel/my/home", label: "تمرین خانگی", icon: Dumbbell, roles: ["PATIENT"] },
+  { href: "/panel/my/questionnaires", label: "پرسشنامه‌ها", icon: ClipboardCheck, roles: ["PATIENT"] },
   { href: "/panel/my/finance", label: "امور مالی", icon: Wallet, roles: ["PATIENT"] },
   { href: "/panel/my/messages", label: "پیام به درمانگر", icon: MessageCircle, roles: ["PATIENT"] },
   { href: "/panel/my/feedback", label: "انتقاد و پیشنهاد", icon: MessageSquareHeart, roles: ["PATIENT"] },
@@ -30,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/panel/crm/birthdays", label: "تولدها", icon: Cake, roles: ["ADMIN", "SECRETARY"], group: "کلینیک" },
   { href: "/panel/forms/intake", label: "شرح حال اولیه", icon: ClipboardList, roles: ["ADMIN", "THERAPIST", "SECRETARY"], group: "فرم‌های بالینی" },
   { href: "/panel/forms/assessments", label: "ارزیابی‌ها", icon: Activity, roles: ["ADMIN", "THERAPIST", "SECRETARY"], group: "فرم‌های بالینی" },
+  { href: "/panel/questionnaires", label: "پرسشنامه‌ها و تحلیل آزمون", icon: ClipboardCheck, roles: ["ADMIN", "SECRETARY", "THERAPIST"], group: "فرم‌های بالینی" },
   { href: "/panel/forms/progress", label: "گزارش پیشرفت", icon: TrendingUp, roles: ["ADMIN", "THERAPIST", "SECRETARY"], group: "فرم‌های بالینی" },
   { href: "/panel/forms/daily", label: "عملکرد روزانه", icon: NotebookPen, roles: ["ADMIN", "THERAPIST"], group: "فرم‌های بالینی" },
   { href: "/panel/finance/daily", label: "پایان کار (صندوق روز)", icon: ReceiptText, roles: ["ADMIN", "SECRETARY"], group: "مدیریت" },

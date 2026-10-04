@@ -74,6 +74,7 @@ const userSchema = z.object({
   role: z.enum(ROLES),
   password: z.string().min(6, "رمز عبور حداقل ۶ کاراکتر").optional(),
   isActive: z.boolean().optional(),
+  testAnalyst: z.boolean().optional(),
   therapist: z
     .object({
       specialty: zOptionalString,
@@ -105,6 +106,7 @@ usersRouter.post("/", async (req, res) => {
       phone,
       role: body.role,
       isActive: body.isActive ?? true,
+      testAnalyst: body.testAnalyst ?? false,
       passwordHash: body.password ? await hashPassword(body.password) : null,
       therapist: hasTherapistProfile(body.role, body.therapist) ? { create: { ...(body.therapist ?? {}), workDays: JSON.stringify(body.therapist?.workDays ?? [0, 1, 2, 3, 4, 6]), color: body.therapist?.color ?? "#178a6e", sortOrder: body.therapist?.sortOrder ?? 0 } } : undefined,
     },
@@ -119,7 +121,7 @@ usersRouter.patch("/:id", async (req, res) => {
   const cur = await prisma.user.findUnique({ where: { id: String(req.params.id) }, include: { therapist: true } });
   await checkTherapistSlug(body.therapist?.slug, cur?.id);
   if (!cur) throw notFound("کاربر یافت نشد");
-  const data: any = { firstName: body.firstName, lastName: body.lastName, isActive: body.isActive };
+  const data: any = { firstName: body.firstName, lastName: body.lastName, isActive: body.isActive, testAnalyst: body.testAnalyst };
   if (body.phone) {
     data.phone = normalizePhone(body.phone);
     if (!isValidMobile(data.phone)) throw badRequest("شماره موبایل معتبر نیست");

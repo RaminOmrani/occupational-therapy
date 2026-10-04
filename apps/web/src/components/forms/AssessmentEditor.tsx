@@ -10,7 +10,7 @@ import { Button, Card, Field, ProgressBar, Textarea, useConfirm, Tabs } from "@/
 import { FormHeaderFields, useFormHead, usePatientLabel } from "./FormHeader";
 import { cn } from "@/lib/utils";
 
-const TONES: Record<AssessmentType, "brand" | "amber" | "violet"> = { PHYSICAL: "brand", PERCEPTUAL_MOTOR: "amber", COGNITIVE: "violet" };
+const TONES: Record<AssessmentType, "brand" | "amber" | "violet" | "coral"> = { PHYSICAL: "brand", PERCEPTUAL_MOTOR: "amber", COGNITIVE: "violet", SENSORY: "coral" };
 
 export function AssessmentEditor({ id, initialPatientId, initialType }: { id?: string; initialPatientId?: string; initialType?: AssessmentType }) {
   const router = useRouter();
@@ -43,6 +43,10 @@ export function AssessmentEditor({ id, initialPatientId, initialType }: { id?: s
   const list = useMemo(() => tpl.sections.flatMap((s) => s.items.map((it) => items[it.key] ?? { key: it.key, score: null })), [tpl, items]);
   const { score, max, percent } = assessmentScore(type, list);
   const answered = list.filter((i) => i.score !== null).length;
+  const top = tpl.maxPerItem ?? 4;
+  const scale = Array.from({ length: top + 1 }, (_, i) => i);
+  const labels = tpl.scaleLabels ?? SCORE_LABELS;
+  const quadrantRows = (tpl.quadrants ?? []).map((q) => ({ ...q, score: q.items.reduce((a, k) => a + (items[k]?.score ?? 0), 0), max: q.items.length * top }));
 
   const setScore = (key: string, s: number | null) => setItems({ ...items, [key]: { ...(items[key] ?? { key }), key, score: s } });
   const setNote = (key: string, note: string) => setItems({ ...items, [key]: { ...(items[key] ?? { key, score: null }), key, note } });
@@ -78,7 +82,12 @@ export function AssessmentEditor({ id, initialPatientId, initialType }: { id?: s
             <span className="num text-xs text-slate-400">({toPersianDigits(score)}/{toPersianDigits(max)})</span>
           </div>
         </div>
-        <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-400"><Info className="h-3 w-3" />امتیاز ۰ = وابسته کامل تا ۴ = مستقل/طبیعی. برای هر آیتم می‌توانید یادداشت بنویسید.</p>
+        <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-400"><Info className="h-3 w-3" />{tpl.scaleLabels ? `امتیازها: ${scale.slice().reverse().map((n) => `${toPersianDigits(n)} = ${labels[n]}`).join("، ")}. نمره بالاتر یعنی این رفتار بیشتر دیده می‌شود.` : "امتیاز ۰ = وابسته کامل تا ۴ = مستقل/طبیعی. برای هر آیتم می‌توانید یادداشت بنویسید."}</p>
+        {quadrantRows.length > 0 && (
+          <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+            {quadrantRows.map((q) => <div key={q.key} className="rounded-xl bg-sand-100 px-3 py-2 text-xs"><p className="text-slate-500">{q.title}</p><p className="num mt-0.5 font-black text-slate-800">{toPersianDigits(q.score)} <span className="text-[10px] font-normal text-slate-400">از {toPersianDigits(q.max)}</span></p></div>)}
+          </div>
+        )}
       </div>
 
       {tpl.sections.map((sec) => (
@@ -88,13 +97,13 @@ export function AssessmentEditor({ id, initialPatientId, initialType }: { id?: s
               const val = items[it.key];
               return (
                 <div key={it.key} className="grid gap-3 px-5 py-3 md:grid-cols-12 md:items-center">
-                  <div className="md:col-span-4"><p className="text-sm font-medium">{it.label}</p>{it.hint && <p className="text-xs text-slate-400">{it.hint}</p>}</div>
-                  <div className="flex gap-1 md:col-span-4">
-                    {[0, 1, 2, 3, 4].map((s) => (
-                      <button key={s} type="button" disabled={readOnly} title={SCORE_LABELS[s]} onClick={() => setScore(it.key, val?.score === s ? null : s)} className={cn("num h-9 flex-1 rounded-xl border text-sm font-bold transition", val?.score === s ? `border-${TONES[type]}-600 bg-${TONES[type]}-600 text-white` : "border-sand-300 bg-white hover:border-brand-300 disabled:opacity-60")}>{toPersianDigits(s)}</button>
+                  <div className={top > 4 ? "md:col-span-6" : "md:col-span-4"}><p className="text-sm font-medium leading-6">{it.label}</p>{it.hint && <p className="text-xs text-slate-400">{it.hint}</p>}</div>
+                  <div className={cn("flex gap-1", top > 4 ? "md:col-span-4" : "md:col-span-4")}>
+                    {scale.map((s) => (
+                      <button key={s} type="button" disabled={readOnly} title={labels[s]} onClick={() => setScore(it.key, val?.score === s ? null : s)} className={cn("num h-9 flex-1 rounded-xl border text-sm font-bold transition", val?.score === s ? `border-${TONES[type]}-600 bg-${TONES[type]}-600 text-white` : "border-sand-300 bg-white hover:border-brand-300 disabled:opacity-60")}>{toPersianDigits(s)}</button>
                     ))}
                   </div>
-                  <input value={val?.note ?? ""} disabled={readOnly} onChange={(e) => setNote(it.key, e.target.value)} placeholder="یادداشت..." className="input py-1.5 text-xs md:col-span-4" />
+                  <input value={val?.note ?? ""} disabled={readOnly} onChange={(e) => setNote(it.key, e.target.value)} placeholder="یادداشت..." className={cn("input py-1.5 text-xs", top > 4 ? "md:col-span-2" : "md:col-span-4")} />
                 </div>
               );
             })}

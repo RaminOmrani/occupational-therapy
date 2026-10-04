@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { ASSESSMENT_TYPES, assessmentScore, GOAL_STATUSES, startOfDay, endOfDay, type AssessmentType } from "@toranj/shared";
+import { ASSESSMENT_TYPES, ASSESSMENT_TEMPLATES, assessmentScore, GOAL_STATUSES, startOfDay, endOfDay, type AssessmentType } from "@toranj/shared";
 import { prisma, parseJson } from "../lib/prisma.js";
 import { validate, zDate, zOptionalString, zOptionalInt, zOptionalDate } from "../lib/validate.js";
 import { forbidden, notFound, badRequest } from "../lib/errors.js";
@@ -111,13 +111,17 @@ formsRouter.delete("/intake/:id", requireRole("ADMIN", "THERAPIST"), async (req,
   res.json({ ok: true });
 });
 
-// ---------------- ارزیابی‌ها (۳ فرم) ----------------
+// ---------------- ارزیابی‌ها (پروفایل جسمی، ادراکی-حرکتی، شناختی، حسی) ----------------
+function checkItemScale(type: string, items: { score: number | null }[]) {
+  const top = ASSESSMENT_TEMPLATES[type as AssessmentType]?.maxPerItem ?? 4;
+  if (items.some((i) => i.score !== null && i.score > top)) throw badRequest(`امتیاز هر آیتم در این فرم حداکثر ${top} است`);
+}
 const assessmentSchema = z.object({
   patientId: z.string().min(1),
   therapistId: zOptionalString,
   type: z.enum(ASSESSMENT_TYPES),
   date: zDate.optional(),
-  items: z.array(z.object({ key: z.string(), score: z.number().int().min(0).max(4).nullable(), note: z.string().optional() })),
+  items: z.array(z.object({ key: z.string(), score: z.number().int().min(0).max(5).nullable(), note: z.string().optional() })),
   summary: zOptionalString,
   recommendations: zOptionalString,
   visibleToPatient: z.boolean().optional(),
@@ -131,6 +135,7 @@ formsRouter.get("/assessments", async (req, res) => {
 });
 formsRouter.post("/assessments", requireStaff, async (req, res) => {
   const body = validate(assessmentSchema, req.body);
+  checkItemScale(body.type, body.items);
   const therapistId = resolveTherapistId(req, body.therapistId);
   const { score, max } = assessmentScore(body.type as AssessmentType, body.items);
   const f = await prisma.assessment.create({
@@ -154,6 +159,7 @@ formsRouter.patch("/assessments/:id", requireStaff, async (req, res) => {
   const body = validate(assessmentSchema.partial(), req.body);
   const data: any = { summary: body.summary, recommendations: body.recommendations, visibleToPatient: body.visibleToPatient, date: body.date };
   if (body.items) {
+    checkItemScale(cur.type, body.items);
     const { score, max } = assessmentScore(cur.type as AssessmentType, body.items);
     data.items = JSON.stringify(body.items);
     data.score = score;

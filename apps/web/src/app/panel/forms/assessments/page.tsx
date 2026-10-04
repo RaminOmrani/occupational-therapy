@@ -13,7 +13,7 @@ export default function AssessmentsListPage() {
   const { user } = useAuth();
   const [f, setF] = useState<FormFilterState>({ q: "", therapistId: "", from: null, to: null, type: "" });
   const { data, isLoading } = useQuery({ queryKey: ["assessments", f], queryFn: () => api.get<{ items: any[] }>("/forms/assessments", { ...filterParams(f), all: 1 }), placeholderData: (p) => p });
-  const tone = (t: AssessmentType) => (t === "PHYSICAL" ? "brand" : t === "PERCEPTUAL_MOTOR" ? "amber" : "violet");
+  const tone = (t: AssessmentType) => (t === "PHYSICAL" ? "brand" : t === "PERCEPTUAL_MOTOR" ? "amber" : t === "SENSORY" ? "coral" : "violet");
   return (
     <>
       <PageHeader title="ارزیابی‌ها" subtitle="پروفایل جسمی، مهارت‌های ادراکی-حرکتی و شناختی" icon={<Activity className="h-5 w-5" />} actions={user?.role !== "SECRETARY" && <Link href="/panel/forms/assessments/new" className="btn-primary"><Plus className="h-4 w-4" />ارزیابی جدید</Link>} />

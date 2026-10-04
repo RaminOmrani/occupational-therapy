@@ -1,5 +1,6 @@
 "use client";
 import { Suspense, useState } from "react";
+import { PatientQuestionnaires } from "@/components/patient/PatientQuestionnaires";
 import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -100,6 +101,7 @@ function Inner() {
                 {consent.data.signed ? <p className="text-sm text-sage-700">امضا شده توسط {consent.data.signed.signerName} · <Link href={`/panel/consents/${consent.data.signed.id}`} className="text-brand-600 hover:underline">مشاهده</Link></p> : consent.data.pending ? <p className="text-sm text-amber-600">هنوز امضا نشده؛ مراجع از پنل خود می‌تواند امضا کند.</p> : <p className="text-sm text-slate-400">الزامی نیست</p>}
               </Card>
             )}
+            {user?.role !== "PATIENT" && <PatientQuestionnaires patientId={id} canApprove={user?.role === "ADMIN" || user?.role === "SECRETARY"} />}
             <Card title="آمار درمان">
               <div className="grid grid-cols-2 gap-2 text-center text-sm">
                 {[["جلسات انجام‌شده", data.stats.sessionsDone], ["ارزیابی", data.stats.assessments], ["گزارش پیشرفت", data.stats.progressNotes], ["شرح حال", data.stats.intakeForms]].map(([l, v]) => <div key={l as string} className="rounded-xl bg-sand-100 p-2"><p className="num text-lg font-black text-brand-700">{toPersianDigits(v as number)}</p><p className="text-[11px] text-slate-500">{l}</p></div>)}

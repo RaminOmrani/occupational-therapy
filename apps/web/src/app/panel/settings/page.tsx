@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Settings, Save, Send, Building2, Globe, CalendarDays, Wallet, Users, MessageSquareText, ShieldCheck, Smartphone, Search } from "lucide-react";
+import { Settings, Save, Send, Building2, Globe, CalendarDays, Wallet, Users, MessageSquareText, ShieldCheck, Smartphone, Search, ClipboardCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Tabs, Textarea, Toggle } from "@/components/ui";
 import { BackupsCard } from "@/components/settings/BackupsCard";
@@ -10,7 +10,7 @@ import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { ApkUpload } from "@/components/settings/ApkUpload";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 
-const ICONS: Record<string, any> = { clinic: Building2, public: Globe, schedule: CalendarDays, finance: Wallet, crm: Users, sms: MessageSquareText, security: ShieldCheck, general: Settings, booking: CalendarDays, payment: Wallet, consent: ShieldCheck, app: Smartphone, seo: Search };
+const ICONS: Record<string, any> = { clinic: Building2, public: Globe, schedule: CalendarDays, finance: Wallet, crm: Users, sms: MessageSquareText, security: ShieldCheck, general: Settings, booking: CalendarDays, payment: Wallet, consent: ShieldCheck, app: Smartphone, seo: Search, questionnaire: ClipboardCheck };
 
 export default function SettingsPage() {
   const qc = useQueryClient();

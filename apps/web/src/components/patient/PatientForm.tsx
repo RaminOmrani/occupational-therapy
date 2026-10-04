@@ -24,6 +24,7 @@ export interface PatientFormValues {
   primaryTherapistId: string;
   tags: string;
   createAccount: boolean;
+  questionnaire: "queue" | "send" | "none";
 }
 
 export function toFormValues(p?: any): PatientFormValues {
@@ -44,6 +45,7 @@ export function toFormValues(p?: any): PatientFormValues {
     primaryTherapistId: p?.primaryTherapistId ?? "",
     tags: (p?.tags ?? []).join("، "),
     createAccount: true,
+    questionnaire: "queue",
   };
 }
 
@@ -58,6 +60,7 @@ export function PatientForm({ initial, patientId, leadId, onSaved, onCancel }: {
     setLoading(true);
     try {
       const payload: any = { ...v, birthDate: v.birthDate ? v.birthDate.toISOString() : null, gender: v.gender || null, primaryTherapistId: v.primaryTherapistId || null, tags: v.tags.split(/[،,]/).map((t) => t.trim()).filter(Boolean), leadId };
+      if (patientId) delete payload.questionnaire;
       const r = patientId ? await api.patch<{ patient: any }>(`/patients/${patientId}`, payload) : await api.post<{ patient: any }>("/patients", payload);
       toast.success(patientId ? "اطلاعات مراجع به‌روز شد" : `پرونده ${r.patient.fileNumber} ساخته شد`);
       onSaved(r.patient);
@@ -103,6 +106,15 @@ export function PatientForm({ initial, patientId, leadId, onSaved, onCancel }: {
       <Field label="تشخیص / علت مراجعه"><Input value={v.diagnosis} onChange={(e) => set("diagnosis", e.target.value)} /></Field>
       <Field label="آدرس"><Textarea value={v.address} onChange={(e) => set("address", e.target.value)} className="min-h-[60px]" /></Field>
       <Field label="یادداشت داخلی" hint="فقط برای کارکنان نمایش داده می‌شود"><Textarea value={v.notes} onChange={(e) => set("notes", e.target.value)} className="min-h-[60px]" /></Field>
+      {!patientId && (
+        <Field label="پرسشنامه ارزیابی (پروفایل حسی)" hint="«از منشی بپرس»: در بخش پرسشنامه‌ها منتظر تأیید منشی می‌ماند؛ با تأیید، پیامک و اعلان برای مراجع، مدیر و درمانگر می‌رود">
+          <Select value={v.questionnaire} onChange={(e) => set("questionnaire", e.target.value)}>
+            <option value="queue">از منشی بپرس (در صف تأیید)</option>
+            <option value="send">همین حالا برای مراجع ارسال شود</option>
+            <option value="none">ارسال نشود</option>
+          </Select>
+        </Field>
+      )}
       {!patientId && <Toggle checked={v.createAccount} onChange={(c) => set("createAccount", c)} label="ساخت حساب کاربری و ارسال پیامک خوش‌آمد" description="مراجع با همین شماره موبایل و کد پیامکی وارد اپلیکیشن می‌شود" />}
       <div className="flex justify-end gap-2 border-t border-sand-200 pt-4">
         {onCancel && <Button type="button" variant="secondary" onClick={onCancel}>انصراف</Button>}

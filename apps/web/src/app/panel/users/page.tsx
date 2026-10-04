@@ -39,7 +39,7 @@ export default function UsersPage() {
               <AvatarUpload name={u.fullName} src={u.avatar} target="user" id={u.id} size="lg" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2"><h3 className="truncate font-bold">{u.fullName}</h3><button onClick={() => setEdit({ ...u, therapist: u.therapist ?? { workDays: [6, 0, 1, 2, 3], color: COLORS[0], isPublic: true } })} className="text-slate-400 hover:text-brand-600"><Pencil className="h-4 w-4" /></button></div>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5"><Badge tone={u.role === "ADMIN" ? "coral" : u.role === "THERAPIST" ? "brand" : "amber"}>{ROLE_LABELS[u.role as keyof typeof ROLE_LABELS]}</Badge>{u.role === "ADMIN" && u.therapist && <Badge tone="brand">درمانگر</Badge>}{!u.isActive && <Badge tone="slate">غیرفعال</Badge>}{u.id === me?.id && <Badge tone="sage"><ShieldCheck className="h-3 w-3" />شما</Badge>}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5"><Badge tone={u.role === "ADMIN" ? "coral" : u.role === "THERAPIST" ? "brand" : "amber"}>{ROLE_LABELS[u.role as keyof typeof ROLE_LABELS]}</Badge>{u.role === "ADMIN" && u.therapist && <Badge tone="brand">درمانگر</Badge>}{u.role !== "ADMIN" && u.testAnalyst && <Badge tone="violet">تحلیل آزمون</Badge>}{!u.isActive && <Badge tone="slate">غیرفعال</Badge>}{u.id === me?.id && <Badge tone="sage"><ShieldCheck className="h-3 w-3" />شما</Badge>}</div>
                 <p className="num mt-2 text-xs text-slate-500" dir="ltr">{toPersianDigits(u.phone)}</p>
                 {u.therapist && <p className="mt-1 text-xs text-slate-500">{u.therapist.specialty}</p>}
                 {u.therapist && <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-400"><span className="h-2.5 w-2.5 rounded-full" style={{ background: u.therapist.color }} />{WEEK_ORDER.filter((d) => u.therapist.workDays.includes(d)).map((d) => WEEKDAYS_FA[d].slice(0, 1)).join(" ")}</p>}
@@ -66,7 +66,7 @@ export default function UsersPage() {
 }
 
 function UserModal({ initial, onClose, onDone }: { initial: any; onClose: () => void; onDone: () => void }) {
-  const [v, setV] = useState({ firstName: initial.firstName ?? "", lastName: initial.lastName ?? "", phone: initial.phone ?? "", role: initial.role ?? "THERAPIST", password: "", isActive: initial.isActive ?? true, therapist: { specialty: initial.therapist?.specialty ?? "", bio: initial.therapist?.bio ?? "", licenseNo: initial.therapist?.licenseNo ?? "", credentials: initial.therapist?.credentials ?? "", slug: initial.therapist?.slug ?? "", color: initial.therapist?.color ?? COLORS[0], isPublic: initial.therapist?.isPublic ?? true, sessionPrice: initial.therapist?.sessionPrice ?? "", workDays: initial.therapist?.workDays ?? [6, 0, 1, 2, 3], sortOrder: initial.therapist?.sortOrder ?? 0 } });
+  const [v, setV] = useState({ firstName: initial.firstName ?? "", lastName: initial.lastName ?? "", phone: initial.phone ?? "", role: initial.role ?? "THERAPIST", password: "", isActive: initial.isActive ?? true, testAnalyst: !!initial.testAnalyst, therapist: { specialty: initial.therapist?.specialty ?? "", bio: initial.therapist?.bio ?? "", licenseNo: initial.therapist?.licenseNo ?? "", credentials: initial.therapist?.credentials ?? "", slug: initial.therapist?.slug ?? "", color: initial.therapist?.color ?? COLORS[0], isPublic: initial.therapist?.isPublic ?? true, sessionPrice: initial.therapist?.sessionPrice ?? "", workDays: initial.therapist?.workDays ?? [6, 0, 1, 2, 3], sortOrder: initial.therapist?.sortOrder ?? 0 } });
   const [loading, setLoading] = useState(false);
   const [adminIsTherapist, setAdminIsTherapist] = useState<boolean>(!!initial.therapist?.id);
   const showTherapist = v.role === "THERAPIST" || (v.role === "ADMIN" && adminIsTherapist);
@@ -89,6 +89,7 @@ function UserModal({ initial, onClose, onDone }: { initial: any; onClose: () => 
         <Field label="نقش"><Select value={v.role} onChange={(e) => setV({ ...v, role: e.target.value })}>{ROLES.filter((r) => r !== "PATIENT").map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</Select></Field>
         <Field label={initial.id ? "رمز عبور جدید (اختیاری)" : "رمز عبور"} required={!initial.id}><Input type="password" value={v.password} onChange={(e) => setV({ ...v, password: e.target.value })} dir="ltr" /></Field>
         <div className="flex items-end pb-2"><Toggle checked={v.isActive} onChange={(c) => setV({ ...v, isActive: c })} label="فعال" /></div>
+        {v.role !== "ADMIN" && <div className="sm:col-span-2"><Toggle checked={v.testAnalyst} onChange={(c) => setV({ ...v, testAnalyst: c })} label="دسترسی تحلیل آزمون‌ها" description="دیدن همه پرسشنامه‌های تکمیل‌شده (پروفایل حسی) و نوشتن تحلیل؛ مدیر همیشه این دسترسی را دارد" /></div>}
         {v.role === "ADMIN" && (
           <div className="sm:col-span-2 mt-2 border-t border-sand-200 pt-4">
             <Toggle checked={adminIsTherapist} onChange={setAdminIsTherapist} label="این مدیر خودش هم درمانگر است (ستون در برنامه روزانه، صفحه تیم درمان و رزرو آنلاین)" />

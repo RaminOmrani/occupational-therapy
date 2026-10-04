@@ -19,6 +19,7 @@ model User {
   lastName     String
   avatar       String?
   isActive     Boolean  @default(true)
+  testAnalyst  Boolean  @default(false) // دسترسی به بخش تحلیل آزمون‌ها و پرسشنامه‌ها (مدیر همیشه دارد)
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -126,6 +127,7 @@ model Patient {
   surveyTokens   SurveyToken[]
   consents       Consent[]
   paymentIntents PaymentIntent[]
+  questionnaires QuestionnaireResponse[]
 
   @@index([lastName, firstName])
   @@index([phone])
@@ -689,4 +691,34 @@ model Service {
   updatedAt        DateTime  @updatedAt
 
   @@index([published, sortOrder])
+}
+
+// ---------- پرسشنامه‌ها (پروفایل حسی و ...) که مراجع/والد خودش تکمیل می‌کند ----------
+model QuestionnaireResponse {
+  id              String    @id @default(cuid())
+  type            String    @default("SENSORY_PROFILE_2")
+  status          String    @default("PENDING_APPROVAL") // PENDING_APPROVAL | ASSIGNED | SUBMITTED | ANALYZED | DECLINED
+  source          String    @default("STAFF") // NEW_PATIENT | ASSESSMENT | STAFF | SELF | PUBLIC
+  patientId       String?
+  patient         Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  leadId          String?
+  respondentName  String? // نام تکمیل‌کننده (والد/مراقب)
+  respondentPhone String?
+  subjectName     String? // نام کودک
+  subjectAge      String? // سن کودک
+  answers         String? // JSON {"1": 0-5, ...}
+  scores          String? // JSON نتیجه محاسبه
+  analysis        String? // تحلیل کاردرمانگر
+  shareWithPatient Boolean  @default(false)
+  requestedById   String?
+  approvedById    String?
+  approvedAt      DateTime?
+  submittedAt     DateTime?
+  analyzedById    String?
+  analyzedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([patientId])
 }

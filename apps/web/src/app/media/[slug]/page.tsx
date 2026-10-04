@@ -68,6 +68,16 @@ export default async function MediaDetailPage({ params }: { params: Promise<{ sl
         {a.type === "ARTICLE" && a.coverImage && <img src={a.coverImage} alt={a.title} className="mt-6 w-full rounded-3xl object-cover" />}
 
         {a.content?.trim() && body}
+        {a.content?.includes("/tests/sensory-profile") && (
+          <div className="mt-8 rounded-3xl border border-brand-200 bg-brand-50 p-6">
+            <h2 className="text-lg font-black text-brand-900">🧩 آزمون پروفایل حسی کودک</h2>
+            <p className="mt-2 text-sm leading-7 text-slate-600">پرسشنامه را آنلاین تکمیل کنید؛ پاسخ‌ها برای کاردرمانگر کلینیک ارسال و بررسی می‌شود. اگر مراجع کلینیک هستید، ابتدا وارد شوید تا نتیجه در پرونده شما ثبت شود.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/tests/sensory-profile" className="btn-primary">شروع آزمون</Link>
+              <Link href={`/login?next=${encodeURIComponent("/tests/sensory-profile")}`} className="btn-secondary">ورود مراجعین کلینیک</Link>
+            </div>
+          </div>
+        )}
         {a.externalUrl && !isBook && <p className="mt-6 text-sm"><a href={a.externalUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-brand-700 hover:underline"><ExternalLink className="h-4 w-4" />مشاهده منبع اصلی</a></p>}
         {a.service && <p className="mt-6 rounded-2xl bg-brand-50 p-4 text-sm">این مطلب مرتبط با خدمت <Link href={`/services/${a.service.slug}`} className="font-bold text-brand-700 hover:underline">{a.service.title}</Link> است. برای اطلاعات بیشتر و رزرو نوبت، صفحه خدمت را ببینید.</p>}
         {a.tags?.length > 0 && <div className="mt-8 flex flex-wrap gap-2">{a.tags.map((tag: string) => <span key={tag} className="badge bg-sand-200 text-slate-600">#{tag}</span>)}</div>}

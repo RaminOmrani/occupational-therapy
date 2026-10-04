@@ -135,6 +135,14 @@ export const SMS_TEMPLATE_DEFAULTS: SmsTemplateDef[] = [
     description: "به‌صورت دستی از پروفایل مالی مراجع ارسال می‌شود.",
   },
   {
+    key: "questionnaire_assigned",
+    name: "ارسال پرسشنامه به مراجع",
+    body: "{{name}} عزیز، «{{title}}» برای شما فعال شد. لطفاً با همین شماره وارد اپلیکیشن یا سایت کلینیک شوید و از بخش «پرسشنامه‌ها» آن را تکمیل کنید.\n{{clinic}}",
+    variables: ["name", "title", "clinic"],
+    patternArgs: ["name", "title"],
+    description: "وقتی منشی ارسال پرسشنامه (مثل پروفایل حسی) را تأیید کند. خط خدماتی لینک قبول نمی‌کند، پس محل تکمیل در متن گفته می‌شود.",
+  },
+  {
     key: "debt_threshold",
     name: "هشدار بدهی بالا",
     body: "{{name}} عزیز، مانده بدهی شما در کلینیک به {{balance}} {{currency}} رسیده است. لطفاً برای تسویه یا هماهنگی با پذیرش تماس بگیرید: {{phone}}\n{{clinic}}",
