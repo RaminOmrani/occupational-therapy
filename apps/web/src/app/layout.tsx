@@ -6,6 +6,18 @@ import { PwaRegister } from "@/components/layout/Pwa";
 import { JsonLd, clinicJsonLd, websiteJsonLd, siteUrl, cleanName, trimDesc } from "@/lib/seo";
 
 /** متادیتای پیش‌فرض کل سایت از تنظیمات پنل (سئو ← عنوان و توضیح صفحه اصلی، کدهای تأیید) */
+/** متاتگ‌های تأیید مالکیت: Bing و هر متاتگی که در تنظیمات چسبانده شده (مثلاً اینماد) */
+function verificationMeta(s: Record<string, string>) {
+  const out: Record<string, string> = {};
+  if (s["seo.bingVerification"]) out["msvalidate.01"] = s["seo.bingVerification"];
+  for (const line of (s["seo.verificationMeta"] ?? "").split(/\r?\n/)) {
+    const name = line.match(/(?:name|property)\s*=\s*["']([^"']+)["']/i)?.[1];
+    const content = line.match(/content\s*=\s*["']([^"']*)["']/i)?.[1];
+    if (name && content !== undefined && /^[\w.:-]{1,64}$/.test(name)) out[name] = content;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const clinic = await getClinic();
   const s = clinic?.settings ?? {};
@@ -23,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: { type: "website", url: base, siteName: name, locale: "fa_IR", title, description, images: [{ url: `${base}/og.png`, width: 1200, height: 630, alt: name }] },
     twitter: { card: "summary_large_image", title, description, images: [`${base}/og.png`] },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
-    verification: { google: s["seo.googleVerification"] || undefined, other: s["seo.bingVerification"] ? { "msvalidate.01": s["seo.bingVerification"] } : undefined },
+    verification: { google: s["seo.googleVerification"] || undefined, other: verificationMeta(s) },
     manifest: "/manifest.json",
     icons: { icon: [{ url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" }, { url: "/icons/favicon-48.png", sizes: "48x48", type: "image/png" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/icons/apple-touch-icon.png" },
     appleWebApp: { capable: true, title: "ذهن سبز", statusBarStyle: "default" },

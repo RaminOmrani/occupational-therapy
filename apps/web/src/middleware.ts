@@ -15,6 +15,12 @@ export function middleware(req: NextRequest) {
   }
   const token = req.cookies.get("ot_token")?.value;
   const { pathname } = req.nextUrl;
+  // فایل‌های تأیید مالکیت دامنه (مثل اینماد) که نامشان در تنظیمات سئو ثبت شده؛ robots.txt خود سایت دست نمی‌خورد
+  if (/^\/[A-Za-z0-9_.-]+\.(txt|html?)$/.test(pathname) && pathname !== "/robots.txt") {
+    const url = req.nextUrl.clone();
+    url.pathname = `/verify-file/${pathname.slice(1)}`;
+    return NextResponse.rewrite(url);
+  }
   if (pathname.startsWith("/panel") && !token) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";

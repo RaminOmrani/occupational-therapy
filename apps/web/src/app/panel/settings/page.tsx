@@ -62,7 +62,7 @@ export default function SettingsPage() {
                   : i.type === "image" ? <div className="flex items-center gap-3"><AvatarUpload name={values["clinic.name"] ?? "لوگو"} src={val || null} target="clinic" size="xl" onUploaded={(u) => setValues({ ...values, [i.key]: u })} /><span className="text-xs text-slate-400">روی دوربین کلیک کنید و تصویر را انتخاب کنید؛ بلافاصله ذخیره می‌شود.</span></div>
                   : i.type === "boolean" ? <Toggle checked={val === "true"} onChange={(c) => set(c ? "true" : "false")} label={val === "true" ? "فعال" : "غیرفعال"} />
                   : i.type === "select" ? <Select value={val} onChange={(e) => set(e.target.value)}>{(i.options ?? []).map((o: string) => <option key={o} value={o}>{o}</option>)}</Select>
-                  : i.type === "textarea" ? <Textarea value={val} onChange={(e) => set(e.target.value)} />
+                  : i.type === "textarea" ? <Textarea value={val} onChange={(e) => set(e.target.value)} dir={/verification|enamad/i.test(i.key) ? "ltr" : undefined} className={/verification|enamad/i.test(i.key) ? "text-left text-xs" : undefined} />
                   : i.type === "json" ? <Textarea value={val} onChange={(e) => set(e.target.value)} dir="ltr" className="num min-h-[160px] text-xs" />
                   : <Input type={i.type === "password" ? "password" : i.type === "number" ? "number" : "text"} value={val} onChange={(e) => set(e.target.value)} dir={i.type === "number" || i.type === "password" || /url|phone|mobile|instagram|username|from|apiKey/i.test(i.key) ? "ltr" : "rtl"} className={i.type === "number" ? "num" : ""} placeholder={i.secret ? "برای تغییر، مقدار جدید را وارد کنید" : ""} />}
               </Field>

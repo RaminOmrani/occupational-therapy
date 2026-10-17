@@ -88,7 +88,24 @@ export function PublicFooter({ settings, services = [] }: { settings: Record<str
           </ul>
         </div>
       </div>
+      <EnamadBadge code={settings["public.enamadCode"]} />
       <div className="border-t border-brand-800 py-4 text-center text-xs text-brand-300">© {toPersianDigits(toJalali(new Date()).jy)} {settings["clinic.name"]} — تمامی حقوق محفوظ است</div>
     </footer>
+  );
+}
+
+/** نماد اعتماد الکترونیکی: فقط id و Code از کد اینماد استخراج و با آدرس رسمی trustseal.enamad.ir ساخته می‌شود */
+function EnamadBadge({ code }: { code?: string }) {
+  const id = code?.match(/[?&]id=(\d+)/i)?.[1];
+  const c = code?.match(/[?&]Code=([A-Za-z0-9]+)/)?.[1];
+  if (!id || !c) return null;
+  const q = `id=${id}&Code=${c}`;
+  return (
+    <div className="flex justify-center pb-6">
+      <a referrerPolicy="origin" target="_blank" rel="noopener" href={`https://trustseal.enamad.ir/?${q}`} className="rounded-2xl bg-white p-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img referrerPolicy="origin" src={`https://trustseal.enamad.ir/logo.aspx?${q}`} alt="نماد اعتماد الکترونیکی" width={110} height={110} style={{ cursor: "pointer" }} {...({ code: c } as Record<string, string>)} />
+      </a>
+    </div>
   );
 }
