@@ -71,7 +71,7 @@ export default function SettingsPage() {
         </div>
       </Card>
       {group === "security" && <BackupsCard />}
-      {group === "payment" && <p className="mt-3 text-xs leading-6 text-slate-500">برای دریافت مرچنت زرین‌پال در zarinpal.com ثبت‌نام و درگاه بسازید. تا زمانی که «حالت آزمایشی» فعال است، تراکنش‌ها در محیط sandbox انجام می‌شود و پول واقعی جابه‌جا نمی‌شود. «آدرس سایت» در بخش سایت عمومی باید آدرس واقعی (https) باشد تا بازگشت از درگاه کار کند.</p>}
+      {group === "payment" && <p className="mt-3 text-xs leading-6 text-slate-500">زیبال: «درگاه پرداخت آنلاین» را روی zibal بگذارید، کد مرچنت را از پنل زیبال (درگاه‌ها ← کلینیک ← کد مرچنت) کپی کنید و در «مرچنت زیبال» بچسبانید، سپس «حالت آزمایشی» را خاموش کنید. در پنل زیبال IP سرور (82.115.8.170) را در تنظیمات درگاه ثبت کنید. تا زمانی که «حالت آزمایشی» روشن است، پرداخت‌ها با حساب تستی انجام می‌شود و پول واقعی جابه‌جا نمی‌شود. «آدرس سایت» در بخش سایت عمومی باید آدرس واقعی (https) باشد تا بازگشت از درگاه کار کند.</p>}
       <Modal open={testOpen} onClose={() => setTestOpen(false)} title="پیامک آزمایشی" size="sm" footer={<><Button variant="secondary" onClick={() => setTestOpen(false)}>بستن</Button><Button onClick={sendTest} icon={<Send className="h-4 w-4" />}>ارسال</Button></>}>
         <p className="mb-3 text-xs text-slate-500">ابتدا تنظیمات را ذخیره کنید. پیامک آزمایشی با «الگوی عمومی» ارسال می‌شود؛ پس کد الگوی عمومی باید ثبت شده باشد.</p>
         <Field label="شماره گیرنده"><Input value={testTo} onChange={(e) => setTestTo(e.target.value)} dir="ltr" className="num text-left" placeholder="09123456789" /></Field>

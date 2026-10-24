@@ -88,24 +88,39 @@ export function PublicFooter({ settings, services = [] }: { settings: Record<str
           </ul>
         </div>
       </div>
-      <EnamadBadge code={settings["public.enamadCode"]} />
+      <TrustBadges settings={settings} />
       <div className="border-t border-brand-800 py-4 text-center text-xs text-brand-300">© {toPersianDigits(toJalali(new Date()).jy)} {settings["clinic.name"]} — تمامی حقوق محفوظ است</div>
     </footer>
   );
 }
 
-/** نماد اعتماد الکترونیکی: فقط id و Code از کد اینماد استخراج و با آدرس رسمی trustseal.enamad.ir ساخته می‌شود */
-function EnamadBadge({ code }: { code?: string }) {
+/**
+ * نمادهای اعتماد پایین سایت:
+ * - اینماد: فقط id و Code از کد اینماد استخراج و با آدرس رسمی trustseal.enamad.ir ساخته می‌شود
+ * - زیبال: نسخه HTML بدون اسکریپت طبق مستندات زیبال (gateway.zibal.ir/trustMe/دامنه)
+ */
+function TrustBadges({ settings }: { settings: Record<string, string> }) {
+  const code = settings["public.enamadCode"];
   const id = code?.match(/[?&]id=(\d+)/i)?.[1];
   const c = code?.match(/[?&]Code=([A-Za-z0-9]+)/)?.[1];
-  if (!id || !c) return null;
+  const host = (settings["site.baseUrl"] || "https://zehnesabz.com").replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const zibal = settings["public.zibalTrust"] === "true";
+  if (!(id && c) && !zibal) return null;
   const q = `id=${id}&Code=${c}`;
   return (
-    <div className="flex justify-center pb-6">
-      <a referrerPolicy="origin" target="_blank" rel="noopener" href={`https://trustseal.enamad.ir/?${q}`} className="rounded-2xl bg-white p-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img referrerPolicy="origin" src={`https://trustseal.enamad.ir/logo.aspx?${q}`} alt="نماد اعتماد الکترونیکی" width={110} height={110} style={{ cursor: "pointer" }} {...({ code: c } as Record<string, string>)} />
-      </a>
+    <div className="flex flex-wrap items-center justify-center gap-3 pb-6">
+      {id && c && (
+        <a referrerPolicy="origin" target="_blank" rel="noopener" href={`https://trustseal.enamad.ir/?${q}`} className="rounded-2xl bg-white p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img referrerPolicy="origin" src={`https://trustseal.enamad.ir/logo.aspx?${q}`} alt="نماد اعتماد الکترونیکی" width={110} height={110} style={{ cursor: "pointer" }} {...({ code: c } as Record<string, string>)} />
+        </a>
+      )}
+      {zibal && (
+        <a href={`https://gateway.zibal.ir/trustMe/${host}`} target="_blank" rel="noopener" className="rounded-2xl bg-white p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="https://zibal.ir/trust/assets/2.png" alt="پرداخت امن با زیبال" style={{ maxWidth: 110, height: "auto" }} />
+        </a>
+      )}
     </div>
   );
 }

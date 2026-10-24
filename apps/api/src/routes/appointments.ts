@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { syncSessionAmount } from "../lib/finance.js";
 import { requestQuestionnaire } from "../lib/questionnaires.js";
 import { z } from "zod";
 import { APPOINTMENT_STATUSES, formatJalaliLong, formatTime, startOfDay, endOfDay } from "@toranj/shared";
@@ -117,6 +118,12 @@ appointmentsRouter.patch("/:id", requireStaff, async (req, res) => {
     data: { patientId, therapistId, startAt, endAt, status, room: body.room === undefined ? cur.room : body.room, notes: body.notes === undefined ? cur.notes : body.notes, price: body.price === undefined ? cur.price : body.price, therapistAmount: body.therapistAmount === undefined ? cur.therapistAmount : body.therapistAmount, kind: body.kind ?? cur.kind },
     include,
   });
+  // مبلغ جلسه و کارکرد درمانگر یک عدد است؛ اگر جلسه صورت‌حساب شده، حساب مراجع هم اصلاح می‌شود
+  if (body.therapistAmount !== undefined || body.price !== undefined) {
+    const actual = body.therapistAmount ?? body.price ?? null;
+    if (actual !== null && a.invoiceId) await syncSessionAmount(a.id, actual);
+    else if (actual !== null) await prisma.appointment.update({ where: { id: a.id }, data: { price: actual, therapistAmount: actual } });
+  }
   if (status === "DONE" && cur.status !== "DONE") maybeSendSurvey(a.patientId);
   if (status === "NO_SHOW" && cur.status !== "NO_SHOW" && (await getSettingBool("sms.autoNoShow", false))) {
     const phone = await getSetting("clinic.phone", "");

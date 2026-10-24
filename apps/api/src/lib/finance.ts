@@ -133,3 +133,121 @@ export async function checkDebtAlert(patientId: string) {
     console.error("debt alert failed", e);
   }
 }
+
+/**
+ * تخصیص دوباره پرداخت‌های یک مراجع به بدهی‌هایش (قدیمی‌ترین بدهی اول).
+ * - اگر صورت‌حسابی بیش از مبلغش پرداخت دارد (مثلاً مبلغ جلسه کم شد)، مازاد آزاد می‌شود و بستانکاری می‌شود.
+ * - پرداخت‌های آزاد (پیش‌پرداخت/بستانکاری) خودکار صرف بدهی‌های باز می‌شوند.
+ * - هر دریافت یک «رسید» (groupId) است؛ اگر بین چند بدهی تقسیم شود، سهم‌ها همان رسید را دارند
+ *   تا در «پایان کار» یک ردیف دیده شود. جمع پرداخت‌ها و جمع بدهی‌ها هرگز تغییر نمی‌کند.
+ */
+export async function rebalancePatient(patientId: string) {
+  await prisma.$transaction(async (tx) => {
+    const invoices = await tx.invoice.findMany({ where: { patientId }, orderBy: [{ date: "asc" }, { createdAt: "asc" }], include: { payments: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] } } });
+    const active = (s: string) => s !== "CANCELLED" && s !== "DRAFT";
+    const split = async (p: { id: string; groupId: string | null }, keep: number, moveOut: number, toInvoiceId: string | null) => {
+      const groupId = p.groupId ?? p.id;
+      const src = await tx.payment.update({ where: { id: p.id }, data: { amount: keep, groupId } });
+      return tx.payment.create({ data: { patientId: src.patientId, invoiceId: toInvoiceId, amount: moveOut, method: src.method, reference: src.reference, note: src.note, date: src.date, receivedById: src.receivedById, groupId, createdAt: src.createdAt } });
+    };
+    // ۱) آزاد کردن پرداخت‌های صورت‌حساب‌های لغوشده و مازاد صورت‌حساب‌های بیش‌پرداخت
+    for (const inv of invoices) {
+      if (!active(inv.status)) {
+        if (inv.payments.length) await tx.payment.updateMany({ where: { invoiceId: inv.id }, data: { invoiceId: null } });
+        continue;
+      }
+      let excess = inv.payments.reduce((s, p) => s + p.amount, 0) - inv.total;
+      for (const p of inv.payments) {
+        if (excess <= 0) break;
+        if (p.amount <= excess) { await tx.payment.update({ where: { id: p.id }, data: { invoiceId: null } }); excess -= p.amount; }
+        else { await split(p, p.amount - excess, excess, null); excess = 0; }
+      }
+    }
+    // ۲) صرف پرداخت‌های آزاد برای بدهی‌های باز (قدیمی‌ترین اول)
+    const open = (await tx.invoice.findMany({ where: { patientId, status: { notIn: ["CANCELLED", "DRAFT"] } }, orderBy: [{ date: "asc" }, { createdAt: "asc" }], include: { payments: { select: { amount: true } } } }))
+      .map((i) => ({ id: i.id, due: i.total - i.payments.reduce((s, p) => s + p.amount, 0) }))
+      .filter((i) => i.due > 0);
+    const free = await tx.payment.findMany({ where: { patientId, invoiceId: null }, orderBy: [{ date: "asc" }, { createdAt: "asc" }] });
+    let k = 0;
+    for (const p0 of free) {
+      let p: { id: string; groupId: string | null; amount: number } = p0;
+      while (k < open.length && p.amount > 0) {
+        const inv = open[k];
+        if (p.amount <= inv.due) {
+          await tx.payment.update({ where: { id: p.id }, data: { invoiceId: inv.id } });
+          inv.due -= p.amount;
+          if (inv.due === 0) k++;
+          p = { ...p, amount: 0 };
+        } else {
+          const rest = await split(p, inv.due, p.amount - inv.due, null);
+          await tx.payment.update({ where: { id: p.id }, data: { invoiceId: inv.id } });
+          inv.due = 0;
+          k++;
+          p = rest;
+        }
+      }
+      if (k >= open.length) break;
+    }
+    // ۳) وضعیت صورت‌حساب‌ها
+    const all = await tx.invoice.findMany({ where: { patientId }, include: { payments: { select: { amount: true } } } });
+    for (const inv of all) {
+      if (!active(inv.status)) continue;
+      const paid = inv.payments.reduce((s, p) => s + p.amount, 0);
+      const status = paid <= 0 ? "ISSUED" : paid >= inv.total ? "PAID" : "PARTIAL";
+      if (paid !== inv.paid || status !== inv.status) await tx.invoice.update({ where: { id: inv.id }, data: { paid, status } });
+    }
+  });
+  await checkDebtAlert(patientId);
+}
+
+/** همه سهم‌های یک رسید (برای ویرایش/حذف یک دریافت به‌صورت یکجا) */
+export async function paymentGroup(paymentId: string) {
+  const p = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!p) return null;
+  const rows = p.groupId ? await prisma.payment.findMany({ where: { groupId: p.groupId }, orderBy: { createdAt: "asc" } }) : [p];
+  return { first: rows[0], rows, total: rows.reduce((s, r) => s + r.amount, 0) };
+}
+
+/**
+ * مبلغ واقعی جلسه = کارکرد درمانگر = مبلغی که از مراجع کسر می‌شود.
+ * با تغییر آن، صورت‌حساب همان جلسه هم اصلاح و حساب مراجع دوباره تخصیص داده می‌شود.
+ */
+export async function syncSessionAmount(appointmentId: string, amount: number) {
+  const a = await prisma.appointment.update({ where: { id: appointmentId }, data: { price: amount, therapistAmount: amount }, include: { invoice: { include: { appointments: { select: { id: true, startAt: true }, orderBy: { startAt: "asc" } } } } } });
+  const inv = a.invoice;
+  if (inv && inv.status !== "CANCELLED") {
+    const items = parseJson<{ title: string; qty: number; unitPrice: number }[]>(inv.items, []);
+    const idx = inv.appointments.length === 1 ? (items.length === 1 ? 0 : -1) : items.length === inv.appointments.length ? inv.appointments.findIndex((x) => x.id === a.id) : -1;
+    if (idx >= 0 && items[idx].unitPrice !== amount) {
+      items[idx] = { ...items[idx], unitPrice: amount };
+      const subtotal = items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+      const discount = Math.min(inv.discount, subtotal);
+      await prisma.invoice.update({ where: { id: inv.id }, data: { items: JSON.stringify(items), subtotal, discount, total: subtotal - discount } });
+    }
+  }
+  await rebalancePatient(a.patientId);
+  return a;
+}
+
+/**
+ * یک‌بار پس از آپدیت: ردیف‌های پرداختی که قبلاً از یک دریافت تکه‌تکه ثبت شده‌اند (همان مراجع، همان روش،
+ * همان ثبت‌کننده و همان لحظه) یک رسید می‌شوند، و حساب همه مراجعین یک بار دوباره تخصیص داده می‌شود.
+ * جمع پرداخت‌ها و مانده هیچ مراجعی تغییر نمی‌کند.
+ */
+export async function migratePaymentGroups() {
+  const FLAG = "system.migrate.paymentGroups";
+  if ((await prisma.setting.findUnique({ where: { key: FLAG } }))?.value === "done") return;
+  const rows = await prisma.payment.findMany({ where: { groupId: null }, orderBy: [{ patientId: "asc" }, { createdAt: "asc" }] });
+  let cur: { key: string; first: (typeof rows)[number]; ids: string[] } | null = null;
+  const flush = async () => { if (cur && cur.ids.length > 1) await prisma.payment.updateMany({ where: { id: { in: cur.ids } }, data: { groupId: cur.first.id } }); };
+  for (const r of rows) {
+    const key = `${r.patientId}|${r.method}|${r.receivedById ?? ""}|${r.reference ?? ""}`;
+    if (cur && cur.key === key && r.createdAt.getTime() - cur.first.createdAt.getTime() <= 5000) cur.ids.push(r.id);
+    else { await flush(); cur = { key, first: r, ids: [r.id] }; }
+  }
+  await flush();
+  const patients = await prisma.patient.findMany({ where: { OR: [{ invoices: { some: {} } }, { payments: { some: {} } }] }, select: { id: true } });
+  for (const p of patients) await rebalancePatient(p.id);
+  await prisma.setting.upsert({ where: { key: FLAG }, create: { key: FLAG, value: "done", group: "general", label: "system", type: "text", secret: true }, update: { value: "done" } });
+  console.log(`💳 payment receipts merged; ${patients.length} patient accounts re-allocated`);
+}

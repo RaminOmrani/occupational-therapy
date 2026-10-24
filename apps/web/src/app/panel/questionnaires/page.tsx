@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button, Card, EmptyState, PageHeader, Spinner, Tabs, useConfirm } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { HelpLink } from "@/components/help/HelpLink";
 
 const TABS = ["PENDING_APPROVAL", "ASSIGNED", "SUBMITTED", "ANALYZED", "DECLINED"] as const;
 const TAB_LABELS: Record<string, string> = { PENDING_APPROVAL: "در انتظار تأیید", ASSIGNED: "منتظر تکمیل", SUBMITTED: "منتظر تحلیل", ANALYZED: "تحلیل‌شده", DECLINED: "ارسال نشد" };
@@ -31,7 +32,7 @@ function Inner() {
   return (
     <>
       {dialog}
-      <PageHeader title="پرسشنامه‌ها و تحلیل آزمون" subtitle="تأیید ارسال پرسشنامه برای مراجعین جدید، پیگیری تکمیل و تحلیل پروفایل حسی" icon={<ClipboardCheck className="h-5 w-5" />} actions={<Link href="/tests/sensory-profile" target="_blank" className="btn-ghost"><ExternalLink className="h-4 w-4" />صفحه عمومی آزمون</Link>} />
+      <PageHeader title="پرسشنامه‌ها و تحلیل آزمون" subtitle="تأیید ارسال پرسشنامه برای مراجعین جدید، پیگیری تکمیل و تحلیل پروفایل حسی" icon={<ClipboardCheck className="h-5 w-5" />} actions={<><HelpLink anchor="questionnaire" /><Link href="/tests/sensory-profile" target="_blank" className="btn-ghost"><ExternalLink className="h-4 w-4" />صفحه عمومی آزمون</Link></>} />
       <Tabs value={tab} onChange={setTab} className="mb-4" tabs={TABS.map((t) => ({ key: t, label: TAB_LABELS[t], count: counts[t] ?? 0 }))} />
       <Card padded={false} className="overflow-x-auto">
         {isLoading ? <Spinner /> : data?.items.length ? (

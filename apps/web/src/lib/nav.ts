@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ClipboardCheck, ReceiptText, Hourglass, HandCoins, Stethoscope, LayoutDashboard, Users, UserPlus, CalendarDays, ClipboardList, Activity, TrendingUp, NotebookPen, Wallet, MessageSquareText, Cake, Newspaper, MessageSquareHeart, UserCog, Settings, FolderHeart, Dumbbell, UserCircle, CalendarCheck, Globe, MessageCircle, BarChart3, FileSignature } from "lucide-react";
+import { BookOpen, ClipboardCheck, ReceiptText, Hourglass, HandCoins, Stethoscope, LayoutDashboard, Users, UserPlus, CalendarDays, ClipboardList, Activity, TrendingUp, NotebookPen, Wallet, MessageSquareText, Cake, Newspaper, MessageSquareHeart, UserCog, Settings, FolderHeart, Dumbbell, UserCircle, CalendarCheck, Globe, MessageCircle, BarChart3, FileSignature } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -44,6 +44,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/panel/articles", label: "رسانه و محتوا", icon: Newspaper, roles: ["ADMIN", "THERAPIST", "SECRETARY"], group: "مدیریت" },
   { href: "/panel/services", label: "خدمات سایت (سئو)", icon: Stethoscope, roles: ["ADMIN"], group: "مدیریت" },
   { href: "/panel/users", label: "کاربران و درمانگران", icon: UserCog, roles: ["ADMIN"], group: "مدیریت" },
+  { href: "/panel/help", label: "راهنمای پنل", icon: BookOpen, roles: ["ADMIN", "SECRETARY", "THERAPIST"], group: "مدیریت" },
   { href: "/panel/settings", label: "تنظیمات", icon: Settings, roles: ["ADMIN"], group: "مدیریت" },
 ];
 

@@ -11,6 +11,7 @@ import { Avatar, Badge, Button, Card, EmptyState, PageHeader, Spinner, Stat, Tab
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker";
 import { cn } from "@/lib/utils";
+import { HelpLink } from "@/components/help/HelpLink";
 
 const RANGES = [{ key: "today", label: "امروز", days: 0 }, { key: "7", label: "۷ روز", days: 6 }, { key: "30", label: "۳۰ روز", days: 29 }, { key: "90", label: "۹۰ روز", days: 89 }];
 
@@ -29,7 +30,7 @@ function Inner() {
   const d = detail.data;
   return (
     <>
-      <PageHeader title={isTherapist ? "کارکرد من" : "کارکرد و تسویه درمانگران"} subtitle="تعداد کیس‌ها (مراجعین)، جلسات و مبلغ کارکرد هر درمانگر در بازه انتخابی؛ مستقل از بدهی یا پرداخت مراجع" icon={<HandCoins className="h-5 w-5" />} actions={<Button variant="secondary" onClick={() => window.print()} icon={<Printer className="h-4 w-4" />}>چاپ</Button>} />
+      <PageHeader title={isTherapist ? "کارکرد من" : "کارکرد و تسویه درمانگران"} subtitle="تعداد کیس‌ها (مراجعین)، جلسات و مبلغ کارکرد هر درمانگر در بازه انتخابی؛ مستقل از بدهی یا پرداخت مراجع" icon={<HandCoins className="h-5 w-5" />} actions={<><HelpLink anchor="karkard" /><Button variant="secondary" onClick={() => window.print()} icon={<Printer className="h-4 w-4" />}>چاپ</Button></>} />
       <Card className="mb-4 print:hidden">
         <div className="flex flex-wrap items-center gap-3">
           <Tabs value={range} onChange={setRange} tabs={[...RANGES.map((r) => ({ key: r.key, label: r.label })), { key: "custom", label: "دلخواه" }]} />

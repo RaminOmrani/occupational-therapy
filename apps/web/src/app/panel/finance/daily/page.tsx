@@ -18,6 +18,7 @@ import { PatientPicker } from "@/components/ui/PatientPicker";
 import { SettleModal, SETTLE_METHODS } from "@/components/schedule/SettleModal";
 import { AppointmentModal } from "@/components/schedule/AppointmentModal";
 import { cn } from "@/lib/utils";
+import { HelpLink } from "@/components/help/HelpLink";
 
 const METHOD_EMOJI: Record<string, string> = { TRANSFER: "💳", CASH: "💵", CARD: "🏧", WALLET: "👛", ONLINE: "🌐" };
 const methodLabel = (m: string) => (m === "CARD" ? "پرداخت پایانه (کارت‌خوان)" : PAYMENT_METHOD_LABELS[m as keyof typeof PAYMENT_METHOD_LABELS] ?? m);
@@ -37,15 +38,16 @@ function Inner() {
   const refresh = () => { refetch(); qc.invalidateQueries({ queryKey: ["appointments"] }); };
   const t = data?.totals;
   const methods = ["TRANSFER", "CASH", "CARD", "WALLET", "ONLINE"].filter((m) => m === "TRANSFER" || m === "CASH" || m === "CARD" || (t?.byMethod?.[m] ?? 0) !== 0);
-  const isAdmin = user?.role === "ADMIN";
-  const removePayment = async (p: any) => { if (!(await confirm(`پرداخت ${formatMoney(p.amount)} حذف شود؟`))) return; try { await api.delete(`/finance/payments/${p.id}`); toast.success("حذف شد"); refresh(); } catch (e: any) { toast.error(e.message); } };
+  const canDelete = user?.role === "ADMIN" || user?.role === "SECRETARY";
+  const removePayment = async (p: any) => { if (!(await confirm(`رسید ${formatMoney(p.amount)} ${p.patientName} حذف شود؟ مانده حساب مراجع به قبل از این دریافت برمی‌گردد.`))) return; try { await api.delete(`/finance/payments/${p.id}`); toast.success("حذف شد"); refresh(); } catch (e: any) { toast.error(e.message); } };
   const removeCash = async (c: any) => { if (!(await confirm("این تراکنش حذف شود؟"))) return; try { await api.delete(`/finance/cash/${c.id}`); refresh(); } catch (e: any) { toast.error(e.message); } };
-  const saveTherapistAmount = async (s: any, value: string) => { const n = Number(value || 0); if (n === s.therapistAmount) return; try { await api.patch(`/appointments/${s.id}`, { therapistAmount: n }); toast.success("کارکرد به‌روز شد"); refresh(); } catch (e: any) { toast.error(e.message); } };
+  const saveTherapistAmount = async (s: any, value: string) => { const n = Number(value || 0); if (n === s.therapistAmount) return; try { await api.patch(`/appointments/${s.id}`, { therapistAmount: n }); toast.success(s.invoiced ? "مبلغ جلسه و حساب مراجع به‌روز شد" : "مبلغ جلسه به‌روز شد"); refresh(); qc.invalidateQueries({ queryKey: ["finance"] }); } catch (e: any) { toast.error(e.message); } };
 
   return (
     <>
       {dialog}
       <PageHeader title="صورت مالی روزانه (پایان کار)" subtitle="دریافتی‌های روز، تسویه هر درمانگر و وضعیت جلسات؛ همه‌چیز از همین‌جا قابل ویرایش است" icon={<ReceiptText className="h-5 w-5" />} actions={<>
+        <HelpLink anchor="daily" />
         <Link href={`/panel/schedule?date=${date.toISOString()}`} className="btn-secondary"><CalendarCheck2 className="h-4 w-4" />برنامه این روز</Link>
         <Button variant="secondary" onClick={() => setCashOpen(true)} icon={<Plus className="h-4 w-4" />}>تراکنش دیگر</Button>
         <Button variant="secondary" onClick={() => window.print()} icon={<Printer className="h-4 w-4" />}>چاپ</Button>
@@ -106,7 +108,7 @@ function Inner() {
           </Card>
 
           {/* پرداخت‌های روز */}
-          <Card title="پرداخت‌های مراجعین" subtitle={`${toPersianDigits(data.payments.length)} مورد · برای اصلاح روش یا مبلغ روی مداد بزنید`} padded={false}>
+          <Card title="پرداخت‌های مراجعین" subtitle={`${toPersianDigits(data.payments.length)} رسید · هر دریافت یک ردیف است (حتی اگر چند جلسه را پوشش دهد) · برای اصلاح روی مداد و برای حذف روی سطل بزنید`} padded={false}>
             {data.payments.length ? (
               <div className="overflow-x-auto">
                 <table className="table">
@@ -118,10 +120,10 @@ function Inner() {
                         <td><Link href={`/panel/patients/${p.patientId}?tab=finance`} className="font-medium hover:text-brand-700">{p.patientName}</Link><span className="num mr-2 text-xs text-slate-400">{p.patient?.fileNumber}</span></td>
                         <td className="text-xs">{METHOD_EMOJI[p.method]} {methodLabel(p.method)}</td>
                         <td className="num font-bold text-sage-700">{formatMoney(p.amount)}</td>
-                        <td className="num text-xs text-slate-500">{p.invoiceNumber ?? "-"}</td>
+                        <td className="num text-xs text-slate-500">{p.invoiceNumber ?? "پیش‌پرداخت"}{(p.covered > 1 || (p.creditLeft > 0 && p.covered > 0)) && <span className="block text-[10px] text-slate-400">{p.covered > 1 ? `${toPersianDigits(p.covered)} بدهی پوشش داده شد` : ""}{p.creditLeft > 0 ? `${p.covered > 1 ? " · " : ""}${formatMoney(p.creditLeft)} بستانکاری ماند` : ""}</span>}</td>
                         <td className="max-w-[220px] truncate text-xs text-slate-500" dir="auto">{[p.reference ? toPersianDigits(p.reference) : null, p.note].filter(Boolean).join(" · ") || "-"}</td>
                         <td className="text-xs text-slate-500">{p.receivedByName ?? "-"}</td>
-                        <td className="print:hidden"><div className="flex gap-1">{p.method !== "WALLET" && <button onClick={() => setEditPay(p)} title="ویرایش تسویه" className="rounded-lg p-1.5 text-slate-400 hover:bg-sand-200 hover:text-brand-700"><Pencil className="h-4 w-4" /></button>}{isAdmin && <button onClick={() => removePayment(p)} title="حذف" className="rounded-lg p-1.5 text-slate-400 hover:bg-coral-50 hover:text-coral-600"><Trash2 className="h-4 w-4" /></button>}</div></td>
+                        <td className="print:hidden"><div className="flex gap-1">{p.method !== "WALLET" && <button onClick={() => setEditPay(p)} title="ویرایش تسویه" className="rounded-lg p-1.5 text-slate-400 hover:bg-sand-200 hover:text-brand-700"><Pencil className="h-4 w-4" /></button>}{canDelete && <button onClick={() => removePayment(p)} title="حذف" className="rounded-lg p-1.5 text-slate-400 hover:bg-coral-50 hover:text-coral-600"><Trash2 className="h-4 w-4" /></button>}</div></td>
                       </tr>
                     ))}
                   </tbody>
@@ -162,11 +164,11 @@ function Inner() {
           )}
 
           {/* جلسات روز */}
-          <Card title="جلسات این روز (کارکرد)" subtitle="کارکرد درمانگر را همین‌جا می‌توانید تغییر دهید؛ برای تغییر مبلغ جلسه، وضعیت یا زمان روی مداد بزنید" padded={false}>
+          <Card title="جلسات این روز (کارکرد)" subtitle="مبلغ واقعی هر جلسه را همین‌جا اصلاح کنید (مثلاً اگر درمانگر دیر آمد)؛ همین عدد کارکرد درمانگر است و همین از حساب مراجع کسر می‌شود. برای تغییر وضعیت یا زمان روی مداد بزنید" padded={false}>
             {data.sessions.length ? (
               <div className="overflow-x-auto">
                 <table className="table">
-                  <thead><tr><th>ساعت</th><th>مراجع</th><th>درمانگر</th><th>نوع</th><th>وضعیت</th><th>مبلغ جلسه</th><th>کارکرد درمانگر</th><th>تسویه</th><th>مانده حساب</th><th className="print:hidden" /></tr></thead>
+                  <thead><tr><th>ساعت</th><th>مراجع</th><th>درمانگر</th><th>نوع</th><th>وضعیت</th><th>مبلغ جلسه = کارکرد درمانگر</th><th>تسویه</th><th>مانده حساب</th><th className="print:hidden" /></tr></thead>
                   <tbody>
                     {data.sessions.map((s: any) => (
                       <tr key={s.id} className={cn(s.status === "DONE" && !s.settled && "bg-coral-50/40")}>
@@ -175,8 +177,7 @@ function Inner() {
                         <td className="text-xs">{s.therapistName}</td>
                         <td>{s.kind === "ASSESSMENT" ? <Badge tone="violet">ارزیابی</Badge> : <span className="text-xs text-slate-400">درمانی</span>}</td>
                         <td><StatusBadge status={s.status} /></td>
-                        <td className="num text-xs">{formatMoney(s.price)}</td>
-                        <td className="print:hidden"><TherapistAmountCell value={s.therapistAmount} onSave={(v) => saveTherapistAmount(s, v)} disabled={s.status === "CANCELLED"} /></td>
+                        <td><span className="hidden num text-xs print:inline">{formatMoney(s.therapistAmount)}</span><span className="print:hidden"><TherapistAmountCell value={s.therapistAmount} onSave={(v) => saveTherapistAmount(s, v)} disabled={s.status === "CANCELLED"} /></span></td>
                         <td>{s.status === "DONE" ? (s.settled ? <Badge tone="sage">تسویه‌شده</Badge> : <Badge tone="coral">تسویه‌نشده</Badge>) : s.status === "CANCELLED" || s.status === "NO_SHOW" ? <span className="text-xs text-slate-300">-</span> : <Badge tone="amber">در انتظار انجام</Badge>}</td>
                         <td className={cn("num text-xs", s.balance > 0 ? "text-coral-600" : s.balance < 0 ? "text-sage-700" : "text-slate-400")}>{s.balance > 0 ? `بدهکار ${formatMoney(s.balance)}` : s.balance < 0 ? `بستانکار ${formatMoney(-s.balance)}` : "تسویه"}</td>
                         <td className="print:hidden"><div className="flex gap-1">{s.status !== "CANCELLED" && !(s.status === "DONE" && s.settled) && <button onClick={() => setSettle(s.id)} className="rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-brand-700">تسویه</button>}<button onClick={() => setEditAppt(s)} title="ویرایش جلسه" className="rounded-lg p-1.5 text-slate-400 hover:bg-sand-200 hover:text-brand-700"><Pencil className="h-4 w-4" /></button></div></td>
@@ -207,6 +208,7 @@ function TherapistAmountCell({ value, onSave, disabled }: { value: number; onSav
   return <div className="w-32"><MoneyInput value={v} onChange={setV} onBlur={() => onSave(v)} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} className="h-8 py-1 text-xs" /></div>;
 }
 
+/** ویرایش یک رسید کامل؛ اگر بین چند جلسه تقسیم شده، دوباره خودکار تقسیم می‌شود */
 function EditPaymentModal({ payment, onClose, onDone }: { payment: any; onClose: () => void; onDone: () => void }) {
   const [v, setV] = useState({ amount: String(payment.amount), method: payment.method, reference: payment.reference ?? "", note: payment.note ?? "", date: new Date(payment.date) as Date | null });
   const [loading, setLoading] = useState(false);

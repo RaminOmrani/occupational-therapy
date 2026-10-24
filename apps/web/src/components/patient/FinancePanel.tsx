@@ -4,7 +4,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2, CreditCard, Copy, Check, X, Clock, Pencil, AlertTriangle, FilePlus2 } from "lucide-react";
+import { Plus, Wallet, Receipt, BellRing, Printer, Percent, Trash2, CreditCard, Copy, Check, X, Clock, Pencil, AlertTriangle, FilePlus2, PiggyBank } from "lucide-react";
+import { HelpLink } from "@/components/help/HelpLink";
 import { usePublicSettings } from "@/lib/settings";
 import { formatJalali, formatJalaliLong, formatTime, formatMoney, toPersianDigits, PAYMENT_METHODS, PAYMENT_METHOD_LABELS, WALLET_TX_TYPES, WALLET_TX_LABELS } from "@toranj/shared";
 import { api } from "@/lib/api";
@@ -17,11 +18,10 @@ import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker";
 export function FinancePanel({ patientId }: { patientId: string }) {
   const { user } = useAuth();
   const canEdit = user?.role === "ADMIN" || user?.role === "SECRETARY";
-  const isAdmin = user?.role === "ADMIN";
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["finance", patientId], queryFn: () => api.get<any>(`/finance/patients/${patientId}`) });
   const [tab, setTab] = useState<"debts" | "invoices" | "payments" | "wallet" | "discounts">("debts");
-  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | "online" | "claim" | "debt" | null>(null);
+  const [modal, setModal] = useState<"invoice" | "payment" | "wallet" | "discount" | "online" | "claim" | "debt" | "credit" | null>(null);
   const [editDebt, setEditDebt] = useState<any | null>(null);
   const [showSettled, setShowSettled] = useState(false);
   const settings = usePublicSettings();
@@ -53,7 +53,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
     try { await api.post(`/finance/patients/${patientId}/debt-reminder`); toast.success("پیامک یادآوری بدهی ارسال شد"); } catch (e: any) { toast.error(e.message); }
   };
   const deleteDebt = async (d: any) => {
-    if (!(await confirm(`بدهی «${d.title}» به مبلغ ${formatMoney(d.total)} حذف شود؟`))) return;
+    if (!(await confirm(`بدهی «${d.title}» به مبلغ ${formatMoney(d.total)} حذف شود؟${d.paid ? ` مبلغ ${formatMoney(d.paid)} که بابت آن پرداخت شده، بستانکاری مراجع می‌شود.` : ""}`))) return;
     try { await api.delete(`/finance/debts/${d.id}`); toast.success("بدهی حذف شد"); refresh(); } catch (e: any) { toast.error(e.message); }
   };
   const debts: any[] = data.debts ?? [];
@@ -61,7 +61,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
   const shownDebts = showSettled ? debts : openDebts;
   const overThreshold = data.debtAlertThreshold > 0 && s.balance > data.debtAlertThreshold;
   const deletePayment = async (id: string) => {
-    if (!(await confirm("این پرداخت حذف شود؟ مانده حساب مراجع تغییر می‌کند."))) return;
+    if (!(await confirm("این رسید (کل این دریافت) حذف شود؟ مانده حساب مراجع به قبل از این دریافت برمی‌گردد."))) return;
     try { await api.delete(`/finance/payments/${id}`); toast.success("حذف شد"); refresh(); } catch (e: any) { toast.error(e.message); }
   };
 
@@ -83,7 +83,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
             {payCfg.data?.enabled ? (
               <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
                 <p className="font-bold text-brand-800">پرداخت آنلاین{payCfg.data.sandbox ? " (آزمایشی)" : ""}</p>
-                <p className="mt-1 text-xs text-slate-500">با کارت بانکی از طریق درگاه امن زرین‌پال</p>
+                <p className="mt-1 text-xs text-slate-500">با کارت بانکی از طریق درگاه امن {payCfg.data?.provider === "zarinpal" ? "زرین‌پال" : "زیبال"}</p>
                 <div className="mt-3 flex flex-wrap gap-2">{s.balance > 0 && <Button size="sm" onClick={() => setModal("online")}>پرداخت بدهی</Button>}<Button size="sm" variant="secondary" onClick={() => setModal("online")}>شارژ کیف پول</Button></div>
               </div>
             ) : (
@@ -125,7 +125,9 @@ export function FinancePanel({ patientId }: { patientId: string }) {
       {canEdit && (
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setModal("payment")} icon={<Plus className="h-4 w-4" />}>ثبت پرداخت</Button>
-          <Button variant="secondary" onClick={() => setModal("debt")} icon={<FilePlus2 className="h-4 w-4" />} className="!border-coral-400/60 !text-coral-700">ثبت بدهی</Button>
+          <Button variant="secondary" onClick={() => setModal("debt")} icon={<FilePlus2 className="h-4 w-4" />} className="!border-coral-400/60 !text-coral-700">ثبت بدهکاری</Button>
+          <Button variant="secondary" onClick={() => setModal("credit")} icon={<PiggyBank className="h-4 w-4" />} className="!border-sage-500/60 !text-sage-700">ثبت بستانکاری (پیش‌پرداخت)</Button>
+          <HelpLink anchor="debts" label="راهنمای بدهکاری و بستانکاری" />
           <Button variant="secondary" onClick={() => setModal("invoice")} icon={<Receipt className="h-4 w-4" />}>صورت‌حساب جدید</Button>
           <Button variant="secondary" onClick={() => setModal("wallet")} icon={<Wallet className="h-4 w-4" />}>تراکنش کیف پول</Button>
           <Button variant="secondary" onClick={() => setModal("discount")} icon={<Percent className="h-4 w-4" />}>تخفیف</Button>
@@ -138,6 +140,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
         {tab === "debts" && (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sand-200 px-4 py-3 text-sm">
+              {s.balance < 0 && <span className="w-full rounded-xl bg-sage-100 px-3 py-2 text-sage-700">مراجع <b className="num">{formatMoney(-s.balance, cur)}</b> بستانکار (پیش‌پرداخت) دارد؛ در تسویه جلسات بعدی خودکار کسر می‌شود.</span>}
               <span>{openDebts.length ? <>جمع مانده بدهی: <b className="num text-coral-600">{formatMoney(openDebts.reduce((a, d) => a + d.remaining, 0), cur)}</b> در <span className="num">{toPersianDigits(openDebts.length)}</span> ردیف</> : <span className="text-sage-700">بدهی بازی ندارد ✅</span>}</span>
               {debts.length > openDebts.length && <Toggle checked={showSettled} onChange={setShowSettled} label="نمایش موارد تسویه‌شده" />}
             </div>
@@ -153,10 +156,10 @@ export function FinancePanel({ patientId }: { patientId: string }) {
                     <td className="num text-sage-700">{d.paid ? formatMoney(d.paid, "") : "-"}</td>
                     <td className="num font-bold text-coral-600">{d.remaining > 0 ? formatMoney(d.remaining, "") : "-"}</td>
                     <td><StatusBadge status={d.status} /></td>
-                    {canEdit && <td className="whitespace-nowrap">{d.kind === "DEBT" ? <span className="flex gap-2"><button onClick={() => setEditDebt(d)} className="text-slate-400 hover:text-brand-600" title="ویرایش"><Pencil className="h-4 w-4" /></button>{d.paid === 0 && <button onClick={() => deleteDebt(d)} className="text-coral-500 hover:text-coral-700" title="حذف"><Trash2 className="h-4 w-4" /></button>}</span> : <Link href={`/panel/finance/invoices/${d.id}`} className="text-xs text-brand-600 hover:underline">مشاهده</Link>}</td>}
+                    {canEdit && <td className="whitespace-nowrap">{d.kind === "DEBT" ? <span className="flex gap-2"><button onClick={() => setEditDebt(d)} className="text-slate-400 hover:text-brand-600" title="ویرایش"><Pencil className="h-4 w-4" /></button><button onClick={() => deleteDebt(d)} className="text-coral-500 hover:text-coral-700" title="حذف"><Trash2 className="h-4 w-4" /></button></span> : <Link href={`/panel/finance/invoices/${d.id}`} className="text-xs text-brand-600 hover:underline">مشاهده</Link>}</td>}
                   </tr>))}</tbody>
               </table>
-            ) : <EmptyState title={debts.length ? "همه بدهی‌ها تسویه شده‌اند" : "بدهی‌ای ثبت نشده"} description={canEdit ? "جلسات پرداخت‌نشده یا نیمه‌پرداخت در «تسویه جلسه» خودکار اینجا می‌آیند؛ برای مبلغ دلخواه دکمه «ثبت بدهی» را بزنید." : undefined} />}
+            ) : <EmptyState title={debts.length ? "همه بدهی‌ها تسویه شده‌اند" : "بدهی‌ای ثبت نشده"} description={canEdit ? "جلسات پرداخت‌نشده یا نیمه‌پرداخت در «تسویه جلسه» خودکار اینجا می‌آیند؛ برای مبلغ دلخواه دکمه «ثبت بدهکاری» را بزنید." : undefined} />}
           </>
         )}
         {tab === "invoices" && (data.invoices.length ? (
@@ -173,12 +176,12 @@ export function FinancePanel({ patientId }: { patientId: string }) {
         ) : <EmptyState title="صورت‌حسابی وجود ندارد" />)}
         {tab === "payments" && (data.payments.length ? (
           <table className="table">
-            <thead><tr><th>تاریخ</th><th>مبلغ</th><th>روش</th><th>صورت‌حساب</th><th>مرجع</th><th>دریافت‌کننده</th><th>توضیح</th>{isAdmin && <th></th>}</tr></thead>
+            <thead><tr><th>تاریخ</th><th>مبلغ</th><th>روش</th><th>صورت‌حساب</th><th>مرجع</th><th>دریافت‌کننده</th><th>توضیح</th>{canEdit && <th></th>}</tr></thead>
             <tbody>{data.payments.map((p: any) => (
               <tr key={p.id}>
                 <td className="num">{formatJalali(p.date)}</td><td className="num font-bold text-sage-700">{formatMoney(p.amount, "")}</td><td>{PAYMENT_METHOD_LABELS[p.method as keyof typeof PAYMENT_METHOD_LABELS] ?? p.method}</td>
                 <td className="num">{p.invoice?.number ?? "-"}</td><td className="num text-xs">{p.reference ?? "-"}</td><td className="text-xs">{p.receivedBy ? `${p.receivedBy.firstName} ${p.receivedBy.lastName}` : "-"}</td><td className="text-xs text-slate-500">{p.note ?? ""}</td>
-                {isAdmin && <td><button onClick={() => deletePayment(p.id)} className="text-coral-500 hover:text-coral-700"><Trash2 className="h-4 w-4" /></button></td>}
+                {canEdit && <td><button onClick={() => deletePayment(p.id)} className="text-coral-500 hover:text-coral-700"><Trash2 className="h-4 w-4" /></button></td>}
               </tr>))}</tbody>
           </table>
         ) : <EmptyState title="پرداختی ثبت نشده" />)}
@@ -200,6 +203,7 @@ export function FinancePanel({ patientId }: { patientId: string }) {
         ) : <EmptyState title="تخفیفی ثبت نشده" />)}
       </Card>
 
+      {modal === "credit" && <CreditModal patientId={patientId} balance={s.balance} onClose={() => setModal(null)} onDone={refresh} />}
       {(modal === "debt" || editDebt) && <DebtModal patientId={patientId} initial={editDebt} onClose={() => { setModal(null); setEditDebt(null); }} onDone={refresh} />}
       {modal === "payment" && <PaymentModal patientId={patientId} invoices={data.invoices.filter((i: any) => ["ISSUED", "PARTIAL"].includes(i.status))} walletBalance={s.walletBalance} onClose={() => setModal(null)} onDone={refresh} />}
       {modal === "invoice" && <InvoiceModal patientId={patientId} onClose={() => setModal(null)} onDone={refresh} />}
@@ -231,11 +235,47 @@ function DebtModal({ patientId, initial, onClose, onDone }: { patientId: string;
   return (
     <Modal open onClose={onClose} title={initial ? "ویرایش بدهی" : "ثبت بدهی برای مراجع"} size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>{initial ? "ذخیره" : "ثبت بدهی"}</Button></>}>
       <div className="space-y-3">
-        <Field label="مبلغ بدهی (تومان)" required hint={initial?.paid ? `تاکنون ${formatMoney(initial.paid)} از این بدهی پرداخت شده؛ مبلغ نمی‌تواند کمتر از آن باشد` : undefined}><MoneyInput value={v.amount} onChange={(d) => setV({ ...v, amount: d })} suffix="تومان" autoFocus /></Field>
+        <Field label="مبلغ بدهی (تومان)" required hint={initial?.paid ? `تاکنون ${formatMoney(initial.paid)} از این بدهی پرداخت شده؛ اگر مبلغ را کمتر از آن کنید، مازاد بستانکاری مراجع می‌شود` : undefined}><MoneyInput value={v.amount} onChange={(d) => setV({ ...v, amount: d })} suffix="تومان" autoFocus /></Field>
         <Field label="بابت" required hint="مثلاً: بدهی جلسات قبل، باقی‌مانده جلسه ۱۲ مهر، هزینه وسیله توان‌بخشی"><Input value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} /></Field>
         <Field label="تاریخ"><JalaliDatePicker value={v.date} onChange={(d) => setV({ ...v, date: d })} /></Field>
         <Field label="توضیح (اختیاری)"><Input value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} /></Field>
-        <p className="rounded-xl bg-sand-100 px-3 py-2 text-[11px] leading-5 text-slate-500">این مبلغ به مانده حساب مراجع اضافه می‌شود و با «ثبت پرداخت» یا «تسویه جلسه» از قدیمی‌ترین بدهی کم می‌شود. کارکرد درمانگر به این بدهی ربطی ندارد.</p>
+        <p className="rounded-xl bg-sand-100 px-3 py-2 text-[11px] leading-5 text-slate-500">این مبلغ به مانده حساب مراجع اضافه می‌شود. اگر مراجع پیش‌پرداخت (بستانکاری) داشته باشد، خودکار از آن کم می‌شود؛ وگرنه با «ثبت پرداخت» یا «تسویه جلسه» پرداخت می‌شود. کارکرد درمانگر به این بدهی ربطی ندارد.</p>
+      </div>
+    </Modal>
+  );
+}
+
+/** بستانکاری = پولی که مراجع از قبل داده (مثلاً ۶ میلیون برای جلسات بعدی)؛ در تسویه جلسات بعدی خودکار کسر می‌شود */
+function CreditModal({ patientId, balance, onClose, onDone }: { patientId: string; balance: number; onClose: () => void; onDone: () => void }) {
+  const [v, setV] = useState({ amount: "", method: "TRANSFER", reference: "", note: "پیش‌پرداخت جلسات", date: new Date() as Date | null, sendSms: true });
+  const [loading, setLoading] = useState(false);
+  const amount = Number(String(v.amount).replace(/[^\d]/g, "")) || 0;
+  const after = balance - amount;
+  const submit = async () => {
+    if (!amount) return toast.error("مبلغ را وارد کنید");
+    setLoading(true);
+    try {
+      await api.post("/finance/payments", { patientId, amount, method: v.method, reference: v.reference || null, note: v.note || null, date: v.date?.toISOString(), sendSms: v.sendSms });
+      toast.success("بستانکاری ثبت شد");
+      onDone();
+      onClose();
+    } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title={<span className="flex items-center gap-2">ثبت بستانکاری (پیش‌پرداخت) <HelpLink anchor="credit" /></span>} size="sm" footer={<><Button variant="secondary" onClick={onClose}>انصراف</Button><Button loading={loading} onClick={submit}>ثبت</Button></>}>
+      <div className="space-y-3">
+        <Field label="مبلغ دریافتی (تومان)" required><MoneyInput value={v.amount} onChange={(d) => setV({ ...v, amount: d })} suffix="تومان" autoFocus /></Field>
+        <Field label="روش دریافت"><Select value={v.method} onChange={(e) => setV({ ...v, method: e.target.value })}>{["TRANSFER", "CARD", "CASH"].map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m as keyof typeof PAYMENT_METHOD_LABELS]}</option>)}</Select></Field>
+        <Field label="تاریخ"><JalaliDatePicker value={v.date} onChange={(d) => setV({ ...v, date: d })} /></Field>
+        <Field label="شماره پیگیری"><Input value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} dir="ltr" className="num" /></Field>
+        <Field label="توضیح"><Input value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} /></Field>
+        {amount > 0 && (
+          <p className={`rounded-xl px-3 py-2 text-xs leading-6 ${after < 0 ? "bg-sage-100 text-sage-700" : "bg-amber-400/10 text-amber-700"}`}>
+            {balance > 0 ? <>مراجع الان <b className="num">{formatMoney(balance)}</b> بدهکار است؛ اول این بدهی تسویه می‌شود. </> : null}
+            {after < 0 ? <>بعد از ثبت، مراجع <b className="num">{formatMoney(-after)}</b> بستانکار می‌شود و در جلسات بعدی خودکار کسر می‌شود.</> : after === 0 ? "بعد از ثبت، حساب مراجع صفر می‌شود." : <>بعد از ثبت هنوز <b className="num">{formatMoney(after)}</b> بدهکار است.</>}
+          </p>
+        )}
+        <Toggle checked={v.sendSms} onChange={(c) => setV({ ...v, sendSms: c })} label="ارسال پیامک رسید به مراجع" />
       </div>
     </Modal>
   );
@@ -261,7 +301,7 @@ function PaymentModal({ patientId, invoices, walletBalance, onClose, onDone }: {
         <Field label="روش پرداخت" hint={v.method === "WALLET" ? `موجودی کیف پول: ${formatMoney(walletBalance)}` : undefined}>
           <Select value={v.method} onChange={(e) => setV({ ...v, method: e.target.value })}>{PAYMENT_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>)}</Select>
         </Field>
-        <Field label="بابت صورت‌حساب" hint="خالی = قدیمی‌ترین صورت‌حساب باز">
+        <Field label="بابت صورت‌حساب" hint="«خودکار» = اول قدیمی‌ترین بدهی‌ها؛ اگر مبلغ بیشتر از بدهی باشد، مازاد بستانکاری (پیش‌پرداخت) می‌شود">
           <Select value={v.invoiceId} onChange={(e) => setV({ ...v, invoiceId: e.target.value })}><option value="">خودکار</option>{invoices.map((i) => <option key={i.id} value={i.id}>{i.number} — مانده {formatMoney(i.total - i.paid)}</option>)}</Select>
         </Field>
         <Field label="تاریخ"><JalaliDatePicker value={v.date} onChange={(d) => setV({ ...v, date: d })} /></Field>
@@ -367,7 +407,7 @@ function OnlinePayModal({ patientId, balance, minAmount, onClose }: { patientId:
       <div className="space-y-3">
         <Field label="بابت"><Select value={purpose} onChange={(e) => setPurpose(e.target.value as any)}><option value="INVOICE">پرداخت بدهی / صورت‌حساب</option><option value="WALLET">شارژ کیف پول</option></Select></Field>
         <Field label="مبلغ (تومان)" hint={`حداقل ${formatMoney(minAmount)}`}><MoneyInput value={amount} onChange={(d) => setAmount(d)} suffix="تومان" autoFocus /></Field>
-        <p className="text-xs text-slate-400">پس از پرداخت موفق در درگاه زرین‌پال، به همین صفحه بازمی‌گردید و مبلغ به‌صورت خودکار ثبت می‌شود.</p>
+        <p className="text-xs text-slate-400">پس از پرداخت موفق در درگاه بانکی، به همین صفحه بازمی‌گردید و مبلغ به‌صورت خودکار ثبت می‌شود.</p>
       </div>
     </Modal>
   );

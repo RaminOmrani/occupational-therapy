@@ -372,9 +372,11 @@ model Payment {
   date         DateTime @default(now())
   receivedById String?
   receivedBy   User?    @relation("PaymentReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+  groupId      String? // شناسه رسید: سهم‌های یک دریافت (که بین چند صورت‌حساب تقسیم شده) یک رسید هستند
   createdAt    DateTime @default(now())
 
   @@index([patientId, date])
+  @@index([groupId])
 }
 
 model WalletTransaction {

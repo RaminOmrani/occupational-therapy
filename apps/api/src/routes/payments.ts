@@ -6,8 +6,9 @@ import { validate, zInt, zOptionalInt, zOptionalString } from "../lib/validate.j
 import { badRequest, forbidden, notFound } from "../lib/errors.js";
 import { getSetting, getSettingBool, getSettingNumber } from "../lib/settings.js";
 import { requireAuth, canAccessPatient, requireAdminOrSecretary } from "../middleware/auth.js";
-import { recomputeInvoice, patientFinancialSummary, checkDebtAlert } from "../lib/finance.js";
+import { patientFinancialSummary, rebalancePatient } from "../lib/finance.js";
 import { zpRequest, zpVerify, startPayUrl } from "../lib/payment/zarinpal.js";
+import { zibalRequest, zibalVerify, zibalStartUrl } from "../lib/payment/zibal.js";
 import { notifyRole, notifyUser } from "../lib/notify.js";
 import { audit } from "../lib/audit.js";
 
@@ -15,7 +16,12 @@ export const paymentsRouter = Router();
 
 async function cfg() {
   const provider = await getSetting("payment.provider", "off");
-  return { provider, enabled: provider === "zarinpal" && !!(await getSetting("payment.merchantId")), merchantId: await getSetting("payment.merchantId"), sandbox: await getSettingBool("payment.sandbox", true), min: await getSettingNumber("payment.minAmount", 10000) };
+  const sandbox = await getSettingBool("payment.sandbox", true);
+  const merchantId = await getSetting("payment.merchantId");
+  const zibalMerchant = await getSetting("payment.zibalMerchant");
+  // زیبال در حالت آزمایشی با مرچنت تستی «zibal» کار می‌کند و مرچنت واقعی لازم ندارد
+  const enabled = provider === "zarinpal" ? !!merchantId : provider === "zibal" ? sandbox || !!zibalMerchant : false;
+  return { provider, enabled, merchantId, zibalMerchant, sandbox, min: await getSettingNumber("payment.minAmount", 10000) };
 }
 
 paymentsRouter.get("/config", requireAuth, async (_req, res) => {
@@ -33,8 +39,18 @@ paymentsRouter.post("/start", requireAuth, async (req, res) => {
   if (body.amount < c.min) throw badRequest(`حداقل مبلغ پرداخت ${formatMoney(c.min)} است`);
   const patient = await prisma.patient.findUnique({ where: { id: patientId } });
   if (!patient) throw notFound();
-  const intent = await prisma.paymentIntent.create({ data: { patientId, amount: body.amount, purpose: body.purpose, invoiceId: body.invoiceId ?? null, provider: "zarinpal" } });
+  const intent = await prisma.paymentIntent.create({ data: { patientId, amount: body.amount, purpose: body.purpose, invoiceId: body.invoiceId ?? null, provider: c.provider } });
   const base = (await getSetting("site.baseUrl", "http://localhost:3000")).replace(/\/$/, "");
+  const description = `${await getSetting("clinic.name")} - ${body.purpose === "WALLET" ? "شارژ کیف پول" : "پرداخت صورت‌حساب"} - ${patient.fileNumber}`;
+  if (c.provider === "zibal") {
+    const z = await zibalRequest({ merchant: c.zibalMerchant, sandbox: c.sandbox }, { amountToman: body.amount, description, callbackUrl: `${base}/api/payments/callback/${intent.id}`, mobile: patient.phone, orderId: intent.id });
+    if (!z.ok) {
+      await prisma.paymentIntent.update({ where: { id: intent.id }, data: { status: "FAILED", error: z.error } });
+      throw badRequest(z.error ?? "خطا در اتصال به درگاه");
+    }
+    await prisma.paymentIntent.update({ where: { id: intent.id }, data: { authority: z.trackId } });
+    return res.json({ url: zibalStartUrl(z.trackId!), intentId: intent.id });
+  }
   const r = await zpRequest({ merchantId: c.merchantId, sandbox: c.sandbox }, { amount: body.amount, description: `${await getSetting("clinic.name")} - ${body.purpose === "WALLET" ? "شارژ کیف پول" : "پرداخت صورت‌حساب"} - ${patient.fileNumber}`, callbackUrl: `${base}/api/payments/callback/${intent.id}`, mobile: patient.phone });
   if (!r.ok) {
     await prisma.paymentIntent.update({ where: { id: intent.id }, data: { status: "FAILED", error: r.error } });
@@ -51,13 +67,19 @@ paymentsRouter.get("/callback/:intentId", async (req, res) => {
   const intent = await prisma.paymentIntent.findUnique({ where: { id: String(req.params.intentId) }, include: { patient: true } });
   if (!intent) return redirect("invalid");
   if (intent.status === "PAID") return redirect("ok", intent.refId ?? "");
-  const authority = String(req.query.Authority ?? intent.authority ?? "");
-  if (String(req.query.Status) !== "OK") {
-    await prisma.paymentIntent.update({ where: { id: intent.id }, data: { status: "CANCELLED", error: "انصراف کاربر" } });
+  const isZibal = intent.provider === "zibal";
+  // زیبال: ?trackId=..&success=1|0&status=..  —  زرین‌پال: ?Authority=..&Status=OK|NOK
+  const authority = isZibal ? String(req.query.trackId ?? intent.authority ?? "") : String(req.query.Authority ?? intent.authority ?? "");
+  const success = isZibal ? String(req.query.success) === "1" : String(req.query.Status) === "OK";
+  if (isZibal && intent.authority && authority !== intent.authority) return redirect("invalid");
+  if (!success) {
+    await prisma.paymentIntent.update({ where: { id: intent.id }, data: { status: "CANCELLED", error: "انصراف کاربر یا پرداخت ناموفق" } });
     return redirect("cancelled");
   }
   const c = await cfg();
-  const v = await zpVerify({ merchantId: c.merchantId, sandbox: c.sandbox }, { amount: intent.amount, authority });
+  const v = isZibal
+    ? await zibalVerify({ merchant: c.zibalMerchant, sandbox: c.sandbox }, { trackId: authority, amountToman: intent.amount })
+    : await zpVerify({ merchantId: c.merchantId, sandbox: c.sandbox }, { amount: intent.amount, authority });
   if (!v.ok) {
     await prisma.paymentIntent.update({ where: { id: intent.id }, data: { status: "FAILED", error: v.error } });
     return redirect("failed");
@@ -66,11 +88,8 @@ paymentsRouter.get("/callback/:intentId", async (req, res) => {
   if (intent.purpose === "WALLET") {
     await prisma.walletTransaction.create({ data: { patientId: intent.patientId, amount: intent.amount, type: "DEPOSIT", description: `شارژ آنلاین - کد پیگیری ${v.refId}` } });
   } else {
-    let invoiceId = intent.invoiceId;
-    if (!invoiceId) invoiceId = (await prisma.invoice.findFirst({ where: { patientId: intent.patientId, status: { in: ["ISSUED", "PARTIAL"] } }, orderBy: { date: "asc" } }))?.id ?? null;
-    await prisma.payment.create({ data: { patientId: intent.patientId, invoiceId, amount: intent.amount, method: "ONLINE", reference: v.refId ?? null, note: "پرداخت آنلاین زرین‌پال" } });
-    if (invoiceId) await recomputeInvoice(invoiceId);
-    await checkDebtAlert(intent.patientId);
+    await prisma.payment.create({ data: { patientId: intent.patientId, invoiceId: intent.invoiceId ?? null, amount: intent.amount, method: "ONLINE", reference: v.refId ?? null, note: `پرداخت آنلاین ${isZibal ? "زیبال" : "زرین‌پال"}` } });
+    await rebalancePatient(intent.patientId);
   }
   await notifyUser(intent.patient.userId, "پرداخت آنلاین موفق", `مبلغ ${formatMoney(intent.amount)} ثبت شد. کد پیگیری: ${v.refId}`, "/panel/my/finance");
   await notifyRole("SECRETARY", "پرداخت آنلاین جدید", `${intent.patient.firstName} ${intent.patient.lastName}: ${formatMoney(intent.amount)}`, `/panel/patients/${intent.patientId}?tab=finance`);
@@ -117,10 +136,8 @@ paymentsRouter.post("/claims/:id/approve", requireAuth, requireAdminOrSecretary,
   if (c.purpose === "WALLET") {
     await prisma.walletTransaction.create({ data: { patientId: c.patientId, amount, type: "DEPOSIT", description: `کارت‌به‌کارت${c.refId ? ` - پیگیری ${c.refId}` : ""}`, createdById: req.user!.id } });
   } else {
-    const inv = await prisma.invoice.findFirst({ where: { patientId: c.patientId, status: { in: ["ISSUED", "PARTIAL"] } }, orderBy: { date: "asc" } });
-    await prisma.payment.create({ data: { patientId: c.patientId, invoiceId: inv?.id ?? null, amount, method: "TRANSFER", reference: c.refId ?? null, note: c.note ?? "اعلام پرداخت مراجع", receivedById: req.user!.id } });
-    if (inv) await recomputeInvoice(inv.id);
-    await checkDebtAlert(c.patientId);
+    await prisma.payment.create({ data: { patientId: c.patientId, invoiceId: null, amount, method: "TRANSFER", reference: c.refId ?? null, note: c.note ?? "اعلام پرداخت مراجع", receivedById: req.user!.id } });
+    await rebalancePatient(c.patientId);
   }
   await prisma.paymentIntent.update({ where: { id: c.id }, data: { status: "PAID", amount, paidAt: new Date(), handledById: req.user!.id } });
   await notifyUser(c.patient.userId, "پرداخت شما تأیید شد", `مبلغ ${formatMoney(amount)} در حساب شما ثبت شد`, "/panel/my/finance");
