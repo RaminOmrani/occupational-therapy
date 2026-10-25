@@ -63,8 +63,9 @@ paymentsRouter.post("/start", requireAuth, async (req, res) => {
 /** بازگشت از درگاه: تأیید تراکنش و ثبت پرداخت/شارژ کیف پول، سپس هدایت به پنل */
 paymentsRouter.get("/callback/:intentId", async (req, res) => {
   const base = (await getSetting("site.baseUrl", "http://localhost:3000")).replace(/\/$/, "");
-  const redirect = (status: string, ref = "") => res.redirect(`${base}/panel/my/finance?payment=${status}${ref ? `&ref=${encodeURIComponent(ref)}` : ""}`);
   const intent = await prisma.paymentIntent.findUnique({ where: { id: String(req.params.intentId) }, include: { patient: true } });
+  // pid: اگر پرداخت از پنل کارکنان شروع شده باشد، صفحه مقصد به پروفایل مالی همان مراجع می‌رود
+  const redirect = (status: string, ref = "") => res.redirect(`${base}/panel/my/finance?payment=${status}${ref ? `&ref=${encodeURIComponent(ref)}` : ""}${intent ? `&pid=${intent.patientId}` : ""}`);
   if (!intent) return redirect("invalid");
   if (intent.status === "PAID") return redirect("ok", intent.refId ?? "");
   const isZibal = intent.provider === "zibal";
